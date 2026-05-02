@@ -20,6 +20,7 @@ class StageTestCase(BaseTestCase):
     docs: list[dict[str, Any]] | None = None
     pipeline: list[dict[str, Any]] = field(default_factory=list)
     setup: Callable | None = None
+    transform: Callable | None = None
 
 
 def populate_collection(collection: Collection, test_case: StageTestCase) -> None:

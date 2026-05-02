@@ -346,6 +346,28 @@ UNWIND_INDEX_ALL_TESTS = (
     + UNWIND_INDEX_FIELD_NAME_ACCEPTANCE_TESTS
 )
 
+UNWIND_INDEX_TRANSFORM_TESTS: list[StageTestCase] = [
+    StageTestCase(
+        "index_field_order_appended",
+        docs=[{"_id": 1, "z": 99, "a": [10], "b": "keep"}],
+        pipeline=[{"$unwind": {"path": "$a", "includeArrayIndex": "idx"}}],
+        expected=[["_id", "z", "a", "b", "idx"]],
+        transform=lambda docs: [list(d.keys()) for d in docs],
+        msg="includeArrayIndex field should be appended at end of document field order",
+    ),
+    StageTestCase(
+        "index_dotted_field_order_appended",
+        docs=[{"_id": 1, "z": 99, "a": [10], "b": "keep"}],
+        pipeline=[{"$unwind": {"path": "$a", "includeArrayIndex": "x.y"}}],
+        expected=[["_id", "z", "a", "b", "x"]],
+        transform=lambda docs: [list(d.keys()) for d in docs],
+        msg=(
+            "includeArrayIndex dotted name top-level key should be appended"
+            " at end of document field order"
+        ),
+    ),
+]
+
 
 @pytest.mark.aggregate
 @pytest.mark.parametrize("test_case", pytest_params(UNWIND_INDEX_ALL_TESTS))
@@ -369,43 +391,21 @@ def test_unwind_include_array_index(collection, test_case: StageTestCase):
 
 
 @pytest.mark.aggregate
-def test_unwind_index_field_order(collection):
+@pytest.mark.parametrize("test_case", pytest_params(UNWIND_INDEX_TRANSFORM_TESTS))
+def test_unwind_include_array_index_field_order(collection, test_case: StageTestCase):
     """Test $unwind includeArrayIndex field ordering."""
-    collection.insert_many([{"_id": 1, "z": 99, "a": [10], "b": "keep"}])
+    populate_collection(collection, test_case)
     result = execute_command(
         collection,
         {
             "aggregate": collection.name,
-            "pipeline": [{"$unwind": {"path": "$a", "includeArrayIndex": "idx"}}],
+            "pipeline": test_case.pipeline,
             "cursor": {},
         },
     )
     assertSuccess(
         result,
-        expected=[["_id", "z", "a", "b", "idx"]],
-        transform=lambda docs: [list(d.keys()) for d in docs],
-        msg="includeArrayIndex field should be appended at end of document field order",
-    )
-
-
-@pytest.mark.aggregate
-def test_unwind_index_dotted_field_order(collection):
-    """Test $unwind includeArrayIndex dotted name field ordering."""
-    collection.insert_many([{"_id": 1, "z": 99, "a": [10], "b": "keep"}])
-    result = execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [{"$unwind": {"path": "$a", "includeArrayIndex": "x.y"}}],
-            "cursor": {},
-        },
-    )
-    assertSuccess(
-        result,
-        expected=[["_id", "z", "a", "b", "x"]],
-        transform=lambda docs: [list(d.keys()) for d in docs],
-        msg=(
-            "includeArrayIndex dotted name top-level key should be appended"
-            " at end of document field order"
-        ),
+        expected=test_case.expected,
+        transform=test_case.transform,
+        msg=test_case.msg,
     )

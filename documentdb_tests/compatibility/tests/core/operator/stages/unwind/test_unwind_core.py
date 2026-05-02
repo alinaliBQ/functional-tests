@@ -119,7 +119,49 @@ UNWIND_SHORTHAND_EQUIV_TESTS: list[StageTestCase] = [
     ),
 ]
 
-UNWIND_CORE_ALL_TESTS = UNWIND_CORE_TESTS + UNWIND_SHORTHAND_EQUIV_TESTS
+UNWIND_CORE_ALL_TESTS = (
+    UNWIND_CORE_TESTS
+    + UNWIND_SHORTHAND_EQUIV_TESTS
+    + [
+        StageTestCase(
+            "other_arrays_not_unwound",
+            docs=[{"_id": 1, "a": [1, 2], "b": ["x", "y"], "c": [[3]]}],
+            pipeline=[{"$unwind": "$a"}],
+            expected=[
+                {"_id": 1, "a": 1, "b": ["x", "y"], "c": [[3]]},
+                {"_id": 1, "a": 2, "b": ["x", "y"], "c": [[3]]},
+            ],
+            msg="$unwind should not unwind other array fields in the document",
+        ),
+    ]
+)
+
+# Property [Field Ordering]: document field order from the input is preserved
+# in output documents, and other array fields are not unwound.
+UNWIND_CORE_TRANSFORM_TESTS: list[StageTestCase] = [
+    StageTestCase(
+        "field_ordering_preserved",
+        docs=[{"_id": 1, "z": 99, "a": [10, 20], "m": "mid", "b": "end"}],
+        pipeline=[{"$unwind": "$a"}],
+        expected=[["_id", "z", "a", "m", "b"]],
+        transform=lambda docs: [list(d.keys()) for d in docs[:1]],
+        msg="$unwind should preserve input document field order in output",
+    ),
+    # Property [Large Arrays]: arrays with many elements produce the correct
+    # number of output documents with sequential indices and no off-by-one errors.
+    StageTestCase(
+        "large_array_10k",
+        docs=[{"_id": 1, "a": list(range(10_000))}],
+        pipeline=[
+            {"$unwind": {"path": "$a", "includeArrayIndex": "idx"}},
+        ],
+        expected=True,
+        transform=lambda docs: (
+            len(docs) == 10_000 and all(d["a"] == i and d["idx"] == i for i, d in enumerate(docs))
+        ),
+        msg="$unwind should produce 10,000 output documents with sequential values and indices",
+    ),
+]
 
 
 @pytest.mark.aggregate
@@ -143,69 +185,23 @@ def test_unwind_core(collection, test_case: StageTestCase):
     )
 
 
-# Property [Field Ordering]: document field order from the input is preserved
-# in output documents, and other array fields are not unwound.
 @pytest.mark.aggregate
-def test_unwind_field_ordering(collection):
-    """Test $unwind preserves input document field order."""
-    collection.insert_many([{"_id": 1, "z": 99, "a": [10, 20], "m": "mid", "b": "end"}])
+@pytest.mark.parametrize("test_case", pytest_params(UNWIND_CORE_TRANSFORM_TESTS))
+def test_unwind_core_transform(collection, test_case: StageTestCase):
+    """Test $unwind core behavior with transform assertions."""
+    populate_collection(collection, test_case)
+    cursor_opts = {"batchSize": 10_000} if test_case.id == "large_array_10k" else {}
     result = execute_command(
         collection,
         {
             "aggregate": collection.name,
-            "pipeline": [{"$unwind": "$a"}],
-            "cursor": {},
+            "pipeline": test_case.pipeline,
+            "cursor": cursor_opts,
         },
     )
     assertSuccess(
         result,
-        expected=[["_id", "z", "a", "m", "b"]],
-        transform=lambda docs: [list(d.keys()) for d in docs[:1]],
-        msg="$unwind should preserve input document field order in output",
-    )
-
-
-@pytest.mark.aggregate
-def test_unwind_other_arrays_not_unwound(collection):
-    """Test $unwind does not unwind other array fields."""
-    collection.insert_many([{"_id": 1, "a": [1, 2], "b": ["x", "y"], "c": [[3]]}])
-    result = execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [{"$unwind": "$a"}],
-            "cursor": {},
-        },
-    )
-    assertSuccess(
-        result,
-        expected=[
-            {"_id": 1, "a": 1, "b": ["x", "y"], "c": [[3]]},
-            {"_id": 1, "a": 2, "b": ["x", "y"], "c": [[3]]},
-        ],
-        msg="$unwind should not unwind other array fields in the document",
-    )
-
-
-# Property [Large Arrays]: arrays with many elements produce the correct
-# number of output documents with sequential indices and no off-by-one errors.
-@pytest.mark.aggregate
-def test_unwind_large_array(collection):
-    """Test $unwind with a large array."""
-    collection.insert_many([{"_id": 1, "a": list(range(10_000))}])
-    result = execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [{"$unwind": {"path": "$a", "includeArrayIndex": "idx"}}],
-            "cursor": {"batchSize": 10_000},
-        },
-    )
-    assertSuccess(
-        result,
-        expected=True,
-        transform=lambda docs: (
-            len(docs) == 10_000 and all(d["a"] == i and d["idx"] == i for i, d in enumerate(docs))
-        ),
-        msg="$unwind should produce 10,000 output documents with sequential values and indices",
+        expected=test_case.expected,
+        transform=test_case.transform,
+        msg=test_case.msg,
     )
