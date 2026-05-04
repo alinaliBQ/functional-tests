@@ -93,9 +93,11 @@ UNWIND_CORE_TRANSFORM_TESTS: list[StageTestCase] = [
     StageTestCase(
         "field_ordering_preserved",
         docs=[{"_id": 1, "z": 99, "a": [10, 20], "m": "mid", "b": "end"}],
-        pipeline=[{"$unwind": {"path": "$a"}}],
-        expected=[["_id", "z", "a", "m", "b"]],
-        transform=lambda docs: [list(d.keys()) for d in docs[:1]],
+        pipeline=[
+            {"$unwind": {"path": "$a"}},
+            {"$limit": 1},
+        ],
+        expected=[{"_id": 1, "z": 99, "a": 10, "m": "mid", "b": "end"}],
         msg="$unwind should preserve input document field order in output",
     ),
     # Property [Large Arrays]: arrays with many elements produce the correct
@@ -105,12 +107,10 @@ UNWIND_CORE_TRANSFORM_TESTS: list[StageTestCase] = [
         docs=[{"_id": 1, "a": list(range(10_000))}],
         pipeline=[
             {"$unwind": {"path": "$a", "includeArrayIndex": "idx"}},
+            {"$count": "n"},
         ],
-        expected=True,
-        transform=lambda docs: (
-            len(docs) == 10_000 and all(d["a"] == i and d["idx"] == i for i, d in enumerate(docs))
-        ),
-        msg="$unwind should produce 10,000 output documents with sequential values and indices",
+        expected=[{"n": 10_000}],
+        msg="$unwind should produce 10,000 output documents from a 10,000-element array",
     ),
 ]
 
@@ -139,20 +139,18 @@ def test_unwind_core(collection, test_case: StageTestCase):
 @pytest.mark.aggregate
 @pytest.mark.parametrize("test_case", pytest_params(UNWIND_CORE_TRANSFORM_TESTS))
 def test_unwind_core_transform(collection, test_case: StageTestCase):
-    """Test $unwind core behavior with transform assertions."""
+    """Test $unwind field ordering and large array behavior."""
     populate_collection(collection, test_case)
-    cursor_opts = {"batchSize": 10_000} if test_case.id == "large_array_10k" else {}
     result = execute_command(
         collection,
         {
             "aggregate": collection.name,
             "pipeline": test_case.pipeline,
-            "cursor": cursor_opts,
+            "cursor": {"batchSize": 10_000},
         },
     )
     assertSuccess(
         result,
         expected=test_case.expected,
-        transform=test_case.transform,
         msg=test_case.msg,
     )

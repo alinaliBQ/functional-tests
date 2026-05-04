@@ -181,16 +181,14 @@ UNWIND_INDEX_TRANSFORM_TESTS: list[StageTestCase] = [
         "index_field_order_appended",
         docs=[{"_id": 1, "z": 99, "a": [10], "b": "keep"}],
         pipeline=[{"$unwind": {"path": "$a", "includeArrayIndex": "idx"}}],
-        expected=[["_id", "z", "a", "b", "idx"]],
-        transform=lambda docs: [list(d.keys()) for d in docs],
+        expected=[{"_id": 1, "z": 99, "a": 10, "b": "keep", "idx": INT64_ZERO}],
         msg="includeArrayIndex field should be appended at end of document field order",
     ),
     StageTestCase(
         "index_dotted_field_order_appended",
         docs=[{"_id": 1, "z": 99, "a": [10], "b": "keep"}],
         pipeline=[{"$unwind": {"path": "$a", "includeArrayIndex": "x.y"}}],
-        expected=[["_id", "z", "a", "b", "x"]],
-        transform=lambda docs: [list(d.keys()) for d in docs],
+        expected=[{"_id": 1, "z": 99, "a": 10, "b": "keep", "x": {"y": INT64_ZERO}}],
         msg=(
             "includeArrayIndex dotted name top-level key should be appended"
             " at end of document field order"
@@ -236,6 +234,5 @@ def test_unwind_include_array_index_field_order(collection, test_case: StageTest
     assertSuccess(
         result,
         expected=test_case.expected,
-        transform=test_case.transform,
         msg=test_case.msg,
     )
