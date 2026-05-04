@@ -30,7 +30,7 @@ UNWIND_MIXED_SHAPE_TESTS: list[StageTestCase] = [
             {"_id": 5, "a": "scalar"},
             {"_id": 6, "a": [3]},
         ],
-        pipeline=[{"$unwind": "$a"}],
+        pipeline=[{"$unwind": {"path": "$a"}}],
         expected=[
             {"_id": 1, "a": 1},
             {"_id": 1, "a": 2},
@@ -145,7 +145,7 @@ UNWIND_MIXED_SHAPE_TESTS: list[StageTestCase] = [
             {"_id": 2},
             {"_id": 3, "a": []},
         ],
-        pipeline=[{"$unwind": "$a"}],
+        pipeline=[{"$unwind": {"path": "$a"}}],
         expected=[],
         msg=(
             "$unwind should produce empty result when all documents have"

@@ -32,35 +32,35 @@ UNWIND_BSON_TYPE_TESTS: list[StageTestCase] = [
     StageTestCase(
         "bson_bool",
         docs=[{"_id": 1, "a": [True, False]}],
-        pipeline=[{"$unwind": "$a"}],
+        pipeline=[{"$unwind": {"path": "$a"}}],
         expected=[{"_id": 1, "a": True}, {"_id": 1, "a": False}],
         msg="$unwind should preserve bool elements",
     ),
     StageTestCase(
         "bson_int32",
         docs=[{"_id": 1, "a": [1, 2]}],
-        pipeline=[{"$unwind": "$a"}],
+        pipeline=[{"$unwind": {"path": "$a"}}],
         expected=[{"_id": 1, "a": 1}, {"_id": 1, "a": 2}],
         msg="$unwind should preserve int32 elements",
     ),
     StageTestCase(
         "bson_int64",
         docs=[{"_id": 1, "a": [Int64(100), Int64(200)]}],
-        pipeline=[{"$unwind": "$a"}],
+        pipeline=[{"$unwind": {"path": "$a"}}],
         expected=[{"_id": 1, "a": Int64(100)}, {"_id": 1, "a": Int64(200)}],
         msg="$unwind should preserve Int64 elements",
     ),
     StageTestCase(
         "bson_double",
         docs=[{"_id": 1, "a": [1.5, 2.5]}],
-        pipeline=[{"$unwind": "$a"}],
+        pipeline=[{"$unwind": {"path": "$a"}}],
         expected=[{"_id": 1, "a": 1.5}, {"_id": 1, "a": 2.5}],
         msg="$unwind should preserve double elements",
     ),
     StageTestCase(
         "bson_decimal128",
         docs=[{"_id": 1, "a": [Decimal128("1.1"), Decimal128("2.2")]}],
-        pipeline=[{"$unwind": "$a"}],
+        pipeline=[{"$unwind": {"path": "$a"}}],
         expected=[
             {"_id": 1, "a": Decimal128("1.1")},
             {"_id": 1, "a": Decimal128("2.2")},
@@ -70,14 +70,14 @@ UNWIND_BSON_TYPE_TESTS: list[StageTestCase] = [
     StageTestCase(
         "bson_string",
         docs=[{"_id": 1, "a": ["hello", "world"]}],
-        pipeline=[{"$unwind": "$a"}],
+        pipeline=[{"$unwind": {"path": "$a"}}],
         expected=[{"_id": 1, "a": "hello"}, {"_id": 1, "a": "world"}],
         msg="$unwind should preserve string elements",
     ),
     StageTestCase(
         "bson_object",
         docs=[{"_id": 1, "a": [{"x": 1}, {"y": 2}]}],
-        pipeline=[{"$unwind": "$a"}],
+        pipeline=[{"$unwind": {"path": "$a"}}],
         expected=[{"_id": 1, "a": {"x": 1}}, {"_id": 1, "a": {"y": 2}}],
         msg="$unwind should preserve embedded document elements",
     ),
@@ -92,7 +92,7 @@ UNWIND_BSON_TYPE_TESTS: list[StageTestCase] = [
                 ],
             }
         ],
-        pipeline=[{"$unwind": "$a"}],
+        pipeline=[{"$unwind": {"path": "$a"}}],
         expected=[
             {"_id": 1, "a": ObjectId("000000000000000000000001")},
             {"_id": 1, "a": ObjectId("000000000000000000000002")},
@@ -110,7 +110,7 @@ UNWIND_BSON_TYPE_TESTS: list[StageTestCase] = [
                 ],
             }
         ],
-        pipeline=[{"$unwind": "$a"}],
+        pipeline=[{"$unwind": {"path": "$a"}}],
         expected=[
             {"_id": 1, "a": datetime(2024, 1, 1, tzinfo=timezone.utc)},
             {"_id": 1, "a": datetime(2025, 6, 15, tzinfo=timezone.utc)},
@@ -120,7 +120,7 @@ UNWIND_BSON_TYPE_TESTS: list[StageTestCase] = [
     StageTestCase(
         "bson_timestamp",
         docs=[{"_id": 1, "a": [Timestamp(1, 1), Timestamp(2, 2)]}],
-        pipeline=[{"$unwind": "$a"}],
+        pipeline=[{"$unwind": {"path": "$a"}}],
         expected=[
             {"_id": 1, "a": Timestamp(1, 1)},
             {"_id": 1, "a": Timestamp(2, 2)},
@@ -130,7 +130,7 @@ UNWIND_BSON_TYPE_TESTS: list[StageTestCase] = [
     StageTestCase(
         "bson_binary",
         docs=[{"_id": 1, "a": [Binary(b"\x01"), Binary(b"\x02")]}],
-        pipeline=[{"$unwind": "$a"}],
+        pipeline=[{"$unwind": {"path": "$a"}}],
         expected=[
             {"_id": 1, "a": b"\x01"},
             {"_id": 1, "a": b"\x02"},
@@ -148,7 +148,7 @@ UNWIND_BSON_TYPE_TESTS: list[StageTestCase] = [
                 ],
             }
         ],
-        pipeline=[{"$unwind": "$a"}],
+        pipeline=[{"$unwind": {"path": "$a"}}],
         expected=[
             {
                 "_id": 1,
@@ -164,7 +164,7 @@ UNWIND_BSON_TYPE_TESTS: list[StageTestCase] = [
     StageTestCase(
         "bson_regex",
         docs=[{"_id": 1, "a": [Regex("^a", "i"), Regex("^b")]}],
-        pipeline=[{"$unwind": "$a"}],
+        pipeline=[{"$unwind": {"path": "$a"}}],
         expected=[
             {"_id": 1, "a": Regex("^a", "i")},
             {"_id": 1, "a": Regex("^b")},
@@ -174,14 +174,14 @@ UNWIND_BSON_TYPE_TESTS: list[StageTestCase] = [
     StageTestCase(
         "bson_code",
         docs=[{"_id": 1, "a": [Code("x"), Code("y")]}],
-        pipeline=[{"$unwind": "$a"}],
+        pipeline=[{"$unwind": {"path": "$a"}}],
         expected=[{"_id": 1, "a": Code("x")}, {"_id": 1, "a": Code("y")}],
         msg="$unwind should preserve Code elements",
     ),
     StageTestCase(
         "bson_code_with_scope",
         docs=[{"_id": 1, "a": [Code("x", {}), Code("y", {"z": 1})]}],
-        pipeline=[{"$unwind": "$a"}],
+        pipeline=[{"$unwind": {"path": "$a"}}],
         expected=[
             {"_id": 1, "a": Code("x", {})},
             {"_id": 1, "a": Code("y", {"z": 1})},
@@ -191,21 +191,21 @@ UNWIND_BSON_TYPE_TESTS: list[StageTestCase] = [
     StageTestCase(
         "bson_minkey",
         docs=[{"_id": 1, "a": [MinKey(), 1]}],
-        pipeline=[{"$unwind": "$a"}],
+        pipeline=[{"$unwind": {"path": "$a"}}],
         expected=[{"_id": 1, "a": MinKey()}, {"_id": 1, "a": 1}],
         msg="$unwind should preserve MinKey elements",
     ),
     StageTestCase(
         "bson_maxkey",
         docs=[{"_id": 1, "a": [MaxKey(), 1]}],
-        pipeline=[{"$unwind": "$a"}],
+        pipeline=[{"$unwind": {"path": "$a"}}],
         expected=[{"_id": 1, "a": MaxKey()}, {"_id": 1, "a": 1}],
         msg="$unwind should preserve MaxKey elements",
     ),
     StageTestCase(
         "bson_null_element",
         docs=[{"_id": 1, "a": [None, 1]}],
-        pipeline=[{"$unwind": "$a"}],
+        pipeline=[{"$unwind": {"path": "$a"}}],
         expected=[{"_id": 1, "a": None}, {"_id": 1, "a": 1}],
         msg="$unwind should preserve null elements within an array",
     ),

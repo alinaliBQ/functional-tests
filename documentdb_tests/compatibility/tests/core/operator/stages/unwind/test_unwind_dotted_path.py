@@ -21,7 +21,7 @@ UNWIND_DOTTED_PATH_TESTS: list[StageTestCase] = [
     StageTestCase(
         "dotted_basic_nested_doc",
         docs=[{"_id": 1, "a": {"b": [1, 2, 3]}}],
-        pipeline=[{"$unwind": "$a.b"}],
+        pipeline=[{"$unwind": {"path": "$a.b"}}],
         expected=[
             {"_id": 1, "a": {"b": 1}},
             {"_id": 1, "a": {"b": 2}},
@@ -32,7 +32,7 @@ UNWIND_DOTTED_PATH_TESTS: list[StageTestCase] = [
     StageTestCase(
         "dotted_deep_nested_doc",
         docs=[{"_id": 1, "a": {"b": {"c": [10, 20]}}}],
-        pipeline=[{"$unwind": "$a.b.c"}],
+        pipeline=[{"$unwind": {"path": "$a.b.c"}}],
         expected=[
             {"_id": 1, "a": {"b": {"c": 10}}},
             {"_id": 1, "a": {"b": {"c": 20}}},
@@ -42,7 +42,7 @@ UNWIND_DOTTED_PATH_TESTS: list[StageTestCase] = [
     StageTestCase(
         "dotted_preserves_sibling_fields",
         docs=[{"_id": 1, "a": {"b": [1, 2], "x": 99}}],
-        pipeline=[{"$unwind": "$a.b"}],
+        pipeline=[{"$unwind": {"path": "$a.b"}}],
         expected=[
             {"_id": 1, "a": {"b": 1, "x": 99}},
             {"_id": 1, "a": {"b": 2, "x": 99}},
@@ -52,7 +52,7 @@ UNWIND_DOTTED_PATH_TESTS: list[StageTestCase] = [
     StageTestCase(
         "dotted_intermediate_array_no_preserve",
         docs=[{"_id": 1, "a": [{"b": 1}, {"b": 2}]}],
-        pipeline=[{"$unwind": "$a.b"}],
+        pipeline=[{"$unwind": {"path": "$a.b"}}],
         expected=[],
         msg=(
             "$unwind with dotted path should not traverse into array elements"
@@ -72,7 +72,7 @@ UNWIND_DOTTED_PATH_TESTS: list[StageTestCase] = [
     StageTestCase(
         "dotted_numeric_component_as_field_name",
         docs=[{"_id": 1, "a": {"0": [10, 20]}}],
-        pipeline=[{"$unwind": "$a.0"}],
+        pipeline=[{"$unwind": {"path": "$a.0"}}],
         expected=[
             {"_id": 1, "a": {"0": 10}},
             {"_id": 1, "a": {"0": 20}},
@@ -82,7 +82,7 @@ UNWIND_DOTTED_PATH_TESTS: list[StageTestCase] = [
     StageTestCase(
         "dotted_numeric_component_array_parent_no_preserve",
         docs=[{"_id": 1, "a": [[10, 20], [30]]}],
-        pipeline=[{"$unwind": "$a.0"}],
+        pipeline=[{"$unwind": {"path": "$a.0"}}],
         expected=[],
         msg=(
             "$unwind with numeric path component should not index into array"
@@ -112,7 +112,7 @@ UNWIND_DOTTED_PATH_TESTS: list[StageTestCase] = [
     StageTestCase(
         "dotted_intermediate_scalar_no_preserve",
         docs=[{"_id": 1, "a": 42}],
-        pipeline=[{"$unwind": "$a.b"}],
+        pipeline=[{"$unwind": {"path": "$a.b"}}],
         expected=[],
         msg="$unwind with dotted path should treat path as missing when intermediate is a scalar",
     ),
@@ -129,7 +129,7 @@ UNWIND_DOTTED_PATH_TESTS: list[StageTestCase] = [
     StageTestCase(
         "dotted_intermediate_null_no_preserve",
         docs=[{"_id": 1, "a": None}],
-        pipeline=[{"$unwind": "$a.b"}],
+        pipeline=[{"$unwind": {"path": "$a.b"}}],
         expected=[],
         msg="$unwind with dotted path should treat path as missing when intermediate is null",
     ),
@@ -146,7 +146,7 @@ UNWIND_DOTTED_PATH_TESTS: list[StageTestCase] = [
     StageTestCase(
         "dotted_intermediate_missing_no_preserve",
         docs=[{"_id": 1, "x": 10}],
-        pipeline=[{"$unwind": "$a.b"}],
+        pipeline=[{"$unwind": {"path": "$a.b"}}],
         expected=[],
         msg=(
             "$unwind with dotted path should treat path as missing when"

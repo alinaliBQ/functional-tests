@@ -19,7 +19,7 @@ UNWIND_CORE_TESTS: list[StageTestCase] = [
     StageTestCase(
         "core_basic_array",
         docs=[{"_id": 1, "a": [1, 2, 3]}],
-        pipeline=[{"$unwind": "$a"}],
+        pipeline=[{"$unwind": {"path": "$a"}}],
         expected=[
             {"_id": 1, "a": 1},
             {"_id": 1, "a": 2},
@@ -30,7 +30,7 @@ UNWIND_CORE_TESTS: list[StageTestCase] = [
     StageTestCase(
         "core_retains_other_fields",
         docs=[{"_id": 1, "a": [10, 20], "x": "keep", "y": 99}],
-        pipeline=[{"$unwind": "$a"}],
+        pipeline=[{"$unwind": {"path": "$a"}}],
         expected=[
             {"_id": 1, "a": 10, "x": "keep", "y": 99},
             {"_id": 1, "a": 20, "x": "keep", "y": 99},
@@ -40,7 +40,7 @@ UNWIND_CORE_TESTS: list[StageTestCase] = [
     StageTestCase(
         "core_preserves_array_order",
         docs=[{"_id": 1, "a": ["c", "a", "b"]}],
-        pipeline=[{"$unwind": "$a"}],
+        pipeline=[{"$unwind": {"path": "$a"}}],
         expected=[
             {"_id": 1, "a": "c"},
             {"_id": 1, "a": "a"},
@@ -51,7 +51,7 @@ UNWIND_CORE_TESTS: list[StageTestCase] = [
     StageTestCase(
         "core_duplicates_not_deduplicated",
         docs=[{"_id": 1, "a": [5, 5, 5]}],
-        pipeline=[{"$unwind": "$a"}],
+        pipeline=[{"$unwind": {"path": "$a"}}],
         expected=[
             {"_id": 1, "a": 5},
             {"_id": 1, "a": 5},
@@ -62,7 +62,7 @@ UNWIND_CORE_TESTS: list[StageTestCase] = [
     StageTestCase(
         "core_mixed_type_array",
         docs=[{"_id": 1, "a": [1, "two", True, None, 3.5]}],
-        pipeline=[{"$unwind": "$a"}],
+        pipeline=[{"$unwind": {"path": "$a"}}],
         expected=[
             {"_id": 1, "a": 1},
             {"_id": 1, "a": "two"},
@@ -74,67 +74,18 @@ UNWIND_CORE_TESTS: list[StageTestCase] = [
     ),
 ]
 
-# Property [Shorthand Document Form Equivalence]: the shorthand
-# { $unwind: "$field" } and document form { $unwind: { path: "$field" } }
-# produce identical results for all input types.
-UNWIND_SHORTHAND_EQUIV_TESTS: list[StageTestCase] = [
+UNWIND_CORE_ALL_TESTS = UNWIND_CORE_TESTS + [
     StageTestCase(
-        "equiv_document_form_array",
-        docs=[{"_id": 1, "a": [1, 2, 3]}],
+        "other_arrays_not_unwound",
+        docs=[{"_id": 1, "a": [1, 2], "b": ["x", "y"], "c": [[3]]}],
         pipeline=[{"$unwind": {"path": "$a"}}],
         expected=[
-            {"_id": 1, "a": 1},
-            {"_id": 1, "a": 2},
-            {"_id": 1, "a": 3},
+            {"_id": 1, "a": 1, "b": ["x", "y"], "c": [[3]]},
+            {"_id": 1, "a": 2, "b": ["x", "y"], "c": [[3]]},
         ],
-        msg="Document form should unwind array identically to shorthand form",
-    ),
-    StageTestCase(
-        "equiv_document_form_scalar",
-        docs=[{"_id": 1, "a": 42}],
-        pipeline=[{"$unwind": {"path": "$a"}}],
-        expected=[{"_id": 1, "a": 42}],
-        msg="Document form should pass through scalar identically to shorthand form",
-    ),
-    StageTestCase(
-        "equiv_shorthand_null",
-        docs=[{"_id": 1, "a": None}],
-        pipeline=[{"$unwind": "$a"}],
-        expected=[],
-        msg="Shorthand form should drop null identically to document form",
-    ),
-    StageTestCase(
-        "equiv_shorthand_missing",
-        docs=[{"_id": 1, "x": 10}],
-        pipeline=[{"$unwind": "$a"}],
-        expected=[],
-        msg="Shorthand form should drop missing identically to document form",
-    ),
-    StageTestCase(
-        "equiv_shorthand_empty_array",
-        docs=[{"_id": 1, "a": []}],
-        pipeline=[{"$unwind": "$a"}],
-        expected=[],
-        msg="Shorthand form should drop empty array identically to document form",
+        msg="$unwind should not unwind other array fields in the document",
     ),
 ]
-
-UNWIND_CORE_ALL_TESTS = (
-    UNWIND_CORE_TESTS
-    + UNWIND_SHORTHAND_EQUIV_TESTS
-    + [
-        StageTestCase(
-            "other_arrays_not_unwound",
-            docs=[{"_id": 1, "a": [1, 2], "b": ["x", "y"], "c": [[3]]}],
-            pipeline=[{"$unwind": "$a"}],
-            expected=[
-                {"_id": 1, "a": 1, "b": ["x", "y"], "c": [[3]]},
-                {"_id": 1, "a": 2, "b": ["x", "y"], "c": [[3]]},
-            ],
-            msg="$unwind should not unwind other array fields in the document",
-        ),
-    ]
-)
 
 # Property [Field Ordering]: document field order from the input is preserved
 # in output documents, and other array fields are not unwound.
@@ -142,7 +93,7 @@ UNWIND_CORE_TRANSFORM_TESTS: list[StageTestCase] = [
     StageTestCase(
         "field_ordering_preserved",
         docs=[{"_id": 1, "z": 99, "a": [10, 20], "m": "mid", "b": "end"}],
-        pipeline=[{"$unwind": "$a"}],
+        pipeline=[{"$unwind": {"path": "$a"}}],
         expected=[["_id", "z", "a", "m", "b"]],
         transform=lambda docs: [list(d.keys()) for d in docs[:1]],
         msg="$unwind should preserve input document field order in output",

@@ -26,7 +26,7 @@ UNWIND_PIPELINE_INTEGRATION_TESTS: list[StageTestCase] = [
         ],
         pipeline=[
             {"$match": {"status": "active"}},
-            {"$unwind": "$tags"},
+            {"$unwind": {"path": "$tags"}},
         ],
         expected=[
             {"_id": 1, "status": "active", "tags": "a"},
@@ -42,7 +42,7 @@ UNWIND_PIPELINE_INTEGRATION_TESTS: list[StageTestCase] = [
             {"_id": 2, "tags": ["b", "d"]},
         ],
         pipeline=[
-            {"$unwind": "$tags"},
+            {"$unwind": {"path": "$tags"}},
             {"$match": {"tags": "b"}},
         ],
         expected=[
@@ -58,7 +58,7 @@ UNWIND_PIPELINE_INTEGRATION_TESTS: list[StageTestCase] = [
             {"_id": 2, "items": [{"name": "x", "qty": 5}]},
         ],
         pipeline=[
-            {"$unwind": "$items"},
+            {"$unwind": {"path": "$items"}},
             {"$group": {"_id": "$items.name", "total": {"$sum": "$items.qty"}}},
             {"$sort": {"_id": 1}},
         ],
@@ -72,7 +72,7 @@ UNWIND_PIPELINE_INTEGRATION_TESTS: list[StageTestCase] = [
         "project_after_unwind",
         docs=[{"_id": 1, "a": [10, 20], "extra": "keep"}],
         pipeline=[
-            {"$unwind": "$a"},
+            {"$unwind": {"path": "$a"}},
             {"$project": {"val": "$a", "_id": 0}},
         ],
         expected=[
@@ -88,7 +88,7 @@ UNWIND_PIPELINE_INTEGRATION_TESTS: list[StageTestCase] = [
             {"_id": 2, "a": [5, 25]},
         ],
         pipeline=[
-            {"$unwind": "$a"},
+            {"$unwind": {"path": "$a"}},
             {"$sort": {"a": 1}},
         ],
         expected=[
@@ -119,7 +119,7 @@ UNWIND_PIPELINE_INTEGRATION_TESTS: list[StageTestCase] = [
                     "let": {"oid": "$order_id"},
                     "pipeline": [
                         {"$match": {"$expr": {"$eq": ["$order_id", "$$oid"]}}},
-                        {"$unwind": "$items"},
+                        {"$unwind": {"path": "$items"}},
                     ],
                     "as": "details",
                 }
@@ -142,12 +142,12 @@ UNWIND_PIPELINE_INTEGRATION_TESTS: list[StageTestCase] = [
             {
                 "$facet": {
                     "by_tag": [
-                        {"$unwind": "$tags"},
+                        {"$unwind": {"path": "$tags"}},
                         {"$group": {"_id": "$tags", "count": {"$sum": 1}}},
                         {"$sort": {"_id": 1}},
                     ],
                     "by_score": [
-                        {"$unwind": "$scores"},
+                        {"$unwind": {"path": "$scores"}},
                         {"$group": {"_id": None, "avg": {"$avg": "$scores"}}},
                     ],
                 }
@@ -189,7 +189,7 @@ UNWIND_PIPELINE_INTEGRATION_TESTS: list[StageTestCase] = [
             {"_id": 3, "tags": ["a"]},
         ],
         pipeline=[
-            {"$unwind": "$tags"},
+            {"$unwind": {"path": "$tags"}},
             {"$group": {"_id": "$tags", "count": {"$sum": 1}}},
             {"$sort": {"_id": 1}},
         ],

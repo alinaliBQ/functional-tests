@@ -38,7 +38,7 @@ UNWIND_MULTI_STAGE_TESTS: list[StageTestCase] = [
     StageTestCase(
         "multi_stage_cross_product_different_fields",
         docs=[{"_id": 1, "a": [1, 2], "b": ["x", "y"]}],
-        pipeline=[{"$unwind": "$a"}, {"$unwind": "$b"}],
+        pipeline=[{"$unwind": {"path": "$a"}}, {"$unwind": {"path": "$b"}}],
         expected=[
             {"_id": 1, "a": 1, "b": "x"},
             {"_id": 1, "a": 1, "b": "y"},

@@ -22,7 +22,7 @@ UNWIND_UNICODE_ENCODING_TESTS: list[StageTestCase] = [
     StageTestCase(
         "unicode_precomposed_path_distinct_from_decomposed",
         docs=[{"_id": 1, "\u00e9": [1, 2], "e\u0301": [10, 20]}],
-        pipeline=[{"$unwind": "$\u00e9"}],
+        pipeline=[{"$unwind": {"path": "$\u00e9"}}],
         expected=[
             {"_id": 1, "\u00e9": 1, "e\u0301": [10, 20]},
             {"_id": 1, "\u00e9": 2, "e\u0301": [10, 20]},
@@ -35,7 +35,7 @@ UNWIND_UNICODE_ENCODING_TESTS: list[StageTestCase] = [
     StageTestCase(
         "unicode_decomposed_path_distinct_from_precomposed",
         docs=[{"_id": 1, "\u00e9": [1, 2], "e\u0301": [10, 20]}],
-        pipeline=[{"$unwind": "$e\u0301"}],
+        pipeline=[{"$unwind": {"path": "$e\u0301"}}],
         expected=[
             {"_id": 1, "\u00e9": [1, 2], "e\u0301": 10},
             {"_id": 1, "\u00e9": [1, 2], "e\u0301": 20},
@@ -74,42 +74,42 @@ UNWIND_UNICODE_ENCODING_TESTS: list[StageTestCase] = [
     StageTestCase(
         "unicode_space_in_path",
         docs=[{"_id": 1, "a b": [1, 2]}],
-        pipeline=[{"$unwind": "$a b"}],
+        pipeline=[{"$unwind": {"path": "$a b"}}],
         expected=[{"_id": 1, "a b": 1}, {"_id": 1, "a b": 2}],
         msg="$unwind should accept space in path field name",
     ),
     StageTestCase(
         "unicode_tab_in_path",
         docs=[{"_id": 1, "a\tb": [1, 2]}],
-        pipeline=[{"$unwind": "$a\tb"}],
+        pipeline=[{"$unwind": {"path": "$a\tb"}}],
         expected=[{"_id": 1, "a\tb": 1}, {"_id": 1, "a\tb": 2}],
         msg="$unwind should accept tab in path field name",
     ),
     StageTestCase(
         "unicode_nbsp_in_path",
         docs=[{"_id": 1, "a\u00a0b": [1, 2]}],
-        pipeline=[{"$unwind": "$a\u00a0b"}],
+        pipeline=[{"$unwind": {"path": "$a\u00a0b"}}],
         expected=[{"_id": 1, "a\u00a0b": 1}, {"_id": 1, "a\u00a0b": 2}],
         msg="$unwind should accept NBSP in path field name",
     ),
     StageTestCase(
         "unicode_control_char_in_path",
         docs=[{"_id": 1, "a\x01b": [1, 2]}],
-        pipeline=[{"$unwind": "$a\x01b"}],
+        pipeline=[{"$unwind": {"path": "$a\x01b"}}],
         expected=[{"_id": 1, "a\x01b": 1}, {"_id": 1, "a\x01b": 2}],
         msg="$unwind should accept control character in path field name",
     ),
     StageTestCase(
         "unicode_emoji_in_path",
         docs=[{"_id": 1, "\U0001f389": [1, 2]}],
-        pipeline=[{"$unwind": "$\U0001f389"}],
+        pipeline=[{"$unwind": {"path": "$\U0001f389"}}],
         expected=[{"_id": 1, "\U0001f389": 1}, {"_id": 1, "\U0001f389": 2}],
         msg="$unwind should accept emoji in path field name",
     ),
     StageTestCase(
         "unicode_zwj_sequence_in_path",
         docs=[{"_id": 1, "\U0001f468\u200d\U0001f469\u200d\U0001f467": [1, 2]}],
-        pipeline=[{"$unwind": "$\U0001f468\u200d\U0001f469\u200d\U0001f467"}],
+        pipeline=[{"$unwind": {"path": "$\U0001f468\u200d\U0001f469\u200d\U0001f467"}}],
         expected=[
             {"_id": 1, "\U0001f468\u200d\U0001f469\u200d\U0001f467": 1},
             {"_id": 1, "\U0001f468\u200d\U0001f469\u200d\U0001f467": 2},

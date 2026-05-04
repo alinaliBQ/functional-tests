@@ -19,7 +19,7 @@ UNWIND_NESTED_ARRAYS_TESTS: list[StageTestCase] = [
     StageTestCase(
         "nested_array_of_arrays",
         docs=[{"_id": 1, "a": [[1, 2], [3]]}],
-        pipeline=[{"$unwind": "$a"}],
+        pipeline=[{"$unwind": {"path": "$a"}}],
         expected=[
             {"_id": 1, "a": [1, 2]},
             {"_id": 1, "a": [3]},
@@ -29,7 +29,7 @@ UNWIND_NESTED_ARRAYS_TESTS: list[StageTestCase] = [
     StageTestCase(
         "nested_deeply_nested",
         docs=[{"_id": 1, "a": [[[1]], [[2, 3]]]}],
-        pipeline=[{"$unwind": "$a"}],
+        pipeline=[{"$unwind": {"path": "$a"}}],
         expected=[
             {"_id": 1, "a": [[1]]},
             {"_id": 1, "a": [[2, 3]]},
@@ -39,7 +39,7 @@ UNWIND_NESTED_ARRAYS_TESTS: list[StageTestCase] = [
     StageTestCase(
         "nested_mixed_scalars_and_arrays",
         docs=[{"_id": 1, "a": [1, [2, 3], 4]}],
-        pipeline=[{"$unwind": "$a"}],
+        pipeline=[{"$unwind": {"path": "$a"}}],
         expected=[
             {"_id": 1, "a": 1},
             {"_id": 1, "a": [2, 3]},
@@ -50,7 +50,7 @@ UNWIND_NESTED_ARRAYS_TESTS: list[StageTestCase] = [
     StageTestCase(
         "nested_successive_unwind_flattens",
         docs=[{"_id": 1, "a": [[10, 20], [30]]}],
-        pipeline=[{"$unwind": "$a"}, {"$unwind": "$a"}],
+        pipeline=[{"$unwind": {"path": "$a"}}, {"$unwind": {"path": "$a"}}],
         expected=[
             {"_id": 1, "a": 10},
             {"_id": 1, "a": 20},
