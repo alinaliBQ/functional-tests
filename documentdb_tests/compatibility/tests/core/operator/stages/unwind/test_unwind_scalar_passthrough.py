@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 
 import pytest
@@ -88,9 +88,9 @@ UNWIND_SCALAR_PASSTHROUGH_TESTS: list[StageTestCase] = [
     ),
     StageTestCase(
         "scalar_datetime",
-        docs=[{"_id": 1, "a": datetime(2024, 1, 1)}],
+        docs=[{"_id": 1, "a": datetime(2024, 1, 1, tzinfo=timezone.utc)}],
         pipeline=[{"$unwind": "$a"}],
-        expected=[{"_id": 1, "a": datetime(2024, 1, 1)}],
+        expected=[{"_id": 1, "a": datetime(2024, 1, 1, tzinfo=timezone.utc)}],
         msg="$unwind should pass through datetime scalar as-is",
     ),
     StageTestCase(

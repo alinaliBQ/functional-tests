@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 
 import pytest
@@ -105,15 +105,15 @@ UNWIND_BSON_TYPE_TESTS: list[StageTestCase] = [
             {
                 "_id": 1,
                 "a": [
-                    datetime(2024, 1, 1),
-                    datetime(2025, 6, 15),
+                    datetime(2024, 1, 1, tzinfo=timezone.utc),
+                    datetime(2025, 6, 15, tzinfo=timezone.utc),
                 ],
             }
         ],
         pipeline=[{"$unwind": "$a"}],
         expected=[
-            {"_id": 1, "a": datetime(2024, 1, 1)},
-            {"_id": 1, "a": datetime(2025, 6, 15)},
+            {"_id": 1, "a": datetime(2024, 1, 1, tzinfo=timezone.utc)},
+            {"_id": 1, "a": datetime(2025, 6, 15, tzinfo=timezone.utc)},
         ],
         msg="$unwind should preserve datetime elements",
     ),
