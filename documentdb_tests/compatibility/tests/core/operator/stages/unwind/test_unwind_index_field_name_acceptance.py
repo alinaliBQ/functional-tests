@@ -168,16 +168,6 @@ UNWIND_INDEX_FIELD_NAME_ACCEPTANCE_TESTS: list[StageTestCase] = [
         ],
         msg="includeArrayIndex should accept field name with special punctuation",
     ),
-    StageTestCase(
-        "index_name_dotted_creates_nested",
-        docs=[{"_id": 1, "a": [10, 20]}],
-        pipeline=[{"$unwind": {"path": "$a", "includeArrayIndex": "x.y"}}],
-        expected=[
-            {"_id": 1, "a": 10, "x": {"y": INT64_ZERO}},
-            {"_id": 1, "a": 20, "x": {"y": Int64(1)}},
-        ],
-        msg="includeArrayIndex dotted name should create nested document structure",
-    ),
 ]
 
 

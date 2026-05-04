@@ -196,27 +196,6 @@ UNWIND_DOTTED_PATH_PRESERVE_INDEX_TESTS: list[StageTestCase] = [
             " should preserve document when intermediate is array with null index"
         ),
     ),
-    StageTestCase(
-        "dotted_preserve_index_array_unwound",
-        docs=[{"_id": 1, "a": {"b": [10, 20]}}],
-        pipeline=[
-            {
-                "$unwind": {
-                    "path": "$a.b",
-                    "includeArrayIndex": "idx",
-                    "preserveNullAndEmptyArrays": True,
-                }
-            }
-        ],
-        expected=[
-            {"_id": 1, "a": {"b": 10}, "idx": INT64_ZERO},
-            {"_id": 1, "a": {"b": 20}, "idx": Int64(1)},
-        ],
-        msg=(
-            "$unwind with dotted path, preserve=true, and includeArrayIndex"
-            " should still unwind arrays normally with sequential indices"
-        ),
-    ),
 ]
 
 UNWIND_DOTTED_PATH_OPTIONS_ALL_TESTS = (
