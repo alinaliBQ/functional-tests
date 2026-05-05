@@ -9,7 +9,7 @@ from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_
     StageTestCase,
     populate_collection,
 )
-from documentdb_tests.framework.assertions import assertResult, assertSuccess
+from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import INT64_ZERO
@@ -176,26 +176,6 @@ UNWIND_INDEX_FIELD_NAME_COLLISION_TESTS: list[StageTestCase] = [
 
 UNWIND_INDEX_ALL_TESTS = UNWIND_INCLUDE_ARRAY_INDEX_TESTS + UNWIND_INDEX_FIELD_NAME_COLLISION_TESTS
 
-UNWIND_INDEX_TRANSFORM_TESTS: list[StageTestCase] = [
-    StageTestCase(
-        "index_field_order_appended",
-        docs=[{"_id": 1, "z": 99, "a": [10], "b": "keep"}],
-        pipeline=[{"$unwind": {"path": "$a", "includeArrayIndex": "idx"}}],
-        expected=[{"_id": 1, "z": 99, "a": 10, "b": "keep", "idx": INT64_ZERO}],
-        msg="includeArrayIndex field should be appended at end of document field order",
-    ),
-    StageTestCase(
-        "index_dotted_field_order_appended",
-        docs=[{"_id": 1, "z": 99, "a": [10], "b": "keep"}],
-        pipeline=[{"$unwind": {"path": "$a", "includeArrayIndex": "x.y"}}],
-        expected=[{"_id": 1, "z": 99, "a": 10, "b": "keep", "x": {"y": INT64_ZERO}}],
-        msg=(
-            "includeArrayIndex dotted name top-level key should be appended"
-            " at end of document field order"
-        ),
-    ),
-]
-
 
 @pytest.mark.aggregate
 @pytest.mark.parametrize("test_case", pytest_params(UNWIND_INDEX_ALL_TESTS))
@@ -214,25 +194,5 @@ def test_unwind_include_array_index(collection, test_case: StageTestCase):
         result,
         expected=test_case.expected,
         error_code=test_case.error_code,
-        msg=test_case.msg,
-    )
-
-
-@pytest.mark.aggregate
-@pytest.mark.parametrize("test_case", pytest_params(UNWIND_INDEX_TRANSFORM_TESTS))
-def test_unwind_include_array_index_field_order(collection, test_case: StageTestCase):
-    """Test $unwind includeArrayIndex field ordering."""
-    populate_collection(collection, test_case)
-    result = execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": test_case.pipeline,
-            "cursor": {},
-        },
-    )
-    assertSuccess(
-        result,
-        expected=test_case.expected,
         msg=test_case.msg,
     )

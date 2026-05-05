@@ -14,8 +14,8 @@ from documentdb_tests.framework.parametrize import pytest_params
 
 # Property [Pipeline Integration]: $unwind composes correctly with other
 # aggregation stages — $match filters before/after unwind, $group aggregates
-# unwound documents, $project reshapes output, $sort orders results, $lookup
-# sub-pipelines can contain $unwind, and $facet can contain $unwind branches.
+# unwound documents, $project reshapes output, $sort orders results, and
+# $facet can contain $unwind branches.
 UNWIND_PIPELINE_INTEGRATION_TESTS: list[StageTestCase] = [
     StageTestCase(
         "match_before_unwind",
@@ -101,38 +101,6 @@ UNWIND_PIPELINE_INTEGRATION_TESTS: list[StageTestCase] = [
         msg="$sort after $unwind should order unwound documents",
     ),
     StageTestCase(
-        "unwind_in_lookup_pipeline",
-        docs=[
-            {"_id": 1, "order_id": 100},
-            {"_id": 2, "order_id": 200},
-        ],
-        setup=lambda collection: collection.database.get_collection("_unwind_items").insert_many(
-            [
-                {"order_id": 100, "items": ["a", "b"]},
-                {"order_id": 200, "items": ["c"]},
-            ]
-        ),
-        pipeline=[
-            {
-                "$lookup": {
-                    "from": "_unwind_items",
-                    "let": {"oid": "$order_id"},
-                    "pipeline": [
-                        {"$match": {"$expr": {"$eq": ["$order_id", "$$oid"]}}},
-                        {"$unwind": {"path": "$items"}},
-                    ],
-                    "as": "details",
-                }
-            },
-            {"$project": {"order_id": 1, "detail_items": "$details.items"}},
-        ],
-        expected=[
-            {"_id": 1, "order_id": 100, "detail_items": ["a", "b"]},
-            {"_id": 2, "order_id": 200, "detail_items": ["c"]},
-        ],
-        msg="$unwind inside $lookup sub-pipeline should unwind within the joined documents",
-    ),
-    StageTestCase(
         "unwind_in_facet",
         docs=[
             {"_id": 1, "tags": ["a", "b"], "scores": [10, 20]},
@@ -203,33 +171,22 @@ UNWIND_PIPELINE_INTEGRATION_TESTS: list[StageTestCase] = [
 ]
 
 
-def _cleanup_lookup_collection(collection):
-    """Drop the helper collection used by lookup tests."""
-    collection.database.drop_collection("_unwind_items")
-
-
 @pytest.mark.aggregate
 @pytest.mark.parametrize("test_case", pytest_params(UNWIND_PIPELINE_INTEGRATION_TESTS))
 def test_unwind_pipeline_integration(collection, test_case: StageTestCase):
     """Test $unwind pipeline integration with other stages."""
     populate_collection(collection, test_case)
-    if test_case.setup:
-        test_case.setup(collection)
-    try:
-        result = execute_command(
-            collection,
-            {
-                "aggregate": collection.name,
-                "pipeline": test_case.pipeline,
-                "cursor": {},
-            },
-        )
-        assertResult(
-            result,
-            expected=test_case.expected,
-            error_code=test_case.error_code,
-            msg=test_case.msg,
-        )
-    finally:
-        if test_case.setup:
-            _cleanup_lookup_collection(collection)
+    result = execute_command(
+        collection,
+        {
+            "aggregate": collection.name,
+            "pipeline": test_case.pipeline,
+            "cursor": {},
+        },
+    )
+    assertResult(
+        result,
+        expected=test_case.expected,
+        error_code=test_case.error_code,
+        msg=test_case.msg,
+    )

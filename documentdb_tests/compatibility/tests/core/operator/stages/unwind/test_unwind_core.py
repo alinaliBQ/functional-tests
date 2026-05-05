@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import pytest
+from bson import Int64
 
 from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_case import (
     StageTestCase,
     populate_collection,
 )
-from documentdb_tests.framework.assertions import assertResult, assertSuccess
+from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
@@ -85,11 +86,8 @@ UNWIND_CORE_ALL_TESTS = UNWIND_CORE_TESTS + [
         ],
         msg="$unwind should not unwind other array fields in the document",
     ),
-]
-
-# Property [Field Ordering]: document field order from the input is preserved
-# in output documents, and other array fields are not unwound.
-UNWIND_CORE_TRANSFORM_TESTS: list[StageTestCase] = [
+    # Property [Field Ordering]: document field order from the input is preserved
+    # in output documents.
     StageTestCase(
         "field_ordering_preserved",
         docs=[{"_id": 1, "z": 99, "a": [10, 20], "m": "mid", "b": "end"}],
@@ -107,9 +105,8 @@ UNWIND_CORE_TRANSFORM_TESTS: list[StageTestCase] = [
         docs=[{"_id": 1, "a": list(range(10_000))}],
         pipeline=[
             {"$unwind": {"path": "$a", "includeArrayIndex": "idx"}},
-            {"$count": "n"},
         ],
-        expected=[{"n": 10_000}],
+        expected=[{"_id": 1, "a": i, "idx": Int64(i)} for i in range(10_000)],
         msg="$unwind should produce 10,000 output documents from a 10,000-element array",
     ),
 ]
@@ -132,25 +129,5 @@ def test_unwind_core(collection, test_case: StageTestCase):
         result,
         expected=test_case.expected,
         error_code=test_case.error_code,
-        msg=test_case.msg,
-    )
-
-
-@pytest.mark.aggregate
-@pytest.mark.parametrize("test_case", pytest_params(UNWIND_CORE_TRANSFORM_TESTS))
-def test_unwind_core_transform(collection, test_case: StageTestCase):
-    """Test $unwind field ordering and large array behavior."""
-    populate_collection(collection, test_case)
-    result = execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": test_case.pipeline,
-            "cursor": {"batchSize": 10_000},
-        },
-    )
-    assertSuccess(
-        result,
-        expected=test_case.expected,
         msg=test_case.msg,
     )
