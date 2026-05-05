@@ -77,6 +77,35 @@ UNWIND_CORE_TESTS: list[StageTestCase] = [
 
 UNWIND_CORE_ALL_TESTS = UNWIND_CORE_TESTS + [
     StageTestCase(
+        "non_existent_collection",
+        docs=None,
+        pipeline=[{"$unwind": {"path": "$a"}}],
+        expected=[],
+        msg="$unwind on non-existent collection should return empty result",
+    ),
+    StageTestCase(
+        "empty_collection",
+        docs=[],
+        pipeline=[{"$unwind": {"path": "$a"}}],
+        expected=[],
+        msg="$unwind on empty collection should return empty result",
+    ),
+    StageTestCase(
+        "non_existent_collection_with_options",
+        docs=None,
+        pipeline=[
+            {
+                "$unwind": {
+                    "path": "$a",
+                    "includeArrayIndex": "idx",
+                    "preserveNullAndEmptyArrays": True,
+                }
+            }
+        ],
+        expected=[],
+        msg="$unwind with all options on non-existent collection should return empty result",
+    ),
+    StageTestCase(
         "other_arrays_not_unwound",
         docs=[{"_id": 1, "a": [1, 2], "b": ["x", "y"], "c": [[3]]}],
         pipeline=[{"$unwind": {"path": "$a"}}],
@@ -100,15 +129,6 @@ UNWIND_CORE_ALL_TESTS = UNWIND_CORE_TESTS + [
     ),
     # Property [Large Arrays]: arrays with many elements produce the correct
     # number of output documents with sequential indices and no off-by-one errors.
-    StageTestCase(
-        "large_array_10k",
-        docs=[{"_id": 1, "a": list(range(10_000))}],
-        pipeline=[
-            {"$unwind": {"path": "$a", "includeArrayIndex": "idx"}},
-        ],
-        expected=[{"_id": 1, "a": i, "idx": Int64(i)} for i in range(10_000)],
-        msg="$unwind should produce 10,000 output documents from a 10,000-element array",
-    ),
 ]
 
 
@@ -130,4 +150,26 @@ def test_unwind_core(collection, test_case: StageTestCase):
         expected=test_case.expected,
         error_code=test_case.error_code,
         msg=test_case.msg,
+        ignore_doc_order=True,
+    )
+
+
+@pytest.mark.aggregate
+def test_unwind_large_array_10k(collection):
+    """Test $unwind produces correct output for a 10,000-element array."""
+    collection.database.create_collection(collection.name)
+    collection.insert_one({"_id": 1, "a": list(range(10_000))})
+    result = execute_command(
+        collection,
+        {
+            "aggregate": collection.name,
+            "pipeline": [{"$unwind": {"path": "$a", "includeArrayIndex": "idx"}}],
+            "cursor": {"batchSize": 10_000},
+        },
+    )
+    expected = [{"_id": 1, "a": i, "idx": Int64(i)} for i in range(10_000)]
+    assertResult(
+        result,
+        expected=expected,
+        msg="$unwind should produce 10,000 output documents from a 10,000-element array",
     )

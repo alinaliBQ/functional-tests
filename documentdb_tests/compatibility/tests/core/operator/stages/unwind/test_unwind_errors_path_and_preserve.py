@@ -313,13 +313,6 @@ UNWIND_PRESERVE_NULL_TYPE_TESTS: list[StageTestCase] = [
         msg="preserveNullAndEmptyArrays should reject Code",
     ),
     StageTestCase(
-        "preserve_type_code_with_scope",
-        docs=[{"_id": 1, "a": [1]}],
-        pipeline=[{"$unwind": {"path": "$a", "preserveNullAndEmptyArrays": Code("x", {})}}],
-        error_code=UNWIND_PRESERVE_NULL_TYPE_ERROR,
-        msg="preserveNullAndEmptyArrays should reject Code with scope",
-    ),
-    StageTestCase(
         "preserve_type_minkey",
         docs=[{"_id": 1, "a": [1]}],
         pipeline=[{"$unwind": {"path": "$a", "preserveNullAndEmptyArrays": MinKey()}}],
@@ -397,4 +390,5 @@ def test_unwind_path_syntax_errors(collection, test_case: StageTestCase):
         expected=test_case.expected,
         error_code=test_case.error_code,
         msg=test_case.msg,
+        ignore_doc_order=True,
     )

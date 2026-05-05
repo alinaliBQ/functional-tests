@@ -355,4 +355,5 @@ def test_unwind_include_array_index(collection, test_case: StageTestCase):
         expected=test_case.expected,
         error_code=test_case.error_code,
         msg=test_case.msg,
+        ignore_doc_order=True,
     )

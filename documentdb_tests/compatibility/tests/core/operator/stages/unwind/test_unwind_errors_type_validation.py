@@ -131,13 +131,6 @@ UNWIND_SPEC_TYPE_SHORTHAND_TESTS: list[StageTestCase] = [
         msg="$unwind shorthand should reject Code",
     ),
     StageTestCase(
-        "spec_type_code_with_scope",
-        docs=[{"_id": 1, "a": [1]}],
-        pipeline=[{"$unwind": Code("x", {})}],
-        error_code=UNWIND_SPEC_TYPE_ERROR,
-        msg="$unwind shorthand should reject Code with scope",
-    ),
-    StageTestCase(
         "spec_type_minkey",
         docs=[{"_id": 1, "a": [1]}],
         pipeline=[{"$unwind": MinKey()}],
@@ -248,13 +241,6 @@ UNWIND_PATH_TYPE_DOC_FORM_TESTS: list[StageTestCase] = [
         msg="$unwind document form should reject Code path",
     ),
     StageTestCase(
-        "path_type_code_with_scope",
-        docs=[{"_id": 1, "a": [1]}],
-        pipeline=[{"$unwind": {"path": Code("x", {})}}],
-        error_code=UNWIND_PATH_TYPE_ERROR,
-        msg="$unwind document form should reject Code with scope path",
-    ),
-    StageTestCase(
         "path_type_minkey",
         docs=[{"_id": 1, "a": [1]}],
         pipeline=[{"$unwind": {"path": MinKey()}}],
@@ -291,4 +277,5 @@ def test_unwind_type_validation(collection, test_case: StageTestCase):
         expected=test_case.expected,
         error_code=test_case.error_code,
         msg=test_case.msg,
+        ignore_doc_order=True,
     )

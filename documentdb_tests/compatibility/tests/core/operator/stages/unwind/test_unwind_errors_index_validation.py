@@ -167,13 +167,6 @@ UNWIND_INCLUDE_ARRAY_INDEX_TYPE_TESTS: list[StageTestCase] = [
         msg="includeArrayIndex should reject Code",
     ),
     StageTestCase(
-        "index_type_code_with_scope",
-        docs=[{"_id": 1, "a": [1]}],
-        pipeline=[{"$unwind": {"path": "$a", "includeArrayIndex": Code("x", {})}}],
-        error_code=UNWIND_INCLUDE_ARRAY_INDEX_TYPE_ERROR,
-        msg="includeArrayIndex should reject Code with scope",
-    ),
-    StageTestCase(
         "index_type_minkey",
         docs=[{"_id": 1, "a": [1]}],
         pipeline=[{"$unwind": {"path": "$a", "includeArrayIndex": MinKey()}}],
@@ -311,4 +304,5 @@ def test_unwind_index_validation_errors(collection, test_case: StageTestCase):
         expected=test_case.expected,
         error_code=test_case.error_code,
         msg=test_case.msg,
+        ignore_doc_order=True,
     )

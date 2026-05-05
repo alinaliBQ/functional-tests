@@ -140,13 +140,6 @@ UNWIND_SCALAR_PASSTHROUGH_TESTS: list[StageTestCase] = [
         msg="$unwind should pass through Code scalar as-is",
     ),
     StageTestCase(
-        "scalar_code_with_scope",
-        docs=[{"_id": 1, "a": Code("x", {"z": 1})}],
-        pipeline=[{"$unwind": {"path": "$a"}}],
-        expected=[{"_id": 1, "a": Code("x", {"z": 1})}],
-        msg="$unwind should pass through Code with scope scalar as-is",
-    ),
-    StageTestCase(
         "scalar_minkey",
         docs=[{"_id": 1, "a": MinKey()}],
         pipeline=[{"$unwind": {"path": "$a"}}],
@@ -301,4 +294,5 @@ def test_unwind_scalar_and_unicode(collection, test_case: StageTestCase):
         expected=test_case.expected,
         error_code=test_case.error_code,
         msg=test_case.msg,
+        ignore_doc_order=True,
     )

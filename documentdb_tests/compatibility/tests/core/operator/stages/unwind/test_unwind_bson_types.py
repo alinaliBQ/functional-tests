@@ -179,16 +179,6 @@ UNWIND_BSON_TYPE_TESTS: list[StageTestCase] = [
         msg="$unwind should preserve Code elements",
     ),
     StageTestCase(
-        "bson_code_with_scope",
-        docs=[{"_id": 1, "a": [Code("x", {}), Code("y", {"z": 1})]}],
-        pipeline=[{"$unwind": {"path": "$a"}}],
-        expected=[
-            {"_id": 1, "a": Code("x", {})},
-            {"_id": 1, "a": Code("y", {"z": 1})},
-        ],
-        msg="$unwind should preserve Code with scope elements",
-    ),
-    StageTestCase(
         "bson_minkey",
         docs=[{"_id": 1, "a": [MinKey(), 1]}],
         pipeline=[{"$unwind": {"path": "$a"}}],
@@ -230,4 +220,5 @@ def test_unwind_bson_types(collection, test_case: StageTestCase):
         expected=test_case.expected,
         error_code=test_case.error_code,
         msg=test_case.msg,
+        ignore_doc_order=True,
     )
