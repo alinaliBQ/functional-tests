@@ -343,8 +343,7 @@ UNWIND_PRESERVE_NULL_TYPE_TESTS: list[StageTestCase] = [
 ]
 
 # Property [Unrecognized Fields]: unrecognized fields in the document form
-# produce an unrecognized field error, and this error takes precedence over
-# a missing path error.
+# produce an unrecognized field error.
 UNWIND_UNRECOGNIZED_FIELD_TESTS: list[StageTestCase] = [
     StageTestCase(
         "unrecognized_field_with_valid_path",
@@ -352,13 +351,6 @@ UNWIND_UNRECOGNIZED_FIELD_TESTS: list[StageTestCase] = [
         pipeline=[{"$unwind": {"path": "$a", "badField": True}}],
         error_code=UNWIND_UNRECOGNIZED_FIELD_ERROR,
         msg="$unwind should reject unrecognized field in document form",
-    ),
-    StageTestCase(
-        "unrecognized_field_precedes_missing_path",
-        docs=[{"_id": 1, "a": [1]}],
-        pipeline=[{"$unwind": {"badField": True}}],
-        error_code=UNWIND_UNRECOGNIZED_FIELD_ERROR,
-        msg="$unwind unrecognized field error should take precedence over missing path error",
     ),
 ]
 

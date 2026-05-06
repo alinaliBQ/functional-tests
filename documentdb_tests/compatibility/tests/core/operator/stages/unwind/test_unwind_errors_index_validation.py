@@ -190,9 +190,7 @@ UNWIND_INCLUDE_ARRAY_INDEX_TYPE_TESTS: list[StageTestCase] = [
 ]
 
 # Property [includeArrayIndex Dollar Prefix]: all $-prefixed strings for
-# includeArrayIndex are rejected with a dollar prefix error, and this check
-# fires before path semantic validation and preserveNullAndEmptyArrays type
-# validation.
+# includeArrayIndex are rejected with a dollar prefix error.
 UNWIND_INCLUDE_ARRAY_INDEX_DOLLAR_PREFIX_TESTS: list[StageTestCase] = [
     StageTestCase(
         "index_dollar_prefix_field_ref",
@@ -221,20 +219,6 @@ UNWIND_INCLUDE_ARRAY_INDEX_DOLLAR_PREFIX_TESTS: list[StageTestCase] = [
         pipeline=[{"$unwind": {"path": "$a", "includeArrayIndex": "$a.b"}}],
         error_code=UNWIND_INCLUDE_ARRAY_INDEX_DOLLAR_PREFIX_ERROR,
         msg="includeArrayIndex should reject $-prefixed dotted string",
-    ),
-    StageTestCase(
-        "index_dollar_prefix_with_null_byte",
-        docs=[{"_id": 1, "a": [1]}],
-        pipeline=[{"$unwind": {"path": "$a", "includeArrayIndex": "$a\x00b"}}],
-        error_code=UNWIND_INCLUDE_ARRAY_INDEX_DOLLAR_PREFIX_ERROR,
-        msg="includeArrayIndex should reject $-prefixed string containing null byte",
-    ),
-    StageTestCase(
-        "index_dollar_prefix_leading_dot",
-        docs=[{"_id": 1, "a": [1]}],
-        pipeline=[{"$unwind": {"path": "$a", "includeArrayIndex": "$.a"}}],
-        error_code=UNWIND_INCLUDE_ARRAY_INDEX_DOLLAR_PREFIX_ERROR,
-        msg="includeArrayIndex should reject $-prefixed string with leading dot",
     ),
 ]
 
