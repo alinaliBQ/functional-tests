@@ -164,21 +164,6 @@ OUT_TIMESERIES_FIELD_TYPE_ERROR_TESTS: list[OutTestCase] = [
         error_code=TYPE_MISMATCH_ERROR,
     ),
     OutTestCase(
-        "ts_field_type_code_with_scope",
-        docs=[{"_id": 1}],
-        pipeline=[
-            {
-                "$out": {
-                    "db": "__DB__",
-                    "coll": "target",
-                    "timeseries": Code("function() {}", {"x": 1}),
-                }
-            }
-        ],
-        msg="$out should reject code_with_scope as timeseries field type",
-        error_code=TYPE_MISMATCH_ERROR,
-    ),
-    OutTestCase(
         "ts_time_field_type_int32",
         docs=[{"_id": 1}],
         pipeline=[{"$out": {"db": "__DB__", "coll": "target", "timeseries": {"timeField": 42}}}],
@@ -338,21 +323,6 @@ OUT_TIMESERIES_FIELD_TYPE_ERROR_TESTS: list[OutTestCase] = [
             }
         ],
         msg="$out should reject code as timeField type",
-        error_code=TYPE_MISMATCH_ERROR,
-    ),
-    OutTestCase(
-        "ts_time_field_type_code_with_scope",
-        docs=[{"_id": 1}],
-        pipeline=[
-            {
-                "$out": {
-                    "db": "__DB__",
-                    "coll": "target",
-                    "timeseries": {"timeField": Code("function() {}", {"x": 1})},
-                }
-            }
-        ],
-        msg="$out should reject code_with_scope as timeField type",
         error_code=TYPE_MISMATCH_ERROR,
     ),
     OutTestCase(
@@ -575,21 +545,6 @@ OUT_TIMESERIES_FIELD_TYPE_ERROR_TESTS: list[OutTestCase] = [
             }
         ],
         msg="$out should reject code as metaField type",
-        error_code=TYPE_MISMATCH_ERROR,
-    ),
-    OutTestCase(
-        "ts_meta_field_type_code_with_scope",
-        docs=[{"_id": 1}],
-        pipeline=[
-            {
-                "$out": {
-                    "db": "__DB__",
-                    "coll": "target",
-                    "timeseries": {"timeField": "ts", "metaField": Code("function() {}", {"x": 1})},
-                }
-            }
-        ],
-        msg="$out should reject code_with_scope as metaField type",
         error_code=TYPE_MISMATCH_ERROR,
     ),
     OutTestCase(

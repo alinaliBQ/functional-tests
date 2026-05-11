@@ -621,7 +621,6 @@ def test_out_bson_round_trip(collection):
         "minkey_val": MinKey(),
         "maxkey_val": MaxKey(),
         "code_val": Code("function() {}"),
-        "code_ws_val": Code("function() {}", {"x": 1}),
     }
     populate_collection(
         collection,

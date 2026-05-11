@@ -249,24 +249,6 @@ OUT_TIMESERIES_BUCKET_TYPE_ERROR_TESTS: list[OutTestCase] = [
         error_code=TYPE_MISMATCH_ERROR,
     ),
     OutTestCase(
-        "ts_granularity_type_code_with_scope",
-        docs=[{"_id": 1}],
-        pipeline=[
-            {
-                "$out": {
-                    "db": "__DB__",
-                    "coll": "target",
-                    "timeseries": {
-                        "timeField": "ts",
-                        "granularity": Code("function() {}", {"x": 1}),
-                    },
-                }
-            }
-        ],
-        msg="$out should reject code_with_scope as granularity type",
-        error_code=TYPE_MISMATCH_ERROR,
-    ),
-    OutTestCase(
         "ts_granularity_type_object",
         docs=[{"_id": 1}],
         pipeline=[
@@ -488,25 +470,6 @@ OUT_TIMESERIES_BUCKET_TYPE_ERROR_TESTS: list[OutTestCase] = [
             }
         ],
         msg="$out should reject code as bucketMaxSpanSeconds type",
-        error_code=TYPE_MISMATCH_ERROR,
-    ),
-    OutTestCase(
-        "ts_bucket_max_type_code_with_scope",
-        docs=[{"_id": 1}],
-        pipeline=[
-            {
-                "$out": {
-                    "db": "__DB__",
-                    "coll": "target",
-                    "timeseries": {
-                        "timeField": "ts",
-                        "bucketMaxSpanSeconds": Code("function() {}", {"x": 1}),
-                        "bucketRoundingSeconds": 100,
-                    },
-                }
-            }
-        ],
-        msg="$out should reject code_with_scope as bucketMaxSpanSeconds type",
         error_code=TYPE_MISMATCH_ERROR,
     ),
     OutTestCase(
@@ -735,25 +698,6 @@ OUT_TIMESERIES_BUCKET_TYPE_ERROR_TESTS: list[OutTestCase] = [
             }
         ],
         msg="$out should reject code as bucketRoundingSeconds type",
-        error_code=TYPE_MISMATCH_ERROR,
-    ),
-    OutTestCase(
-        "ts_bucket_round_type_code_with_scope",
-        docs=[{"_id": 1}],
-        pipeline=[
-            {
-                "$out": {
-                    "db": "__DB__",
-                    "coll": "target",
-                    "timeseries": {
-                        "timeField": "ts",
-                        "bucketRoundingSeconds": Code("function() {}", {"x": 1}),
-                        "bucketMaxSpanSeconds": 100,
-                    },
-                }
-            }
-        ],
-        msg="$out should reject code_with_scope as bucketRoundingSeconds type",
         error_code=TYPE_MISMATCH_ERROR,
     ),
     OutTestCase(

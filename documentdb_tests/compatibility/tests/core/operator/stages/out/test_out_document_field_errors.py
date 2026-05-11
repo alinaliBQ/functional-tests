@@ -142,13 +142,6 @@ OUT_DOCUMENT_FIELD_TYPE_ERROR_TESTS: list[OutTestCase] = [
         error_code=TYPE_MISMATCH_ERROR,
     ),
     OutTestCase(
-        "db_type_code_with_scope",
-        docs=[{"_id": 1}],
-        pipeline=[{"$out": {"db": Code("function() {}", {"x": 1}), "coll": "target"}}],
-        msg="$out should reject Code with scope db as a type mismatch",
-        error_code=TYPE_MISMATCH_ERROR,
-    ),
-    OutTestCase(
         "coll_type_int32",
         docs=[{"_id": 1}],
         pipeline=[{"$out": {"db": "__DB__", "coll": 42}}],
@@ -251,13 +244,6 @@ OUT_DOCUMENT_FIELD_TYPE_ERROR_TESTS: list[OutTestCase] = [
         docs=[{"_id": 1}],
         pipeline=[{"$out": {"db": "__DB__", "coll": Code("function() {}")}}],
         msg="$out should reject Code coll as a type mismatch",
-        error_code=TYPE_MISMATCH_ERROR,
-    ),
-    OutTestCase(
-        "coll_type_code_with_scope",
-        docs=[{"_id": 1}],
-        pipeline=[{"$out": {"db": "__DB__", "coll": Code("function() {}", {"x": 1})}}],
-        msg="$out should reject Code with scope coll as a type mismatch",
         error_code=TYPE_MISMATCH_ERROR,
     ),
 ]

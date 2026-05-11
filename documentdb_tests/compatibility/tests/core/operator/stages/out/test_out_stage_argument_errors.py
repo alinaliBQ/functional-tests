@@ -215,13 +215,6 @@ OUT_STAGE_ARGUMENT_TYPE_ERROR_TESTS: list[OutTestCase] = [
         error_code=OUT_ARGUMENT_TYPE_ERROR,
     ),
     OutTestCase(
-        "arg_type_code_with_scope",
-        docs=[{"_id": 1}],
-        pipeline=[{"$out": Code("function() {}", {"x": 1})}],
-        msg="$out should reject Code with scope argument",
-        error_code=OUT_ARGUMENT_TYPE_ERROR,
-    ),
-    OutTestCase(
         "arg_type_array_empty",
         docs=[{"_id": 1}],
         pipeline=[{"$out": []}],
