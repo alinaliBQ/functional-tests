@@ -23,7 +23,6 @@ from documentdb_tests.compatibility.tests.core.operator.stages.out.utils.out_tes
     OutTestCase,
 )
 from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_case import (
-    StageTestCase,
     populate_collection,
 )
 from documentdb_tests.framework.assertions import (
@@ -228,61 +227,76 @@ def test_out_collection_creation(collection, test_case: OutTestCase):
 
 # Property [Collection Replacement - Atomic Replace]: an existing collection
 # is atomically replaced with the new pipeline results upon $out completion.
-@pytest.mark.aggregate
-def test_out_replacement_atomic(collection):
-    """Test $out atomically replaces an existing collection with new results."""
-    db = collection.database
-    target_name = "replacement_atomic_target"
-    populate_collection(
-        collection,
-        StageTestCase(
-            id="replacement_atomic",
-            docs=[{"_id": 10, "new": True}, {"_id": 20, "new": True}],
-            msg="$out should atomically replace existing collection",
+OUT_REPLACEMENT_ATOMIC_TESTS: list[OutTestCase] = [
+    OutTestCase(
+        "replacement_atomic",
+        docs=[{"_id": 10, "new": True}, {"_id": 20, "new": True}],
+        target_coll="replacement_atomic_target",
+        setup=lambda c: c.database["replacement_atomic_target"].insert_many(
+            [{"_id": 1, "old": True}, {"_id": 2, "old": True}]
         ),
-    )
-    db[target_name].insert_many([{"_id": 1, "old": True}, {"_id": 2, "old": True}])
+        expected=[{"_id": 10, "new": True}, {"_id": 20, "new": True}],
+        msg="$out should replace existing documents with new pipeline results",
+    ),
+]
+
+
+@pytest.mark.aggregate
+@pytest.mark.parametrize("test_case", pytest_params(OUT_REPLACEMENT_ATOMIC_TESTS))
+def test_out_replacement_atomic(collection, test_case: OutTestCase):
+    """Test $out atomically replaces an existing collection with new results."""
+    populate_collection(collection, test_case)
+    if test_case.setup:
+        test_case.setup(collection)
+    pipeline = [{"$out": test_case.target_coll}]
     execute_command(
         collection,
-        {"aggregate": collection.name, "pipeline": [{"$out": target_name}], "cursor": {}},
+        {"aggregate": collection.name, "pipeline": pipeline, "cursor": {}},
     )
-    result = execute_command(collection, {"find": target_name, "filter": {}, "sort": {"_id": 1}})
-    assertSuccess(
-        result,
-        [{"_id": 10, "new": True}, {"_id": 20, "new": True}],
-        msg="$out should replace existing documents with new pipeline results",
+    result = execute_command(
+        collection,
+        {"find": test_case.target_coll, "filter": {}, "sort": {"_id": 1}},
     )
+    assertSuccess(result, test_case.expected, msg=test_case.msg)
 
 
 # Property [Collection Replacement - Index Preservation]: indexes from the
 # previous collection are preserved after $out replaces its contents.
-@pytest.mark.aggregate
-def test_out_replacement_preserves_indexes(collection):
-    """Test $out preserves indexes from the previous collection after replacement."""
-    db = collection.database
-    target_name = "replacement_idx_target"
-    populate_collection(
-        collection,
-        StageTestCase(
-            id="replacement_idx",
-            docs=[{"_id": 10, "x": 100}, {"_id": 20, "x": 200}],
-            msg="$out should preserve indexes after replacement",
+OUT_REPLACEMENT_INDEX_TESTS: list[OutTestCase] = [
+    OutTestCase(
+        "replacement_preserves_indexes",
+        docs=[{"_id": 10, "x": 100}, {"_id": 20, "x": 200}],
+        target_coll="replacement_idx_target",
+        setup=lambda c: (
+            c.database["replacement_idx_target"].insert_one({"_id": 1, "x": 1}),
+            c.database["replacement_idx_target"].create_index("x", name="x_idx", unique=True),
         ),
-    )
-    db[target_name].insert_one({"_id": 1, "x": 1})
-    db[target_name].create_index("x", name="x_idx", unique=True)
+        expected=[{"name": "_id_"}, {"name": "x_idx", "unique": True}],
+        msg="$out should preserve indexes from the previous collection",
+    ),
+]
+
+
+@pytest.mark.aggregate
+@pytest.mark.parametrize("test_case", pytest_params(OUT_REPLACEMENT_INDEX_TESTS))
+def test_out_replacement_preserves_indexes(collection, test_case: OutTestCase):
+    """Test $out preserves indexes from the previous collection after replacement."""
+    populate_collection(collection, test_case)
+    if test_case.setup:
+        test_case.setup(collection)
+    pipeline = [{"$out": test_case.target_coll}]
     execute_command(
         collection,
-        {"aggregate": collection.name, "pipeline": [{"$out": target_name}], "cursor": {}},
+        {"aggregate": collection.name, "pipeline": pipeline, "cursor": {}},
     )
     result = execute_command(
         collection,
-        {"listIndexes": target_name},
+        {"listIndexes": test_case.target_coll},
     )
     assertSuccess(
         result,
-        [{"name": "_id_"}, {"name": "x_idx", "unique": True}],
-        msg="$out should preserve indexes from the previous collection",
+        test_case.expected,
+        msg=test_case.msg,
         transform=lambda docs: [
             {"name": d["name"], **({"unique": d["unique"]} if d.get("unique") else {})}
             for d in sorted(docs, key=lambda d: d["name"])
@@ -298,7 +312,7 @@ def test_out_replacement_self(collection):
     """Test $out self-replacement writes transformed results back to the source."""
     populate_collection(
         collection,
-        StageTestCase(
+        OutTestCase(
             id="replacement_self",
             docs=[{"_id": 1, "value": 10}, {"_id": 2, "value": 20}],
             msg="$out should support self-replacement",
@@ -327,39 +341,49 @@ def test_out_replacement_self(collection):
 
 # Property [Collection Replacement - Failure Rollback]: if the aggregation
 # fails during $out, the pre-existing collection and its indexes are unchanged.
-@pytest.mark.aggregate
-def test_out_replacement_failure_unchanged(collection):
-    """Test $out leaves the pre-existing collection unchanged on failure."""
-    db = collection.database
-    target_name = "replacement_fail_target"
-    populate_collection(
-        collection,
-        StageTestCase(
-            id="replacement_fail",
-            docs=[{"_id": 10, "x": 1}, {"_id": 20, "x": 1}],
-            msg="$out failure should leave existing collection unchanged",
+OUT_REPLACEMENT_FAILURE_TESTS: list[OutTestCase] = [
+    OutTestCase(
+        "replacement_failure_unchanged",
+        docs=[{"_id": 10, "x": 1}, {"_id": 20, "x": 1}],
+        target_coll="replacement_fail_target",
+        setup=lambda c: (
+            c.database["replacement_fail_target"].insert_many(
+                [{"_id": 1, "x": 1}, {"_id": 2, "x": 2}]
+            ),
+            c.database["replacement_fail_target"].create_index("x", unique=True),
         ),
-    )
-    db[target_name].insert_many([{"_id": 1, "x": 1}, {"_id": 2, "x": 2}])
-    db[target_name].create_index("x", unique=True)
+        expected={
+            "docs": [{"_id": 1, "x": 1}, {"_id": 2, "x": 2}],
+            "indexes": [{"name": "_id_"}, {"name": "x_1", "unique": True}],
+        },
+        msg="$out failure should leave pre-existing collection and indexes unchanged",
+    ),
+]
+
+
+@pytest.mark.aggregate
+@pytest.mark.parametrize("test_case", pytest_params(OUT_REPLACEMENT_FAILURE_TESTS))
+def test_out_replacement_failure_unchanged(collection, test_case: OutTestCase):
+    """Test $out leaves the pre-existing collection unchanged on failure."""
+    populate_collection(collection, test_case)
+    if test_case.setup:
+        test_case.setup(collection)
+    pipeline = [{"$out": test_case.target_coll}]
     execute_command(
         collection,
-        {"aggregate": collection.name, "pipeline": [{"$out": target_name}], "cursor": {}},
+        {"aggregate": collection.name, "pipeline": pipeline, "cursor": {}},
     )
     # The aggregation fails due to unique index violation; verify the
     # pre-existing collection and its indexes are unchanged.
     idx_result = execute_command(
         collection,
-        {"listIndexes": target_name},
+        {"listIndexes": test_case.target_coll},
     )
-    target = db[target_name]
+    target = collection.database[test_case.target_coll]
     assertSuccess(
         idx_result,
-        {
-            "docs": [{"_id": 1, "x": 1}, {"_id": 2, "x": 2}],
-            "indexes": [{"name": "_id_"}, {"name": "x_1", "unique": True}],
-        },
-        msg="$out failure should leave pre-existing collection and indexes unchanged",
+        test_case.expected,
+        msg=test_case.msg,
         transform=lambda idx_docs: {
             "docs": sorted(target.find({}, {"_id": 1, "x": 1}), key=lambda d: d["_id"]),
             "indexes": [
@@ -379,7 +403,7 @@ def test_out_temp_collection_during_execution(collection):
     docs = [{"_id": i, "value": i} for i in range(10_000)]
     populate_collection(
         collection,
-        StageTestCase(
+        OutTestCase(
             id="temp_coll",
             docs=docs,
             msg="$out should use a temp collection during execution",
@@ -438,7 +462,7 @@ def test_out_auto_generated_id(collection):
     """Test $out auto-generates ObjectId _id when _id is removed."""
     populate_collection(
         collection,
-        StageTestCase(
+        OutTestCase(
             id="auto_id",
             docs=[{"_id": 1, "value": 10}, {"_id": 2, "value": 20}],
             msg="$out should auto-generate ObjectId _id values",
@@ -469,98 +493,95 @@ def test_out_auto_generated_id(collection):
 
 # Property [Write Behavior - Empty Cursor]: the aggregation cursor returned
 # by a pipeline ending with $out contains an empty result list.
+OUT_EMPTY_CURSOR_TESTS: list[OutTestCase] = [
+    OutTestCase(
+        "empty_cursor",
+        docs=[{"_id": 1, "value": 10}],
+        target_coll="write_cursor_target",
+        expected=[],
+        msg="$out aggregation cursor should return an empty result list",
+    ),
+]
+
+
 @pytest.mark.aggregate
-def test_out_empty_cursor(collection):
+@pytest.mark.parametrize("test_case", pytest_params(OUT_EMPTY_CURSOR_TESTS))
+def test_out_empty_cursor(collection, test_case: OutTestCase):
     """Test $out returns an empty cursor result."""
-    populate_collection(
-        collection,
-        StageTestCase(
-            id="empty_cursor",
-            docs=[{"_id": 1, "value": 10}],
-            msg="$out should return an empty cursor",
-        ),
-    )
+    populate_collection(collection, test_case)
+    if test_case.setup:
+        test_case.setup(collection)
+    pipeline = [{"$out": test_case.target_coll}]
     result = execute_command(
         collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [{"$out": "write_cursor_target"}],
-            "cursor": {},
-        },
+        {"aggregate": collection.name, "pipeline": pipeline, "cursor": {}},
     )
-    assertSuccess(
-        result,
-        [],
-        msg="$out aggregation cursor should return an empty result list",
-    )
+    assertSuccess(result, test_case.expected, msg=test_case.msg)
 
 
 # Property [Write Behavior - Explain No Write]: explain does not perform the
 # write - the target collection is not created or modified.
-@pytest.mark.aggregate
-def test_out_explain_no_write(collection):
-    """Test explain with $out does not create or modify the target collection."""
-    populate_collection(
-        collection,
-        StageTestCase(
-            id="explain_no_write",
-            docs=[{"_id": 1, "value": 10}],
-            msg="explain should not perform the $out write",
-        ),
-    )
-    target_name = "write_explain_target"
-    execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [{"$out": target_name}],
-            "cursor": {},
-            "explain": True,
-        },
-    )
-    result = execute_command(
-        collection,
-        {"listCollections": 1, "filter": {"name": target_name}},
-    )
-    assertSuccess(
-        result,
-        [],
+OUT_EXPLAIN_NO_WRITE_TESTS: list[OutTestCase] = [
+    OutTestCase(
+        "explain_no_write",
+        docs=[{"_id": 1, "value": 10}],
+        target_coll="write_explain_target",
+        expected=[],
         msg="explain with $out should not create the target collection",
-    )
+    ),
+]
 
 
 @pytest.mark.aggregate
-def test_out_explain_no_modify(collection):
-    """Test explain with $out does not modify an existing target collection."""
-    populate_collection(
-        collection,
-        StageTestCase(
-            id="explain_no_modify",
-            docs=[{"_id": 10, "new": True}],
-            msg="explain should not modify existing target collection",
-        ),
-    )
-    db = collection.database
-    target_name = "write_explain_existing_target"
-    db[target_name].insert_many([{"_id": 1, "old": True}, {"_id": 2, "old": True}])
+@pytest.mark.parametrize("test_case", pytest_params(OUT_EXPLAIN_NO_WRITE_TESTS))
+def test_out_explain_no_write(collection, test_case: OutTestCase):
+    """Test explain with $out does not create or modify the target collection."""
+    populate_collection(collection, test_case)
+    if test_case.setup:
+        test_case.setup(collection)
+    pipeline = [{"$out": test_case.target_coll}]
     execute_command(
         collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [{"$out": target_name}],
-            "cursor": {},
-            "explain": True,
-        },
+        {"aggregate": collection.name, "pipeline": pipeline, "cursor": {}, "explain": True},
     )
     result = execute_command(
         collection,
-        {"find": target_name, "filter": {}, "sort": {"_id": 1}},
+        {"listCollections": 1, "filter": {"name": test_case.target_coll}},
     )
-    assertSuccess(
-        result,
-        [{"_id": 1, "old": True}, {"_id": 2, "old": True}],
+    assertSuccess(result, test_case.expected, msg=test_case.msg)
+
+
+OUT_EXPLAIN_NO_MODIFY_TESTS: list[OutTestCase] = [
+    OutTestCase(
+        "explain_no_modify",
+        docs=[{"_id": 10, "new": True}],
+        target_coll="write_explain_existing_target",
+        setup=lambda c: c.database["write_explain_existing_target"].insert_many(
+            [{"_id": 1, "old": True}, {"_id": 2, "old": True}]
+        ),
+        expected=[{"_id": 1, "old": True}, {"_id": 2, "old": True}],
         msg="explain with $out should not modify existing target collection",
+    ),
+]
+
+
+@pytest.mark.aggregate
+@pytest.mark.parametrize("test_case", pytest_params(OUT_EXPLAIN_NO_MODIFY_TESTS))
+def test_out_explain_no_modify(collection, test_case: OutTestCase):
+    """Test explain with $out does not modify an existing target collection."""
+    populate_collection(collection, test_case)
+    if test_case.setup:
+        test_case.setup(collection)
+    pipeline = [{"$out": test_case.target_coll}]
+    execute_command(
+        collection,
+        {"aggregate": collection.name, "pipeline": pipeline, "cursor": {}, "explain": True},
     )
+    result = execute_command(
+        collection,
+        {"find": test_case.target_coll, "filter": {}, "sort": {"_id": 1}},
+    )
+    assertSuccess(result, test_case.expected, msg=test_case.msg)
 
 
 # Property [Write Behavior - Idempotent]: running the same $out pipeline to
@@ -570,7 +591,7 @@ def test_out_idempotent(collection):
     """Test $out is idempotent when run twice to the same target."""
     populate_collection(
         collection,
-        StageTestCase(
+        OutTestCase(
             id="idempotent",
             docs=[{"_id": 1, "value": 10}, {"_id": 2, "value": 20}],
             msg="$out should be idempotent",
@@ -624,7 +645,7 @@ def test_out_bson_round_trip(collection):
     }
     populate_collection(
         collection,
-        StageTestCase(
+        OutTestCase(
             id="bson_round_trip",
             docs=[bson_doc],
             msg="all BSON types should round-trip through $out",
@@ -658,7 +679,7 @@ def test_out_large_document(collection):
     large_str = "x" * (15 * 1_024 * 1_024)
     populate_collection(
         collection,
-        StageTestCase(
+        OutTestCase(
             id="large_doc",
             docs=[{"_id": 1, "data": large_str}],
             msg="$out should write large documents up to 15 MB",
@@ -688,7 +709,7 @@ def test_out_no_unicode_normalization(collection):
     """Test $out treats precomposed and combining Unicode forms as distinct collection names."""
     populate_collection(
         collection,
-        StageTestCase(
+        OutTestCase(
             id="no_normalization",
             docs=[{"_id": 1, "form": "precomposed"}, {"_id": 2, "form": "combining"}],
             msg="$out should not normalize Unicode collection names",
@@ -752,7 +773,7 @@ def test_out_no_unicode_normalization_database(collection):
     """Test $out treats precomposed and combining Unicode forms as distinct database names."""
     populate_collection(
         collection,
-        StageTestCase(
+        OutTestCase(
             id="no_normalization_db",
             docs=[{"_id": 1, "form": "precomposed"}, {"_id": 2, "form": "combining"}],
             msg="$out should not normalize Unicode database names",

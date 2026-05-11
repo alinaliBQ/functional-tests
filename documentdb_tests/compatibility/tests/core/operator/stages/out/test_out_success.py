@@ -11,7 +11,6 @@ from documentdb_tests.compatibility.tests.core.operator.stages.out.utils.out_tes
     OutTestCase,
 )
 from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_case import (
-    StageTestCase,
     populate_collection,
 )
 from documentdb_tests.framework.assertions import (
@@ -696,58 +695,71 @@ def test_out_timeseries_datetime_acceptance(collection, test_case: OutTestCase):
 # Property [Timeseries Existing Collection]: writing to an existing time
 # series collection succeeds both with matching timeseries options and
 # without specifying timeseries options (string and document form).
+def _ts_existing_setup(c):
+    c.database.drop_collection("ts_existing_target")
+    c.database.command({"create": "ts_existing_target", "timeseries": {"timeField": "ts"}})
+
+
+OUT_TIMESERIES_EXISTING_TESTS: list[OutTestCase] = [
+    OutTestCase(
+        "ts_existing_matching_options",
+        docs=[{"_id": 1, "ts": datetime(2024, 6, 1), "value": 60}],
+        target_coll="ts_existing_target",
+        out_spec={"timeseries": {"timeField": "ts"}},
+        setup=_ts_existing_setup,
+        expected=[{"ts": datetime(2024, 6, 1, tzinfo=timezone.utc), "value": 60}],
+        msg=(
+            "$out should write to an existing time series collection with"
+            " matching timeseries options"
+        ),
+    ),
+    OutTestCase(
+        "ts_existing_string_form",
+        docs=[{"_id": 1, "ts": datetime(2024, 6, 1), "value": 60}],
+        target_coll="ts_existing_target",
+        setup=_ts_existing_setup,
+        expected=[{"ts": datetime(2024, 6, 1, tzinfo=timezone.utc), "value": 60}],
+        msg=(
+            "$out should write to an existing time series collection using"
+            " string form without timeseries options"
+        ),
+    ),
+    OutTestCase(
+        "ts_existing_document_form",
+        docs=[{"_id": 1, "ts": datetime(2024, 6, 1), "value": 60}],
+        target_coll="ts_existing_target",
+        out_spec={},
+        setup=_ts_existing_setup,
+        expected=[{"ts": datetime(2024, 6, 1, tzinfo=timezone.utc), "value": 60}],
+        msg=(
+            "$out should write to an existing time series collection using"
+            " document form without timeseries options"
+        ),
+    ),
+]
+
+
 @pytest.mark.aggregate
-@pytest.mark.parametrize(
-    "out_stage_builder",
-    [
-        pytest.param(
-            lambda db_name, coll_name: {
-                "$out": {
-                    "db": db_name,
-                    "coll": coll_name,
-                    "timeseries": {"timeField": "ts"},
-                }
-            },
-            id="matching_timeseries_options",
-        ),
-        pytest.param(
-            lambda db_name, coll_name: {"$out": coll_name},
-            id="string_form_no_timeseries",
-        ),
-        pytest.param(
-            lambda db_name, coll_name: {"$out": {"db": db_name, "coll": coll_name}},
-            id="document_form_no_timeseries",
-        ),
-    ],
-)
-def test_out_timeseries_existing(collection, out_stage_builder):
+@pytest.mark.parametrize("test_case", pytest_params(OUT_TIMESERIES_EXISTING_TESTS))
+def test_out_timeseries_existing(collection, test_case: OutTestCase):
     """Test $out writes to an existing time series collection."""
-    db = collection.database
-    target_name = "ts_existing_target"
-    db.drop_collection(target_name)
-    db.command({"create": target_name, "timeseries": {"timeField": "ts"}})
-    populate_collection(
-        collection,
-        StageTestCase(
-            id="ts_existing",
-            docs=[{"_id": 1, "ts": datetime(2024, 6, 1), "value": 60}],
-            msg="$out should write to an existing time series collection",
-        ),
-    )
-    out_stage = out_stage_builder(db.name, target_name)
+    populate_collection(collection, test_case)
+    if test_case.setup:
+        test_case.setup(collection)
+    out_stage = test_case.build_out_stage(collection)
     execute_command(
         collection,
         {"aggregate": collection.name, "pipeline": [out_stage], "cursor": {}},
     )
     result = execute_command(
         collection,
-        {"find": target_name, "filter": {}, "projection": {"_id": 0, "ts": 1, "value": 1}},
+        {
+            "find": test_case.target_coll,
+            "filter": {},
+            "projection": {"_id": 0, "ts": 1, "value": 1},
+        },
     )
-    assertSuccess(
-        result,
-        [{"ts": datetime(2024, 6, 1, tzinfo=timezone.utc), "value": 60}],
-        msg="$out should successfully write to an existing time series collection",
-    )
+    assertSuccess(result, test_case.expected, msg=test_case.msg)
 
 
 # Property [Timeseries Cross-Database]: $out creates a time series collection
@@ -758,7 +770,7 @@ def test_out_timeseries_cross_db(collection):
     """Test $out creates a time series collection in a different database."""
     populate_collection(
         collection,
-        StageTestCase(
+        OutTestCase(
             id="ts_cross_db",
             docs=[{"_id": 1, "ts": datetime(2024, 7, 1), "value": 70}],
             msg="$out should create a time series collection in a different database",
