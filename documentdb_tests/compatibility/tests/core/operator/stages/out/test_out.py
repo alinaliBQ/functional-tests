@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import threading
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, cast
 
 import pytest
@@ -53,7 +53,6 @@ from documentdb_tests.framework.error_codes import (
     OUT_TIMESERIES_COLLECTION_TYPE_ERROR,
     OUT_TIMESERIES_OPTIONS_MISMATCH_ERROR,
     TYPE_MISMATCH_ERROR,
-    UNAUTHORIZED_ERROR,
     UNION_WITH_OUT_NOT_ALLOWED_ERROR,
     UNRECOGNIZED_COMMAND_FIELD_ERROR,
 )
@@ -734,7 +733,7 @@ OUT_TIMESERIES_DATETIME_ACCEPTANCE_TESTS: list[OutTestCase] = [
         docs=[{"_id": 1, "ts": datetime(1970, 1, 1), "v": 1}],
         target_coll="ts_dt_epoch",
         out_spec={"timeseries": {"timeField": "ts"}},
-        expected=[{"ts": datetime(1970, 1, 1), "v": 1}],
+        expected=[{"ts": datetime(1970, 1, 1, tzinfo=timezone.utc), "v": 1}],
         msg="$out timeseries should accept Unix epoch as timeField value",
     ),
     OutTestCase(
@@ -742,7 +741,7 @@ OUT_TIMESERIES_DATETIME_ACCEPTANCE_TESTS: list[OutTestCase] = [
         docs=[{"_id": 1, "ts": datetime(1960, 6, 15), "v": 2}],
         target_coll="ts_dt_pre_epoch",
         out_spec={"timeseries": {"timeField": "ts"}},
-        expected=[{"ts": datetime(1960, 6, 15), "v": 2}],
+        expected=[{"ts": datetime(1960, 6, 15, tzinfo=timezone.utc), "v": 2}],
         msg="$out timeseries should accept pre-epoch dates as timeField value",
     ),
     OutTestCase(
@@ -750,7 +749,7 @@ OUT_TIMESERIES_DATETIME_ACCEPTANCE_TESTS: list[OutTestCase] = [
         docs=[{"_id": 1, "ts": datetime(9999, 12, 31, 23, 59, 59), "v": 3}],
         target_coll="ts_dt_far_future",
         out_spec={"timeseries": {"timeField": "ts"}},
-        expected=[{"ts": datetime(9999, 12, 31, 23, 59, 59), "v": 3}],
+        expected=[{"ts": datetime(9999, 12, 31, 23, 59, 59, tzinfo=timezone.utc), "v": 3}],
         msg="$out timeseries should accept far future dates as timeField value",
     ),
     OutTestCase(
@@ -758,7 +757,7 @@ OUT_TIMESERIES_DATETIME_ACCEPTANCE_TESTS: list[OutTestCase] = [
         docs=[{"_id": 1, "ts": datetime(1, 1, 1), "v": 4}],
         target_coll="ts_dt_minimum",
         out_spec={"timeseries": {"timeField": "ts"}},
-        expected=[{"ts": datetime(1, 1, 1), "v": 4}],
+        expected=[{"ts": datetime(1, 1, 1, tzinfo=timezone.utc), "v": 4}],
         msg="$out timeseries should accept minimum datetime (0001-01-01) as timeField value",
     ),
     OutTestCase(
@@ -766,7 +765,7 @@ OUT_TIMESERIES_DATETIME_ACCEPTANCE_TESTS: list[OutTestCase] = [
         docs=[{"_id": 1, "ts": datetime(2024, 6, 15, 12, 30, 45, 123_000), "v": 5}],
         target_coll="ts_dt_millis",
         out_spec={"timeseries": {"timeField": "ts"}},
-        expected=[{"ts": datetime(2024, 6, 15, 12, 30, 45, 123_000), "v": 5}],
+        expected=[{"ts": datetime(2024, 6, 15, 12, 30, 45, 123_000, tzinfo=timezone.utc), "v": 5}],
         msg="$out timeseries should accept datetimes with millisecond precision as timeField value",
     ),
 ]
@@ -845,7 +844,7 @@ def test_out_timeseries_existing(collection, out_stage_builder):
     )
     assertSuccess(
         result,
-        [{"ts": datetime(2024, 6, 1), "value": 60}],
+        [{"ts": datetime(2024, 6, 1, tzinfo=timezone.utc), "value": 60}],
         msg="$out should successfully write to an existing time series collection",
     )
 
@@ -2578,8 +2577,8 @@ OUT_COLLECTION_NAME_VALIDATION_ERROR_TESTS: list[OutTestCase] = [
         "coll_system_prefix",
         docs=[{"_id": 1}],
         pipeline=[{"$out": "system.test"}],
-        msg="$out should reject system. prefix collection name as unauthorized",
-        error_code=UNAUTHORIZED_ERROR,
+        msg="$out should reject system. prefix collection name as a special collection",
+        error_code=OUT_SPECIAL_COLLECTION_ERROR,
     ),
     OutTestCase(
         "coll_system_buckets_prefix",
@@ -4460,7 +4459,7 @@ OUT_ERROR_PRECEDENCE_TESTS: list[OutTestCase] = [
         docs=[{"_id": 1}],
         pipeline=[{"$out": "system.test"}, {"$match": {"_id": 1}}],
         msg="system prefix error should take precedence over pipeline position error",
-        error_code=UNAUTHORIZED_ERROR,
+        error_code=OUT_SPECIAL_COLLECTION_ERROR,
     ),
     OutTestCase(
         "prec_system_buckets_over_pipeline_position",
@@ -4484,7 +4483,7 @@ OUT_ERROR_PRECEDENCE_TESTS: list[OutTestCase] = [
         docs=[{"_id": 1}],
         pipeline=[{"$out": "system." + "a" * 248}],
         msg="system prefix error should take precedence over namespace length error",
-        error_code=UNAUTHORIZED_ERROR,
+        error_code=OUT_SPECIAL_COLLECTION_ERROR,
     ),
     OutTestCase(
         "prec_nested_over_pipeline_position",
