@@ -1,4 +1,4 @@
-"""Tests for $out stage - success cases."""
+"""Tests for $out stage - timeseries collection creation and options."""
 
 from __future__ import annotations
 
@@ -23,216 +23,6 @@ from documentdb_tests.framework.test_constants import (
     DECIMAL128_ONE_AND_HALF,
     DECIMAL128_TWO_AND_HALF,
 )
-
-# Property [Syntax Forms]: $out accepts a string (same-database output), a
-# document with db/coll (cross-database output), or a document with db/coll
-# and timeseries (time series collection output), and each form writes the
-# pipeline results to the specified target.
-OUT_SYNTAX_FORMS_TESTS: list[OutTestCase] = [
-    OutTestCase(
-        "string_form_same_database",
-        docs=[{"_id": 1, "value": 10}, {"_id": 2, "value": 20}],
-        target_coll="syntax_string_target",
-        out_spec=None,
-        expected_type="collection",
-        expected_options={},
-        msg="$out string form should write results to a collection in the same database",
-    ),
-    OutTestCase(
-        "document_form_db_and_coll",
-        docs=[{"_id": 1, "value": 10}, {"_id": 2, "value": 20}],
-        target_coll="syntax_doc_target",
-        out_spec={},
-        expected_type="collection",
-        expected_options={},
-        msg="$out document form with db and coll should write results to the specified collection",
-    ),
-    OutTestCase(
-        "document_form_with_timeseries",
-        docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "value": 10}],
-        target_coll="syntax_ts_target",
-        out_spec={"timeseries": {"timeField": "ts"}},
-        expected_type="timeseries",
-        expected_options={
-            "timeseries": {
-                "timeField": "ts",
-                "granularity": "seconds",
-                "bucketMaxSpanSeconds": 3_600,
-            }
-        },
-        msg="$out document form with timeseries should create a time series collection",
-    ),
-]
-
-# Property [Null as Absent]: null values for timeseries and its sub-fields
-# (metaField, granularity, bucketMaxSpanSeconds, bucketRoundingSeconds) are
-# treated as absent, producing the same collection as if the field were omitted.
-OUT_NULL_SUCCESS_TESTS: list[OutTestCase] = [
-    OutTestCase(
-        "null_timeseries_regular_collection",
-        docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "value": 10}],
-        target_coll="target_ts_null",
-        out_spec={"timeseries": None},
-        expected_type="collection",
-        expected_options={},
-        msg="$out should treat timeseries null as absent and create a regular collection",
-    ),
-    OutTestCase(
-        "null_meta_field_omitted",
-        docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "value": 10}],
-        target_coll="target_meta_null",
-        out_spec={"timeseries": {"timeField": "ts", "metaField": None}},
-        expected_type="timeseries",
-        expected_options={
-            "timeseries": {
-                "timeField": "ts",
-                "granularity": "seconds",
-                "bucketMaxSpanSeconds": 3_600,
-            }
-        },
-        msg="$out should treat metaField null as absent and omit it from timeseries options",
-    ),
-    OutTestCase(
-        "null_granularity_defaults_to_seconds",
-        docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "value": 10}],
-        target_coll="target_gran_null",
-        out_spec={"timeseries": {"timeField": "ts", "granularity": None}},
-        expected_type="timeseries",
-        expected_options={
-            "timeseries": {
-                "timeField": "ts",
-                "granularity": "seconds",
-                "bucketMaxSpanSeconds": 3_600,
-            }
-        },
-        msg="$out should treat granularity null as absent and default to 'seconds'",
-    ),
-    OutTestCase(
-        "null_bucket_params_defaults_to_granularity",
-        docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "value": 10}],
-        target_coll="target_bucket_null",
-        out_spec={
-            "timeseries": {
-                "timeField": "ts",
-                "bucketMaxSpanSeconds": None,
-                "bucketRoundingSeconds": None,
-            }
-        },
-        expected_type="timeseries",
-        expected_options={
-            "timeseries": {
-                "timeField": "ts",
-                "granularity": "seconds",
-                "bucketMaxSpanSeconds": 3_600,
-            }
-        },
-        msg=(
-            "$out should treat null bucketMaxSpanSeconds and bucketRoundingSeconds"
-            " as absent and default to granularity-based bucketing"
-        ),
-    ),
-]
-
-# Property [Collection Name Acceptance]: any non-empty string of non-null
-# bytes that does not match a rejection rule is accepted as a collection name.
-OUT_COLLECTION_NAME_ACCEPTANCE_TESTS: list[OutTestCase] = [
-    OutTestCase(
-        "control_character",
-        docs=[{"_id": 1}],
-        target_coll="\x01",
-        expected_type="collection",
-        expected_options={},
-        msg="$out should accept a control character as a collection name",
-    ),
-    OutTestCase(
-        "embedded_control_character",
-        docs=[{"_id": 1}],
-        target_coll="test\x1fcoll",
-        expected_type="collection",
-        expected_options={},
-        msg="$out should accept embedded control characters in a collection name",
-    ),
-    OutTestCase(
-        "unicode_no_break_space",
-        docs=[{"_id": 1}],
-        target_coll="\u00a0",
-        expected_type="collection",
-        expected_options={},
-        msg="$out should accept Unicode no-break space as a collection name",
-    ),
-    OutTestCase(
-        "zero_width_space",
-        docs=[{"_id": 1}],
-        target_coll="\u200b",
-        expected_type="collection",
-        expected_options={},
-        msg="$out should accept zero-width space as a collection name",
-    ),
-    OutTestCase(
-        "bom_character",
-        docs=[{"_id": 1}],
-        target_coll="\ufeff",
-        expected_type="collection",
-        expected_options={},
-        msg="$out should accept BOM character as a collection name",
-    ),
-    OutTestCase(
-        "emoji",
-        docs=[{"_id": 1}],
-        target_coll="\U0001f389",
-        expected_type="collection",
-        expected_options={},
-        msg="$out should accept emoji as a collection name",
-    ),
-    OutTestCase(
-        "cjk_characters",
-        docs=[{"_id": 1}],
-        target_coll="\u4e2d\u6587",
-        expected_type="collection",
-        expected_options={},
-        msg="$out should accept CJK characters as a collection name",
-    ),
-    OutTestCase(
-        "punctuation",
-        docs=[{"_id": 1}],
-        target_coll="a!@#b",
-        expected_type="collection",
-        expected_options={},
-        msg="$out should accept punctuation in a collection name",
-    ),
-    OutTestCase(
-        "single_character",
-        docs=[{"_id": 1}],
-        target_coll="a",
-        expected_type="collection",
-        expected_options={},
-        msg="$out should accept a single-character collection name",
-    ),
-    OutTestCase(
-        "single_digit",
-        docs=[{"_id": 1}],
-        target_coll="1",
-        expected_type="collection",
-        expected_options={},
-        msg="$out should accept a single-digit collection name",
-    ),
-    OutTestCase(
-        "digits_only",
-        docs=[{"_id": 1}],
-        target_coll="123",
-        expected_type="collection",
-        expected_options={},
-        msg="$out should accept a digits-only collection name",
-    ),
-    OutTestCase(
-        "temp_prefix",
-        docs=[{"_id": 1}],
-        target_coll="tmp.agg_out.",
-        expected_type="collection",
-        expected_options={},
-        msg="$out should accept the tmp.agg_out. prefix as a regular collection name",
-    ),
-]
 
 # Property [Timeseries Collection Creation]: $out creates a new time
 # series collection when valid timeseries options are provided and the
@@ -585,19 +375,16 @@ OUT_TIMESERIES_GRANULARITY_TESTS: list[OutTestCase] = [
     ),
 ]
 
-OUT_SUCCESS_TESTS = (
-    OUT_SYNTAX_FORMS_TESTS
-    + OUT_NULL_SUCCESS_TESTS
-    + OUT_COLLECTION_NAME_ACCEPTANCE_TESTS
-    + OUT_TIMESERIES_CREATION_TESTS
+OUT_TIMESERIES_TESTS = (
+    OUT_TIMESERIES_CREATION_TESTS
     + OUT_BUCKET_PARAM_TYPE_ACCEPTANCE_TESTS
     + OUT_TIMESERIES_GRANULARITY_TESTS
 )
 
 
 @pytest.mark.aggregate
-@pytest.mark.parametrize("test_case", pytest_params(OUT_SUCCESS_TESTS))
-def test_out_success(collection, test_case: OutTestCase):
+@pytest.mark.parametrize("test_case", pytest_params(OUT_TIMESERIES_TESTS))
+def test_out_timeseries(collection, test_case: OutTestCase):
     """Test $out writes results and creates the correct collection type."""
     populate_collection(collection, test_case)
     out_stage = test_case.build_out_stage(collection)
