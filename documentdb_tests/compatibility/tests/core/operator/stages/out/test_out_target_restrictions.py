@@ -15,7 +15,6 @@ from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_
 )
 from documentdb_tests.framework.assertions import (
     assertFailure,
-    assertFailureCode,
     assertResult,
     assertSuccess,
 )
@@ -331,107 +330,116 @@ def test_out_read_concern_error(collection, test_case: OutTestCase):
     assertResult(result, error_code=test_case.error_code, msg=test_case.msg)
 
 
+# Property [Index Constraint Errors - Nonexistent Target]: when a unique
+# index violation occurs writing to a nonexistent target, the target
+# collection is not created.
+OUT_INDEX_NONEXISTENT_TARGET_TESTS: list[OutTestCase] = [
+    OutTestCase(
+        "idx_nonexist",
+        docs=[{"_id": 1, "x": 1}, {"_id": 2, "x": 2}],
+        target_coll="idx_nonexist_target",
+        pipeline=[
+            {"$unset": "_id"},
+            {"$addFields": {"_id": "same"}},
+            {"$out": "idx_nonexist_target"},
+        ],
+        expected=[],
+        msg="$out should not create the target collection when a unique index violation occurs",
+    ),
+]
+
+
 @pytest.mark.aggregate
-def test_out_unique_violation_nonexistent_target_not_created(collection):
+@pytest.mark.parametrize("test_case", pytest_params(OUT_INDEX_NONEXISTENT_TARGET_TESTS))
+def test_out_unique_violation_nonexistent_target_not_created(collection, test_case: OutTestCase):
     """Test $out does not create the target when a unique index violation occurs."""
-    db = collection.database
-    target_name = "idx_nonexist_target"
-    db.drop_collection(target_name)
-    populate_collection(
-        collection,
-        OutTestCase(
-            id="idx_nonexist",
-            docs=[{"_id": 1, "x": 1}, {"_id": 2, "x": 2}],
-            msg="$out should not create target on unique index violation",
-        ),
-    )
+    populate_collection(collection, test_case)
+    collection.database.drop_collection(test_case.target_coll)
     execute_command(
         collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [
-                {"$unset": "_id"},
-                {"$addFields": {"_id": "same"}},
-                {"$out": target_name},
-            ],
-            "cursor": {},
-        },
+        {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
     )
     result = execute_command(
         collection,
-        {"listCollections": 1, "filter": {"name": target_name}},
+        {"listCollections": 1, "filter": {"name": test_case.target_coll}},
     )
-    assertSuccess(
-        result,
-        [],
-        msg="$out should not create the target collection when a unique index violation occurs",
-    )
+    assertSuccess(result, test_case.expected, msg=test_case.msg)
 
 
 # Property [Nested Pipeline Restriction - View Definition]: $out in a view
-# definition is rejected, but $out from a view source (not in the view
-# definition) succeeds.
+# definition is rejected.
+OUT_VIEW_DEFINITION_ERROR_TESTS: list[OutTestCase] = [
+    OutTestCase(
+        "view_def_out",
+        docs=[{"_id": 1, "value": 10}],
+        pipeline=[{"$out": "target"}],
+        error_code=INVALID_VIEW_PIPELINE_ERROR,
+        msg="$out in a view definition should produce an invalid view pipeline error",
+    ),
+]
+
+
 @pytest.mark.aggregate
-def test_out_in_view_definition_error(collection):
+@pytest.mark.parametrize("test_case", pytest_params(OUT_VIEW_DEFINITION_ERROR_TESTS))
+def test_out_in_view_definition_error(collection, test_case: OutTestCase):
     """Test $out in a view definition is rejected."""
-    populate_collection(
-        collection,
-        OutTestCase(
-            id="view_def_out",
-            docs=[{"_id": 1, "value": 10}],
-            msg="$out in a view definition should be rejected",
-        ),
-    )
+    populate_collection(collection, test_case)
     result = execute_command(
         collection,
         {
             "create": "bad_view",
             "viewOn": collection.name,
-            "pipeline": [{"$out": "target"}],
+            "pipeline": test_case.pipeline,
         },
     )
-    assertFailureCode(
-        result,
-        INVALID_VIEW_PIPELINE_ERROR,
-        msg="$out in a view definition should produce an invalid view pipeline error",
-    )
+    assertResult(result, error_code=test_case.error_code, msg=test_case.msg)
+
+
+# Property [Nested Pipeline Restriction - View Source]: $out from a view
+# source (not in the view definition) succeeds.
+OUT_VIEW_SOURCE_SUCCESS_TESTS: list[OutTestCase] = [
+    OutTestCase(
+        "view_source_out",
+        docs=[{"_id": 1, "value": 10}],
+        target_coll="view_source_out_target",
+        pipeline=[{"$out": "view_source_out_target"}],
+        setup=lambda c: (
+            c.database.drop_collection("good_view_for_out"),
+            c.database.command(
+                {
+                    "create": "good_view_for_out",
+                    "viewOn": c.name,
+                    "pipeline": [{"$match": {"_id": 1}}],
+                }
+            ),
+        ),
+        expected=[{"_id": 1, "value": 10}],
+        msg="$out from a view source should write the view's results to the target collection",
+    ),
+]
 
 
 @pytest.mark.aggregate
-def test_out_from_view_source_succeeds(collection):
+@pytest.mark.parametrize("test_case", pytest_params(OUT_VIEW_SOURCE_SUCCESS_TESTS))
+def test_out_from_view_source_succeeds(collection, test_case: OutTestCase):
     """Test $out from a view source succeeds."""
-    populate_collection(
-        collection,
-        OutTestCase(
-            id="view_source_out",
-            docs=[{"_id": 1, "value": 10}],
-            msg="$out from a view source should succeed",
-        ),
-    )
+    populate_collection(collection, test_case)
+    if test_case.setup:
+        test_case.setup(collection)
     db = collection.database
-    view_name = "good_view_for_out"
-    db.drop_collection(view_name)
-    db.command(
-        {"create": view_name, "viewOn": collection.name, "pipeline": [{"$match": {"_id": 1}}]}
-    )
-    target_name = "view_source_out_target"
     execute_command(
-        db[view_name],
+        db["good_view_for_out"],
         {
-            "aggregate": view_name,
-            "pipeline": [{"$out": target_name}],
+            "aggregate": "good_view_for_out",
+            "pipeline": test_case.pipeline,
             "cursor": {},
         },
     )
     result = execute_command(
         collection,
-        {"find": target_name, "filter": {}},
+        {"find": test_case.target_coll, "filter": {}},
     )
-    assertSuccess(
-        result,
-        [{"_id": 1, "value": 10}],
-        msg="$out from a view source should write the view's results to the target collection",
-    )
+    assertResult(result, expected=test_case.expected, msg=test_case.msg)
 
 
 # Property [Aggregation Options]: standard aggregation options (collation,
@@ -635,52 +643,58 @@ def test_out_schema_validation_success(collection, test_case: OutTestCase):
 # validationAction set to error and an invalid document is produced, the
 # write fails with a document validation failure error and the pre-existing
 # collection is unchanged.
-@pytest.mark.aggregate
-def test_out_schema_validation_error(collection):
-    """Test $out fails with schema validation error and leaves existing data unchanged."""
-    populate_collection(
-        collection,
-        OutTestCase(
-            id="schema_val_err",
-            docs=[{"_id": 1, "value": "not_a_number"}],
-            msg="$out should fail with schema validation error",
-        ),
-    )
-    db = collection.database
-    target_name = "schema_val_error_target"
-    db.drop_collection(target_name)
-    db.command(
-        {
-            "create": target_name,
-            "validator": {
-                "$jsonSchema": {
-                    "bsonType": "object",
-                    "required": ["value"],
-                    "properties": {"value": {"bsonType": "int"}},
+OUT_SCHEMA_VALIDATION_ERROR_TESTS: list[OutTestCase] = [
+    OutTestCase(
+        "schema_val_err",
+        docs=[{"_id": 1, "value": "not_a_number"}],
+        target_coll="schema_val_error_target",
+        pipeline=[{"$out": "schema_val_error_target"}],
+        setup=lambda c: (
+            c.database.drop_collection("schema_val_error_target"),
+            c.database.command(
+                {
+                    "create": "schema_val_error_target",
+                    "validator": {
+                        "$jsonSchema": {
+                            "bsonType": "object",
+                            "required": ["value"],
+                            "properties": {"value": {"bsonType": "int"}},
+                        }
+                    },
+                    "validationAction": "error",
                 }
-            },
-            "validationAction": "error",
-        }
-    )
-    db[target_name].insert_one({"_id": 99, "value": 42})
-    result = execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [{"$out": target_name}],
-            "cursor": {},
-        },
-    )
-    assertFailure(
-        result,
-        {"code": DOCUMENT_VALIDATION_FAILURE_ERROR, "unchanged": [{"_id": 99, "value": 42}]},
+            ),
+            c.database["schema_val_error_target"].insert_one({"_id": 99, "value": 42}),
+        ),
+        error_code=DOCUMENT_VALIDATION_FAILURE_ERROR,
+        expected=[{"_id": 99, "value": 42}],
         msg=(
             "$out should fail with document validation failure when validationAction"
             " is error and the pre-existing collection should be unchanged"
         ),
+    ),
+]
+
+
+@pytest.mark.aggregate
+@pytest.mark.parametrize("test_case", pytest_params(OUT_SCHEMA_VALIDATION_ERROR_TESTS))
+def test_out_schema_validation_error(collection, test_case: OutTestCase):
+    """Test $out fails with schema validation error and leaves existing data unchanged."""
+    populate_collection(collection, test_case)
+    if test_case.setup:
+        test_case.setup(collection)
+    result = execute_command(
+        collection,
+        {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
+    )
+    db = collection.database
+    assertFailure(
+        result,
+        {"code": test_case.error_code, "unchanged": test_case.expected},
+        msg=test_case.msg,
         transform=lambda err: {
             "code": err["code"],
-            "unchanged": list(db[target_name].find({}, {"_id": 1, "value": 1})),
+            "unchanged": list(db[test_case.target_coll].find({}, {"_id": 1, "value": 1})),
         },
     )
 
@@ -700,76 +714,66 @@ def _execute_in_transaction(collection, command: dict[str, Any]) -> Any:
 
 # Property [Transaction Errors]: using $out inside a transaction produces
 # an error.
+OUT_TRANSACTION_ERROR_TESTS: list[OutTestCase] = [
+    OutTestCase(
+        "transaction_out",
+        docs=[{"_id": 1, "value": 10}],
+        pipeline=[{"$out": "txn_target"}],
+        error_code=ILLEGAL_OPERATION_ERROR,
+        msg="$out inside a transaction should produce an error",
+    ),
+]
+
+
 @pytest.mark.aggregate
-def test_out_transaction_error(collection):
+@pytest.mark.parametrize("test_case", pytest_params(OUT_TRANSACTION_ERROR_TESTS))
+def test_out_transaction_error(collection, test_case: OutTestCase):
     """Test $out inside a transaction produces an error."""
-    populate_collection(
-        collection,
-        OutTestCase(
-            id="transaction_out",
-            docs=[{"_id": 1, "value": 10}],
-            msg="$out inside a transaction should produce an error",
-        ),
-    )
+    populate_collection(collection, test_case)
     # Verify the pipeline works outside a transaction first.
     execute_command(
         collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [{"$out": "txn_target"}],
-            "cursor": {},
-        },
+        {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
     )
     result = _execute_in_transaction(
         collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [{"$out": "txn_target"}],
-            "cursor": {},
-        },
+        {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
     )
-    assertFailureCode(
-        result,
-        ILLEGAL_OPERATION_ERROR,
-        msg="$out inside a transaction should produce an error",
-    )
+    assertResult(result, error_code=test_case.error_code, msg=test_case.msg)
 
 
 # Property [Byte-Based Namespace Limit]: the namespace length limit (255
 # bytes) is byte-based, not character-based - multi-byte characters consume
 # more of the limit per character than single-byte characters.
-@pytest.mark.aggregate
-def test_out_byte_based_namespace_limit(collection):
-    """Test $out namespace limit is byte-based, not character-based."""
-    populate_collection(
-        collection,
-        OutTestCase(
-            id="byte_limit",
-            docs=[{"_id": 1}],
-            msg="$out namespace limit should be byte-based",
+OUT_BYTE_NAMESPACE_LIMIT_TESTS: list[OutTestCase] = [
+    OutTestCase(
+        "byte_limit",
+        docs=[{"_id": 1}],
+        error_code=ILLEGAL_OPERATION_ERROR,
+        msg=(
+            "$out should reject a collection name that exceeds 255 namespace bytes"
+            " even though the character count is within the single-byte limit"
         ),
-    )
+    ),
+]
+
+
+@pytest.mark.aggregate
+@pytest.mark.parametrize("test_case", pytest_params(OUT_BYTE_NAMESPACE_LIMIT_TESTS))
+def test_out_byte_based_namespace_limit(collection, test_case: OutTestCase):
+    """Test $out namespace limit is byte-based, not character-based."""
+    populate_collection(collection, test_case)
     db_name = collection.database.name
     # Namespace = db_name + "." + coll_name; limit is 255 bytes.
     prefix_bytes = len(db_name.encode("utf-8")) + 1
     max_coll_bytes = 255 - prefix_bytes
-
     # CJK character U+4E2D is 3 bytes in UTF-8. Use enough CJK characters
     # to exceed the byte limit while staying under the character count that
     # would fit with single-byte characters.
     cjk_char_count = (max_coll_bytes // 3) + 1
     cjk_name = "\u4e2d" * cjk_char_count
-    # The CJK name has fewer characters than max_coll_bytes but exceeds
-    # the byte limit.
     result = execute_command(
         collection,
         {"aggregate": collection.name, "pipeline": [{"$out": cjk_name}], "cursor": {}},
     )
-    assertFailureCode(
-        result,
-        ILLEGAL_OPERATION_ERROR,
-        msg=(
-            "$out should reject a collection name that exceeds 255 namespace bytes"
-            " even though the character count is within the single-byte limit"
-        ),
-    )
+    assertResult(result, error_code=test_case.error_code, msg=test_case.msg)
