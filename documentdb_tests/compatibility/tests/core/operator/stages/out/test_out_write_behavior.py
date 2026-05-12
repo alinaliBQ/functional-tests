@@ -307,36 +307,33 @@ def test_out_replacement_preserves_indexes(collection, test_case: OutTestCase):
 # Property [Collection Replacement - Self-Replacement]: writing to the same
 # collection as the input succeeds and the collection contains the transformed
 # results.
+OUT_REPLACEMENT_SELF_TESTS: list[OutTestCase] = [
+    OutTestCase(
+        "replacement_self",
+        docs=[{"_id": 1, "value": 10}, {"_id": 2, "value": 20}],
+        expected=[{"_id": 1, "value": 10, "doubled": 20}, {"_id": 2, "value": 20, "doubled": 40}],
+        msg="$out self-replacement should contain transformed results",
+    ),
+]
+
+
 @pytest.mark.aggregate
-def test_out_replacement_self(collection):
+@pytest.mark.parametrize("test_case", pytest_params(OUT_REPLACEMENT_SELF_TESTS))
+def test_out_replacement_self(collection, test_case: OutTestCase):
     """Test $out self-replacement writes transformed results back to the source."""
-    populate_collection(
-        collection,
-        OutTestCase(
-            id="replacement_self",
-            docs=[{"_id": 1, "value": 10}, {"_id": 2, "value": 20}],
-            msg="$out should support self-replacement",
-        ),
-    )
+    populate_collection(collection, test_case)
+    pipeline = [
+        {"$addFields": {"doubled": {"$multiply": ["$value", 2]}}},
+        {"$out": collection.name},
+    ]
     execute_command(
         collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [
-                {"$addFields": {"doubled": {"$multiply": ["$value", 2]}}},
-                {"$out": collection.name},
-            ],
-            "cursor": {},
-        },
+        {"aggregate": collection.name, "pipeline": pipeline, "cursor": {}},
     )
     result = execute_command(
         collection, {"find": collection.name, "filter": {}, "sort": {"_id": 1}}
     )
-    assertSuccess(
-        result,
-        [{"_id": 1, "value": 10, "doubled": 20}, {"_id": 2, "value": 20, "doubled": 40}],
-        msg="$out self-replacement should contain transformed results",
-    )
+    assertSuccess(result, test_case.expected, msg=test_case.msg)
 
 
 # Property [Collection Replacement - Failure Rollback]: if the aggregation
@@ -397,20 +394,23 @@ def test_out_replacement_failure_unchanged(collection, test_case: OutTestCase):
     )
 
 
+OUT_TEMP_COLLECTION_TESTS: list[OutTestCase] = [
+    OutTestCase(
+        "temp_coll",
+        docs=[{"_id": i, "value": i} for i in range(10_000)],
+        target_coll="creation_temp_target",
+        expected={"observed": True, "remaining": []},
+        msg="$out should use a temp collection during execution and clean it up after",
+    ),
+]
+
+
 @pytest.mark.aggregate
-def test_out_temp_collection_during_execution(collection):
+@pytest.mark.parametrize("test_case", pytest_params(OUT_TEMP_COLLECTION_TESTS))
+def test_out_temp_collection_during_execution(collection, test_case: OutTestCase):
     """Test $out uses a temporary collection that is cleaned up after completion."""
-    docs = [{"_id": i, "value": i} for i in range(10_000)]
-    populate_collection(
-        collection,
-        OutTestCase(
-            id="temp_coll",
-            docs=docs,
-            msg="$out should use a temp collection during execution",
-        ),
-    )
+    populate_collection(collection, test_case)
     db = collection.database
-    target_coll = "creation_temp_target"
 
     found_tmp: list[str] = []
     stop = threading.Event()
@@ -431,7 +431,7 @@ def test_out_temp_collection_during_execution(collection):
 
     execute_command(
         collection,
-        {"aggregate": collection.name, "pipeline": [{"$out": target_coll}], "cursor": {}},
+        {"aggregate": collection.name, "pipeline": [{"$out": test_case.target_coll}], "cursor": {}},
     )
 
     stop.set()
@@ -444,9 +444,9 @@ def test_out_temp_collection_during_execution(collection):
     )
     assertSuccess(
         result,
-        {"observed": True, "remaining": []},
+        test_case.expected,
         raw_res=True,
-        msg="$out should use a temp collection during execution and clean it up after",
+        msg=test_case.msg,
         transform=lambda r: {
             "observed": len(found_tmp) > 0,
             "remaining": [d["name"] for d in r["cursor"]["firstBatch"]],
@@ -457,34 +457,38 @@ def test_out_temp_collection_during_execution(collection):
 # Property [Write Behavior - Auto-Generated _id]: documents with _id removed
 # via a pipeline stage receive auto-generated ObjectId _id values in the
 # output collection.
+OUT_AUTO_GENERATED_ID_TESTS: list[OutTestCase] = [
+    OutTestCase(
+        "auto_id",
+        docs=[{"_id": 1, "value": 10}, {"_id": 2, "value": 20}],
+        target_coll="write_auto_id_target",
+        expected=[{"value": 10, "is_objectid": True}, {"value": 20, "is_objectid": True}],
+        msg="$out should auto-generate ObjectId _id when _id is removed",
+    ),
+]
+
+
 @pytest.mark.aggregate
-def test_out_auto_generated_id(collection):
+@pytest.mark.parametrize("test_case", pytest_params(OUT_AUTO_GENERATED_ID_TESTS))
+def test_out_auto_generated_id(collection, test_case: OutTestCase):
     """Test $out auto-generates ObjectId _id when _id is removed."""
-    populate_collection(
-        collection,
-        OutTestCase(
-            id="auto_id",
-            docs=[{"_id": 1, "value": 10}, {"_id": 2, "value": 20}],
-            msg="$out should auto-generate ObjectId _id values",
-        ),
-    )
-    target_name = "write_auto_id_target"
+    populate_collection(collection, test_case)
     execute_command(
         collection,
         {
             "aggregate": collection.name,
-            "pipeline": [{"$unset": "_id"}, {"$out": target_name}],
+            "pipeline": [{"$unset": "_id"}, {"$out": test_case.target_coll}],
             "cursor": {},
         },
     )
     result = execute_command(
         collection,
-        {"find": target_name, "filter": {}, "sort": {"value": 1}},
+        {"find": test_case.target_coll, "filter": {}, "sort": {"value": 1}},
     )
     assertSuccess(
         result,
-        [{"value": 10, "is_objectid": True}, {"value": 20, "is_objectid": True}],
-        msg="$out should auto-generate ObjectId _id when _id is removed",
+        test_case.expected,
+        msg=test_case.msg,
         transform=lambda docs: [
             {"value": d["value"], "is_objectid": isinstance(d["_id"], ObjectId)} for d in docs
         ],
@@ -582,19 +586,23 @@ def test_out_explain_no_modify(collection, test_case: OutTestCase):
 
 # Property [Write Behavior - Idempotent]: running the same $out pipeline to
 # the same target twice produces the same result in the target collection.
+OUT_IDEMPOTENT_TESTS: list[OutTestCase] = [
+    OutTestCase(
+        "idempotent",
+        docs=[{"_id": 1, "value": 10}, {"_id": 2, "value": 20}],
+        target_coll="write_idempotent_target",
+        expected=[{"_id": 1, "value": 10}, {"_id": 2, "value": 20}],
+        msg="$out should produce the same result when run twice to the same target",
+    ),
+]
+
+
 @pytest.mark.aggregate
-def test_out_idempotent(collection):
+@pytest.mark.parametrize("test_case", pytest_params(OUT_IDEMPOTENT_TESTS))
+def test_out_idempotent(collection, test_case: OutTestCase):
     """Test $out is idempotent when run twice to the same target."""
-    populate_collection(
-        collection,
-        OutTestCase(
-            id="idempotent",
-            docs=[{"_id": 1, "value": 10}, {"_id": 2, "value": 20}],
-            msg="$out should be idempotent",
-        ),
-    )
-    target_name = "write_idempotent_target"
-    pipeline = [{"$out": target_name}]
+    populate_collection(collection, test_case)
+    pipeline = [{"$out": test_case.target_coll}]
     execute_command(
         collection,
         {"aggregate": collection.name, "pipeline": pipeline, "cursor": {}},
@@ -605,52 +613,52 @@ def test_out_idempotent(collection):
     )
     result = execute_command(
         collection,
-        {"find": target_name, "filter": {}, "sort": {"_id": 1}},
+        {"find": test_case.target_coll, "filter": {}, "sort": {"_id": 1}},
     )
-    assertSuccess(
-        result,
-        [{"_id": 1, "value": 10}, {"_id": 2, "value": 20}],
-        msg="$out should produce the same result when run twice to the same target",
-    )
+    assertSuccess(result, test_case.expected, msg=test_case.msg)
 
 
 # Property [Write Behavior - BSON Round-Trip]: all BSON types representable
 # by pymongo round-trip through $out without modification.
+OUT_BSON_ROUND_TRIP_TESTS: list[OutTestCase] = [
+    OutTestCase(
+        "bson_round_trip",
+        docs=[
+            {
+                "_id": 1,
+                "double_val": 3.14,
+                "string_val": "hello",
+                "object_val": {"nested": True},
+                "array_val": [1, 2, 3],
+                "binary_val": Binary(b"\x01\x02\x03"),
+                "objectid_val": ObjectId("507f1f77bcf86cd799439011"),
+                "bool_val": True,
+                "date_val": datetime(2024, 1, 1),
+                "null_val": None,
+                "regex_val": Regex("abc", "i"),
+                "int32_val": 42,
+                "timestamp_val": Timestamp(1_234_567_890, 1),
+                "int64_val": Int64(9_876_543_210),
+                "decimal128_val": Decimal128("123.456"),
+                "minkey_val": MinKey(),
+                "maxkey_val": MaxKey(),
+                "code_val": Code("function() {}"),
+            }
+        ],
+        target_coll="write_bson_target",
+        msg="all BSON types should round-trip through $out without modification",
+    ),
+]
+
+
 @pytest.mark.aggregate
-def test_out_bson_round_trip(collection):
+@pytest.mark.parametrize("test_case", pytest_params(OUT_BSON_ROUND_TRIP_TESTS))
+def test_out_bson_round_trip(collection, test_case: OutTestCase):
     """Test all BSON types round-trip through $out without modification."""
-    bson_doc = {
-        "_id": 1,
-        "double_val": 3.14,
-        "string_val": "hello",
-        "object_val": {"nested": True},
-        "array_val": [1, 2, 3],
-        "binary_val": Binary(b"\x01\x02\x03"),
-        "objectid_val": ObjectId("507f1f77bcf86cd799439011"),
-        "bool_val": True,
-        "date_val": datetime(2024, 1, 1),
-        "null_val": None,
-        "regex_val": Regex("abc", "i"),
-        "int32_val": 42,
-        "timestamp_val": Timestamp(1_234_567_890, 1),
-        "int64_val": Int64(9_876_543_210),
-        "decimal128_val": Decimal128("123.456"),
-        "minkey_val": MinKey(),
-        "maxkey_val": MaxKey(),
-        "code_val": Code("function() {}"),
-    }
-    populate_collection(
-        collection,
-        OutTestCase(
-            id="bson_round_trip",
-            docs=[bson_doc],
-            msg="all BSON types should round-trip through $out",
-        ),
-    )
-    target_name = "write_bson_target"
+    populate_collection(collection, test_case)
     execute_command(
         collection,
-        {"aggregate": collection.name, "pipeline": [{"$out": target_name}], "cursor": {}},
+        {"aggregate": collection.name, "pipeline": [{"$out": test_case.target_coll}], "cursor": {}},
     )
     source_result = execute_command(
         collection,
@@ -658,101 +666,99 @@ def test_out_bson_round_trip(collection):
     )
     target_result = execute_command(
         collection,
-        {"find": target_name, "filter": {}},
+        {"find": test_case.target_coll, "filter": {}},
     )
     assertSuccess(
         target_result,
         cast(dict, source_result)["cursor"]["firstBatch"],
-        msg="all BSON types should round-trip through $out without modification",
+        msg=test_case.msg,
     )
 
 
 # Property [Write Behavior - Large Documents]: documents up to 15 MB are
 # written successfully through $out.
+OUT_LARGE_DOCUMENT_TESTS: list[OutTestCase] = [
+    OutTestCase(
+        "large_doc",
+        docs=[{"_id": 1, "data": "x" * (15 * 1_024 * 1_024)}],
+        target_coll="write_large_target",
+        expected=[{"_id": 1}],
+        msg="$out should successfully write a 15 MB document",
+    ),
+]
+
+
 @pytest.mark.aggregate
-def test_out_large_document(collection):
+@pytest.mark.parametrize("test_case", pytest_params(OUT_LARGE_DOCUMENT_TESTS))
+def test_out_large_document(collection, test_case: OutTestCase):
     """Test $out writes documents up to 15 MB successfully."""
-    large_str = "x" * (15 * 1_024 * 1_024)
-    populate_collection(
-        collection,
-        OutTestCase(
-            id="large_doc",
-            docs=[{"_id": 1, "data": large_str}],
-            msg="$out should write large documents up to 15 MB",
-        ),
-    )
-    target_name = "write_large_target"
+    populate_collection(collection, test_case)
     execute_command(
         collection,
-        {"aggregate": collection.name, "pipeline": [{"$out": target_name}], "cursor": {}},
+        {"aggregate": collection.name, "pipeline": [{"$out": test_case.target_coll}], "cursor": {}},
     )
     result = execute_command(
         collection,
-        {"find": target_name, "filter": {}, "projection": {"_id": 1}},
+        {"find": test_case.target_coll, "filter": {}, "projection": {"_id": 1}},
     )
-    assertSuccess(
-        result,
-        [{"_id": 1}],
-        msg="$out should successfully write a 15 MB document",
-    )
+    assertSuccess(result, test_case.expected, msg=test_case.msg)
 
 
 # Property [No Unicode Normalization - Collections]: precomposed and combining
 # forms of the same character create separate, distinct collections - no
 # Unicode normalization is applied to collection names.
-@pytest.mark.aggregate
-def test_out_no_unicode_normalization(collection):
-    """Test $out treats precomposed and combining Unicode forms as distinct collection names."""
-    populate_collection(
-        collection,
-        OutTestCase(
-            id="no_normalization",
-            docs=[{"_id": 1, "form": "precomposed"}, {"_id": 2, "form": "combining"}],
-            msg="$out should not normalize Unicode collection names",
-        ),
-    )
-    # U+00E9 (precomposed e-acute, 2 UTF-8 bytes)
-    precomposed = "\u00e9"
-    # U+0065 U+0301 (e + combining acute, 3 UTF-8 bytes)
-    combining = "\u0065\u0301"
 
-    execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [
-                {"$match": {"_id": 1}},
-                {"$out": precomposed},
-            ],
-            "cursor": {},
-        },
-    )
-    execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [
-                {"$match": {"_id": 2}},
-                {"$out": combining},
-            ],
-            "cursor": {},
-        },
-    )
-    db = collection.database
-    precomposed_docs = list(db[precomposed].find({}, {"_id": 1, "form": 1}))
-    combining_docs = list(db[combining].find({}, {"_id": 1, "form": 1}))
-    result = execute_command(
-        collection,
-        {"listCollections": 1, "filter": {"name": {"$in": [precomposed, combining]}}},
-    )
-    assertSuccess(
-        result,
-        {
+# U+00E9 (precomposed e-acute, 2 UTF-8 bytes)
+_PRECOMPOSED_COLL = "\u00e9"
+# U+0065 U+0301 (e + combining acute, 3 UTF-8 bytes)
+_COMBINING_COLL = "\u0065\u0301"
+
+OUT_NO_UNICODE_NORMALIZATION_TESTS: list[OutTestCase] = [
+    OutTestCase(
+        "no_normalization",
+        docs=[{"_id": 1, "form": "precomposed"}, {"_id": 2, "form": "combining"}],
+        expected={
             "precomposed_docs": [{"_id": 1, "form": "precomposed"}],
             "combining_docs": [{"_id": 2, "form": "combining"}],
             "collection_count": 2,
         },
         msg="$out should create separate collections for precomposed and combining forms",
+    ),
+]
+
+
+@pytest.mark.aggregate
+@pytest.mark.parametrize("test_case", pytest_params(OUT_NO_UNICODE_NORMALIZATION_TESTS))
+def test_out_no_unicode_normalization(collection, test_case: OutTestCase):
+    """Test $out treats precomposed and combining Unicode forms as distinct collection names."""
+    populate_collection(collection, test_case)
+    execute_command(
+        collection,
+        {
+            "aggregate": collection.name,
+            "pipeline": [{"$match": {"_id": 1}}, {"$out": _PRECOMPOSED_COLL}],
+            "cursor": {},
+        },
+    )
+    execute_command(
+        collection,
+        {
+            "aggregate": collection.name,
+            "pipeline": [{"$match": {"_id": 2}}, {"$out": _COMBINING_COLL}],
+            "cursor": {},
+        },
+    )
+    db = collection.database
+    precomposed_docs = list(db[_PRECOMPOSED_COLL].find({}, {"_id": 1, "form": 1}))
+    combining_docs = list(db[_COMBINING_COLL].find({}, {"_id": 1, "form": 1}))
+    result = execute_command(
+        collection,
+        {"listCollections": 1, "filter": {"name": {"$in": [_PRECOMPOSED_COLL, _COMBINING_COLL]}}},
+    )
+    assertSuccess(
+        result,
+        test_case.expected,
+        msg=test_case.msg,
         transform=lambda docs: {
             "precomposed_docs": precomposed_docs,
             "combining_docs": combining_docs,
@@ -764,24 +770,35 @@ def test_out_no_unicode_normalization(collection):
 # Property [No Unicode Normalization - Databases]: precomposed and combining
 # forms of the same character create separate, distinct databases - no Unicode
 # normalization is applied to database names.
+
+# U+00E9 (precomposed e-acute, 2 UTF-8 bytes)
+_PRECOMPOSED_DB = "\u00e9"
+# U+0065 U+0301 (e + combining acute, 3 UTF-8 bytes)
+_COMBINING_DB = "\u0065\u0301"
+
+OUT_NO_UNICODE_NORMALIZATION_DB_TESTS: list[OutTestCase] = [
+    OutTestCase(
+        "no_normalization_db",
+        docs=[{"_id": 1, "form": "precomposed"}, {"_id": 2, "form": "combining"}],
+        target_coll="target",
+        expected={
+            "precomposed_docs": [{"_id": 1, "form": "precomposed"}],
+            "combining_docs": [{"_id": 2, "form": "combining"}],
+            "both_exist": True,
+        },
+        msg="$out should create separate databases for precomposed and combining forms",
+    ),
+]
+
+
 @pytest.mark.aggregate
-def test_out_no_unicode_normalization_database(collection):
+@pytest.mark.parametrize("test_case", pytest_params(OUT_NO_UNICODE_NORMALIZATION_DB_TESTS))
+def test_out_no_unicode_normalization_database(collection, test_case: OutTestCase):
     """Test $out treats precomposed and combining Unicode forms as distinct database names."""
-    populate_collection(
-        collection,
-        OutTestCase(
-            id="no_normalization_db",
-            docs=[{"_id": 1, "form": "precomposed"}, {"_id": 2, "form": "combining"}],
-            msg="$out should not normalize Unicode database names",
-        ),
-    )
-    # U+00E9 (precomposed e-acute, 2 UTF-8 bytes)
-    precomposed_db = "\u00e9"
-    # U+0065 U+0301 (e + combining acute, 3 UTF-8 bytes)
-    combining_db = "\u0065\u0301"
+    populate_collection(collection, test_case)
     client = collection.database.client
-    client.drop_database(precomposed_db)
-    client.drop_database(combining_db)
+    client.drop_database(_PRECOMPOSED_DB)
+    client.drop_database(_COMBINING_DB)
     try:
         execute_command(
             collection,
@@ -789,7 +806,7 @@ def test_out_no_unicode_normalization_database(collection):
                 "aggregate": collection.name,
                 "pipeline": [
                     {"$match": {"_id": 1}},
-                    {"$out": {"db": precomposed_db, "coll": "target"}},
+                    {"$out": {"db": _PRECOMPOSED_DB, "coll": test_case.target_coll}},
                 ],
                 "cursor": {},
             },
@@ -800,29 +817,28 @@ def test_out_no_unicode_normalization_database(collection):
                 "aggregate": collection.name,
                 "pipeline": [
                     {"$match": {"_id": 2}},
-                    {"$out": {"db": combining_db, "coll": "target"}},
+                    {"$out": {"db": _COMBINING_DB, "coll": test_case.target_coll}},
                 ],
                 "cursor": {},
             },
         )
-        precomposed_docs = list(client[precomposed_db]["target"].find({}, {"_id": 1, "form": 1}))
-        combining_docs = list(client[combining_db]["target"].find({}, {"_id": 1, "form": 1}))
+        precomposed_docs = list(
+            client[_PRECOMPOSED_DB][test_case.target_coll].find({}, {"_id": 1, "form": 1})
+        )
+        combining_docs = list(
+            client[_COMBINING_DB][test_case.target_coll].find({}, {"_id": 1, "form": 1})
+        )
         db_names = client.list_database_names()
         assertSuccess(
             {"cursor": {"firstBatch": [{"result": True}]}},
-            {
-                "precomposed_docs": [{"_id": 1, "form": "precomposed"}],
-                "combining_docs": [{"_id": 2, "form": "combining"}],
-                "both_exist": True,
-            },
-            msg="$out should create separate databases for precomposed and combining forms",
+            test_case.expected,
+            msg=test_case.msg,
             transform=lambda _: {
                 "precomposed_docs": precomposed_docs,
                 "combining_docs": combining_docs,
-                "both_exist": precomposed_db in db_names and combining_db in db_names,
+                "both_exist": _PRECOMPOSED_DB in db_names and _COMBINING_DB in db_names,
             },
         )
-
     finally:
-        client.drop_database(precomposed_db)
-        client.drop_database(combining_db)
+        client.drop_database(_PRECOMPOSED_DB)
+        client.drop_database(_COMBINING_DB)
