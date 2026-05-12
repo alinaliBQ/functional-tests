@@ -312,17 +312,11 @@ def test_out_target_restriction_error(collection, test_case: OutTestCase):
 def test_out_read_concern_error(collection, test_case: OutTestCase):
     """Test $out rejects invalid read concern levels."""
     populate_collection(collection, test_case)
-    if test_case.setup:
-        test_case.setup(collection)
-    if test_case.pipeline:
-        pipeline = test_case.resolve_pipeline(collection.database.name)
-    else:
-        pipeline = [test_case.build_out_stage(collection)]
     result = execute_command(
         collection,
         {
             "aggregate": collection.name,
-            "pipeline": pipeline,
+            "pipeline": test_case.pipeline,
             "cursor": {},
             "readConcern": {"level": "linearizable"},
         },
@@ -489,8 +483,6 @@ OUT_AGGREGATION_OPTION_SUCCESS_TESTS: list[OutTestCase] = [
 def test_out_aggregation_options(collection, test_case: OutTestCase):
     """Test $out succeeds with standard aggregation options."""
     populate_collection(collection, test_case)
-    if test_case.setup:
-        test_case.setup(collection)
     pipeline = [{"$out": test_case.target_coll}]
     result = execute_command(
         collection,
@@ -540,8 +532,6 @@ OUT_READ_CONCERN_ACCEPTANCE_TESTS: list[OutTestCase] = [
 def test_out_read_concern_acceptance(collection, test_case: OutTestCase):
     """Test $out succeeds with non-linearizable read concern levels."""
     populate_collection(collection, test_case)
-    if test_case.setup:
-        test_case.setup(collection)
     pipeline = [{"$out": test_case.target_coll}]
     result = execute_command(
         collection,

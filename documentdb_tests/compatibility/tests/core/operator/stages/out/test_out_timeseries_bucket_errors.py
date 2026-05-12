@@ -727,13 +727,9 @@ OUT_TIMESERIES_BUCKET_TYPE_ERROR_TESTS: list[OutTestCase] = [
 def test_out_error(collection, test_case: OutTestCase):
     """Test $out rejects invalid configurations with the expected error code."""
     populate_collection(collection, test_case)
-    if test_case.pipeline:
-        pipeline = test_case.resolve_pipeline(collection.database.name)
-    else:
-        pipeline = [test_case.build_out_stage(collection)]
+    pipeline = test_case.resolve_pipeline(collection.database.name)
     result = execute_command(
         collection,
         {"aggregate": collection.name, "pipeline": pipeline, "cursor": {}},
     )
-
     assertResult(result, error_code=test_case.error_code, msg=test_case.msg)

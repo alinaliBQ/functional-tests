@@ -509,8 +509,6 @@ OUT_EMPTY_CURSOR_TESTS: list[OutTestCase] = [
 def test_out_empty_cursor(collection, test_case: OutTestCase):
     """Test $out returns an empty cursor result."""
     populate_collection(collection, test_case)
-    if test_case.setup:
-        test_case.setup(collection)
     pipeline = [{"$out": test_case.target_coll}]
     result = execute_command(
         collection,
@@ -537,8 +535,6 @@ OUT_EXPLAIN_NO_WRITE_TESTS: list[OutTestCase] = [
 def test_out_explain_no_write(collection, test_case: OutTestCase):
     """Test explain with $out does not create or modify the target collection."""
     populate_collection(collection, test_case)
-    if test_case.setup:
-        test_case.setup(collection)
     pipeline = [{"$out": test_case.target_coll}]
     execute_command(
         collection,
