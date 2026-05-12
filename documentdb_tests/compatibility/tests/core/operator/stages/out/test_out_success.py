@@ -14,6 +14,7 @@ from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_
     populate_collection,
 )
 from documentdb_tests.framework.assertions import (
+    assertResult,
     assertSuccess,
 )
 from documentdb_tests.framework.executor import execute_command
@@ -623,6 +624,56 @@ def test_out_success(collection, test_case: OutTestCase):
     )
 
 
+# Property [Timeseries Cross-Database]: $out creates a time series collection
+# in a different database when timeseries options are specified with a
+# cross-database target.
+CROSS_DB_NAME = "out_ts_cross_db_target"
+
+OUT_TIMESERIES_CROSS_DB_TESTS: list[OutTestCase] = [
+    OutTestCase(
+        "ts_cross_db",
+        docs=[{"_id": 1, "ts": datetime(2024, 7, 1), "value": 70}],
+        target_coll="ts_cross_target",
+        pipeline=[
+            {
+                "$out": {
+                    "db": CROSS_DB_NAME,
+                    "coll": "ts_cross_target",
+                    "timeseries": {"timeField": "ts"},
+                }
+            }
+        ],
+        expected=[{"ts": datetime(2024, 7, 1, tzinfo=timezone.utc), "value": 70}],
+        msg="$out should create a time series collection in a different database",
+    ),
+]
+
+
+@pytest.mark.aggregate
+@pytest.mark.parametrize("test_case", pytest_params(OUT_TIMESERIES_CROSS_DB_TESTS))
+def test_out_timeseries_cross_db(collection, test_case: OutTestCase):
+    """Test $out creates a time series collection in a different database."""
+    populate_collection(collection, test_case)
+    client = collection.database.client
+    client.drop_database(CROSS_DB_NAME)
+    try:
+        execute_command(
+            collection,
+            {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
+        )
+        result = execute_command(
+            client[CROSS_DB_NAME][test_case.target_coll],
+            {
+                "find": test_case.target_coll,
+                "filter": {},
+                "projection": {"_id": 0},
+            },
+        )
+        assertResult(result, expected=test_case.expected, msg=test_case.msg)
+    finally:
+        client.drop_database(CROSS_DB_NAME)
+
+
 # Property [Timeseries DateTime Acceptance]: all datetime boundary values
 # are accepted as timeField values when writing to a timeseries collection
 # via $out, including Unix epoch, pre-epoch, far future, minimum datetime,
@@ -760,67 +811,3 @@ def test_out_timeseries_existing(collection, test_case: OutTestCase):
         },
     )
     assertSuccess(result, test_case.expected, msg=test_case.msg)
-
-
-# Property [Timeseries Cross-Database]: $out creates a time series collection
-# in a different database when timeseries options are specified with a
-# cross-database target.
-@pytest.mark.aggregate
-def test_out_timeseries_cross_db(collection):
-    """Test $out creates a time series collection in a different database."""
-    populate_collection(
-        collection,
-        OutTestCase(
-            id="ts_cross_db",
-            docs=[{"_id": 1, "ts": datetime(2024, 7, 1), "value": 70}],
-            msg="$out should create a time series collection in a different database",
-        ),
-    )
-    client = collection.database.client
-    cross_db_name = collection.database.name + "_ts_cross"
-    client.drop_database(cross_db_name)
-    try:
-        out_stage = {
-            "$out": {
-                "db": cross_db_name,
-                "coll": "ts_cross_target",
-                "timeseries": {"timeField": "ts"},
-            }
-        }
-        execute_command(
-            collection,
-            {"aggregate": collection.name, "pipeline": [out_stage], "cursor": {}},
-        )
-        cross_db = client[cross_db_name]
-        result = execute_command(
-            cross_db["ts_cross_target"],
-            {"listCollections": 1, "filter": {"name": "ts_cross_target"}},
-        )
-        assertSuccess(
-            result,
-            [
-                {
-                    "name": "ts_cross_target",
-                    "type": "timeseries",
-                    "options": {
-                        "timeseries": {
-                            "timeField": "ts",
-                            "granularity": "seconds",
-                            "bucketMaxSpanSeconds": 3_600,
-                        }
-                    },
-                }
-            ],
-            msg="$out should create a time series collection in a different database",
-            transform=lambda docs: [
-                {
-                    "name": d["name"],
-                    "type": d["type"],
-                    "options": d.get("options", {}),
-                }
-                for d in docs
-            ],
-        )
-
-    finally:
-        client.drop_database(cross_db_name)
