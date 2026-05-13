@@ -251,10 +251,6 @@ OUT_STAGE_ARGUMENT_TYPE_ERROR_TESTS: list[OutTestCase] = [
     ),
 ]
 
-# Property [Document Form Field Type Errors]: non-string types for db or
-# coll in document form produce a type mismatch error, with db checked
-# before coll when both have type errors.
-
 # Property [Document Form Unknown Fields]: any field other than db, coll,
 # and timeseries in the document form is rejected as an unknown field, and
 # field name matching is case-sensitive and whitespace-sensitive.
