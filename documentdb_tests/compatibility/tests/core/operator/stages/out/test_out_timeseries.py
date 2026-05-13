@@ -412,17 +412,16 @@ def test_out_timeseries(collection, test_case: OutTestCase):
 # Property [Timeseries Cross-Database]: $out creates a time series collection
 # in a different database when timeseries options are specified with a
 # cross-database target.
-CROSS_DB_NAME = "out_ts_cross_db_target"
-
 OUT_TIMESERIES_CROSS_DB_TESTS: list[OutTestCase] = [
     OutTestCase(
         "ts_cross_db",
         docs=[{"_id": 1, "ts": datetime(2024, 7, 1), "value": 70}],
         target_coll="ts_cross_target",
+        target_db="out_ts_cross_db_target",
         pipeline=[
             {
                 "$out": {
-                    "db": CROSS_DB_NAME,
+                    "db": "out_ts_cross_db_target",
                     "coll": "ts_cross_target",
                     "timeseries": {"timeField": "ts"},
                 }
@@ -440,14 +439,14 @@ def test_out_timeseries_cross_db(collection, test_case: OutTestCase):
     """Test $out creates a time series collection in a different database."""
     populate_collection(collection, test_case)
     client = collection.database.client
-    client.drop_database(CROSS_DB_NAME)
+    client.drop_database(test_case.target_db)
     try:
         execute_command(
             collection,
             {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
         )
         result = execute_command(
-            client[CROSS_DB_NAME][test_case.target_coll],
+            client[test_case.target_db][test_case.target_coll],
             {
                 "find": test_case.target_coll,
                 "filter": {},
@@ -456,7 +455,7 @@ def test_out_timeseries_cross_db(collection, test_case: OutTestCase):
         )
         assertResult(result, expected=test_case.expected, msg=test_case.msg)
     finally:
-        client.drop_database(CROSS_DB_NAME)
+        client.drop_database(test_case.target_db)
 
 
 # Property [Timeseries DateTime Acceptance]: all datetime boundary values

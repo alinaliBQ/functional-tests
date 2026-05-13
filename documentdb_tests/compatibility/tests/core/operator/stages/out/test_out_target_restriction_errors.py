@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, cast
+from typing import cast
 
 import pytest
 
@@ -419,19 +419,6 @@ def test_out_schema_validation_error_unchanged(collection, test_case: OutTestCas
     assertSuccess(result, test_case.expected, msg=test_case.msg)
 
 
-def _execute_in_transaction(collection, command: dict[str, Any]) -> Any:
-    """Execute a command inside a transaction, returning the result or exception."""
-    client = collection.database.client
-    with client.start_session() as session:
-        session.start_transaction()
-        try:
-            return collection.database.command(command, session=session)
-        except Exception as e:
-            return e
-        finally:
-            session.abort_transaction()
-
-
 # Property [Transaction Errors]: using $out inside a transaction produces
 # an error.
 OUT_TRANSACTION_ERROR_TESTS: list[OutTestCase] = [
@@ -455,10 +442,16 @@ def test_out_transaction_error(collection, test_case: OutTestCase):
         collection,
         {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
     )
-    result = _execute_in_transaction(
-        collection,
-        {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
-    )
+    command = {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}}
+    client = collection.database.client
+    with client.start_session() as session:
+        session.start_transaction()
+        try:
+            result = collection.database.command(command, session=session)
+        except Exception as e:
+            result = e
+        finally:
+            session.abort_transaction()
     assertResult(result, error_code=test_case.error_code, msg=test_case.msg)
 
 

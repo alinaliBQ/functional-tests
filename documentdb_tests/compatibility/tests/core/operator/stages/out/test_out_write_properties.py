@@ -294,11 +294,6 @@ def test_out_large_document(collection, test_case: OutTestCase):
 # forms of the same character create separate, distinct collections - no
 # Unicode normalization is applied to collection names.
 
-# U+00E9 (precomposed e-acute, 2 UTF-8 bytes)
-_PRECOMPOSED_COLL = "\u00e9"
-# U+0065 U+0301 (e + combining acute, 3 UTF-8 bytes)
-_COMBINING_COLL = "\u0065\u0301"
-
 
 @pytest.mark.aggregate
 def test_out_no_unicode_normalization_precomposed(collection):
@@ -308,7 +303,7 @@ def test_out_no_unicode_normalization_precomposed(collection):
         collection,
         {
             "aggregate": collection.name,
-            "pipeline": [{"$match": {"_id": 1}}, {"$out": _PRECOMPOSED_COLL}],
+            "pipeline": [{"$match": {"_id": 1}}, {"$out": "\u00e9"}],  # precomposed e-acute
             "cursor": {},
         },
     )
@@ -316,13 +311,13 @@ def test_out_no_unicode_normalization_precomposed(collection):
         collection,
         {
             "aggregate": collection.name,
-            "pipeline": [{"$match": {"_id": 2}}, {"$out": _COMBINING_COLL}],
+            "pipeline": [{"$match": {"_id": 2}}, {"$out": "\u0065\u0301"}],  # combining e-acute
             "cursor": {},
         },
     )
     result = execute_command(
         collection,
-        {"find": _PRECOMPOSED_COLL, "filter": {}},
+        {"find": "\u00e9", "filter": {}},
     )
     assertSuccess(
         result,
@@ -339,7 +334,7 @@ def test_out_no_unicode_normalization_combining(collection):
         collection,
         {
             "aggregate": collection.name,
-            "pipeline": [{"$match": {"_id": 1}}, {"$out": _PRECOMPOSED_COLL}],
+            "pipeline": [{"$match": {"_id": 1}}, {"$out": "\u00e9"}],  # precomposed e-acute
             "cursor": {},
         },
     )
@@ -347,13 +342,13 @@ def test_out_no_unicode_normalization_combining(collection):
         collection,
         {
             "aggregate": collection.name,
-            "pipeline": [{"$match": {"_id": 2}}, {"$out": _COMBINING_COLL}],
+            "pipeline": [{"$match": {"_id": 2}}, {"$out": "\u0065\u0301"}],  # combining e-acute
             "cursor": {},
         },
     )
     result = execute_command(
         collection,
-        {"find": _COMBINING_COLL, "filter": {}},
+        {"find": "\u0065\u0301", "filter": {}},
     )
     assertSuccess(
         result,
@@ -370,7 +365,7 @@ def test_out_no_unicode_normalization_distinct_colls(collection):
         collection,
         {
             "aggregate": collection.name,
-            "pipeline": [{"$match": {"_id": 1}}, {"$out": _PRECOMPOSED_COLL}],
+            "pipeline": [{"$match": {"_id": 1}}, {"$out": "\u00e9"}],  # precomposed e-acute
             "cursor": {},
         },
     )
@@ -378,7 +373,7 @@ def test_out_no_unicode_normalization_distinct_colls(collection):
         collection,
         {
             "aggregate": collection.name,
-            "pipeline": [{"$match": {"_id": 2}}, {"$out": _COMBINING_COLL}],
+            "pipeline": [{"$match": {"_id": 2}}, {"$out": "\u0065\u0301"}],  # combining e-acute
             "cursor": {},
         },
     )
@@ -386,15 +381,15 @@ def test_out_no_unicode_normalization_distinct_colls(collection):
         collection,
         {
             "listCollections": 1,
-            "filter": {"name": {"$in": [_PRECOMPOSED_COLL, _COMBINING_COLL]}},
+            "filter": {"name": {"$in": ["\u00e9", "\u0065\u0301"]}},
             "nameOnly": True,
         },
     )
     assertSuccess(
         result,
         [
-            {"name": _PRECOMPOSED_COLL, "type": "collection"},
-            {"name": _COMBINING_COLL, "type": "collection"},
+            {"name": "\u00e9", "type": "collection"},
+            {"name": "\u0065\u0301", "type": "collection"},
         ],
         msg="$out should create separate collections for precomposed and combining forms",
         ignore_doc_order=True,
@@ -405,21 +400,14 @@ def test_out_no_unicode_normalization_distinct_colls(collection):
 # forms of the same character create separate, distinct databases - no Unicode
 # normalization is applied to database names.
 
-# U+00E9 (precomposed e-acute, 2 UTF-8 bytes)
-_PRECOMPOSED_DB = "\u00e9"
-# U+0065 U+0301 (e + combining acute, 3 UTF-8 bytes)
-_COMBINING_DB = "\u0065\u0301"
-
-_UNICODE_DB_TARGET_COLL = "target"
-
 
 @pytest.mark.aggregate
 def test_out_no_unicode_normalization_db_precomposed(collection):
     """Test $out writes to precomposed Unicode database name correctly."""
     collection.insert_many([{"_id": 1, "form": "precomposed"}, {"_id": 2, "form": "combining"}])
     client = collection.database.client
-    client.drop_database(_PRECOMPOSED_DB)
-    client.drop_database(_COMBINING_DB)
+    client.drop_database("\u00e9")
+    client.drop_database("\u0065\u0301")
     try:
         execute_command(
             collection,
@@ -427,7 +415,7 @@ def test_out_no_unicode_normalization_db_precomposed(collection):
                 "aggregate": collection.name,
                 "pipeline": [
                     {"$match": {"_id": 1}},
-                    {"$out": {"db": _PRECOMPOSED_DB, "coll": _UNICODE_DB_TARGET_COLL}},
+                    {"$out": {"db": "\u00e9", "coll": "target"}},  # precomposed e-acute
                 ],
                 "cursor": {},
             },
@@ -438,14 +426,14 @@ def test_out_no_unicode_normalization_db_precomposed(collection):
                 "aggregate": collection.name,
                 "pipeline": [
                     {"$match": {"_id": 2}},
-                    {"$out": {"db": _COMBINING_DB, "coll": _UNICODE_DB_TARGET_COLL}},
+                    {"$out": {"db": "\u0065\u0301", "coll": "target"}},  # combining e-acute
                 ],
                 "cursor": {},
             },
         )
         result = execute_command(
-            client[_PRECOMPOSED_DB][_UNICODE_DB_TARGET_COLL],
-            {"find": _UNICODE_DB_TARGET_COLL, "filter": {}},
+            client["\u00e9"]["target"],
+            {"find": "target", "filter": {}},
         )
         assertSuccess(
             result,
@@ -453,8 +441,8 @@ def test_out_no_unicode_normalization_db_precomposed(collection):
             msg="$out should write to precomposed Unicode database name",
         )
     finally:
-        client.drop_database(_PRECOMPOSED_DB)
-        client.drop_database(_COMBINING_DB)
+        client.drop_database("\u00e9")
+        client.drop_database("\u0065\u0301")
 
 
 @pytest.mark.aggregate
@@ -462,8 +450,8 @@ def test_out_no_unicode_normalization_db_combining(collection):
     """Test $out writes to combining Unicode database name correctly."""
     collection.insert_many([{"_id": 1, "form": "precomposed"}, {"_id": 2, "form": "combining"}])
     client = collection.database.client
-    client.drop_database(_PRECOMPOSED_DB)
-    client.drop_database(_COMBINING_DB)
+    client.drop_database("\u00e9")
+    client.drop_database("\u0065\u0301")
     try:
         execute_command(
             collection,
@@ -471,7 +459,7 @@ def test_out_no_unicode_normalization_db_combining(collection):
                 "aggregate": collection.name,
                 "pipeline": [
                     {"$match": {"_id": 1}},
-                    {"$out": {"db": _PRECOMPOSED_DB, "coll": _UNICODE_DB_TARGET_COLL}},
+                    {"$out": {"db": "\u00e9", "coll": "target"}},  # precomposed e-acute
                 ],
                 "cursor": {},
             },
@@ -482,14 +470,14 @@ def test_out_no_unicode_normalization_db_combining(collection):
                 "aggregate": collection.name,
                 "pipeline": [
                     {"$match": {"_id": 2}},
-                    {"$out": {"db": _COMBINING_DB, "coll": _UNICODE_DB_TARGET_COLL}},
+                    {"$out": {"db": "\u0065\u0301", "coll": "target"}},  # combining e-acute
                 ],
                 "cursor": {},
             },
         )
         result = execute_command(
-            client[_COMBINING_DB][_UNICODE_DB_TARGET_COLL],
-            {"find": _UNICODE_DB_TARGET_COLL, "filter": {}},
+            client["\u0065\u0301"]["target"],
+            {"find": "target", "filter": {}},
         )
         assertSuccess(
             result,
@@ -497,8 +485,8 @@ def test_out_no_unicode_normalization_db_combining(collection):
             msg="$out should write to combining Unicode database name",
         )
     finally:
-        client.drop_database(_PRECOMPOSED_DB)
-        client.drop_database(_COMBINING_DB)
+        client.drop_database("\u00e9")
+        client.drop_database("\u0065\u0301")
 
 
 @pytest.mark.aggregate
@@ -506,8 +494,8 @@ def test_out_no_unicode_normalization_db_distinct(collection):
     """Test $out creates separate databases for precomposed and combining Unicode forms."""
     collection.insert_many([{"_id": 1, "form": "precomposed"}, {"_id": 2, "form": "combining"}])
     client = collection.database.client
-    client.drop_database(_PRECOMPOSED_DB)
-    client.drop_database(_COMBINING_DB)
+    client.drop_database("\u00e9")
+    client.drop_database("\u0065\u0301")
     try:
         execute_command(
             collection,
@@ -515,7 +503,7 @@ def test_out_no_unicode_normalization_db_distinct(collection):
                 "aggregate": collection.name,
                 "pipeline": [
                     {"$match": {"_id": 1}},
-                    {"$out": {"db": _PRECOMPOSED_DB, "coll": _UNICODE_DB_TARGET_COLL}},
+                    {"$out": {"db": "\u00e9", "coll": "target"}},  # precomposed e-acute
                 ],
                 "cursor": {},
             },
@@ -526,7 +514,7 @@ def test_out_no_unicode_normalization_db_distinct(collection):
                 "aggregate": collection.name,
                 "pipeline": [
                     {"$match": {"_id": 2}},
-                    {"$out": {"db": _COMBINING_DB, "coll": _UNICODE_DB_TARGET_COLL}},
+                    {"$out": {"db": "\u0065\u0301", "coll": "target"}},  # combining e-acute
                 ],
                 "cursor": {},
             },
@@ -534,9 +522,9 @@ def test_out_no_unicode_normalization_db_distinct(collection):
         # Verify precomposed database has exactly 1 document (not 2, which
         # would mean both forms mapped to the same database).
         result = execute_command(
-            client[_PRECOMPOSED_DB][_UNICODE_DB_TARGET_COLL],
+            client["\u00e9"]["target"],
             {
-                "aggregate": _UNICODE_DB_TARGET_COLL,
+                "aggregate": "target",
                 "pipeline": [{"$count": "n"}],
                 "cursor": {},
             },
@@ -547,5 +535,5 @@ def test_out_no_unicode_normalization_db_distinct(collection):
             msg="$out should create separate databases for precomposed and combining forms",
         )
     finally:
-        client.drop_database(_PRECOMPOSED_DB)
-        client.drop_database(_COMBINING_DB)
+        client.drop_database("\u00e9")
+        client.drop_database("\u0065\u0301")
