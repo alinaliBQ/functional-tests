@@ -12,9 +12,6 @@ from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
-_OUT_TARGET = "__OUT_TARGET__"
-_FOREIGN = "__FOREIGN__"
-
 # Property [Pipeline Integration]: $out composes correctly with other
 # aggregation stages — $match filters before writing, $project reshapes
 # output, $group aggregates, $sort/$limit/$skip paginate, $unwind expands
@@ -30,7 +27,7 @@ OUT_PIPELINE_INTEGRATION_TESTS: list[StageTestCase] = [
         ],
         pipeline=[
             {"$match": {"status": "active"}},
-            {"$out": _OUT_TARGET},
+            {"$out": "integration_out"},
         ],
         expected=[
             {"_id": 1, "status": "active", "val": 10},
@@ -47,7 +44,7 @@ OUT_PIPELINE_INTEGRATION_TESTS: list[StageTestCase] = [
         ],
         pipeline=[
             {"$match": {"val": {"$gte": 15}}},
-            {"$out": _OUT_TARGET},
+            {"$out": "integration_out"},
         ],
         expected=[
             {"_id": 2, "val": 15},
@@ -63,7 +60,7 @@ OUT_PIPELINE_INTEGRATION_TESTS: list[StageTestCase] = [
         ],
         pipeline=[
             {"$match": {"val": {"$gt": 100}}},
-            {"$out": _OUT_TARGET},
+            {"$out": "integration_out"},
         ],
         expected=[],
         msg="$out should create an empty collection when $match filters all documents",
@@ -76,7 +73,7 @@ OUT_PIPELINE_INTEGRATION_TESTS: list[StageTestCase] = [
         ],
         pipeline=[
             {"$project": {"a": 1, "b": 1}},
-            {"$out": _OUT_TARGET},
+            {"$out": "integration_out"},
         ],
         expected=[
             {"_id": 1, "a": 1, "b": 2},
@@ -92,7 +89,7 @@ OUT_PIPELINE_INTEGRATION_TESTS: list[StageTestCase] = [
         ],
         pipeline=[
             {"$project": {"doubled": {"$multiply": ["$x", 2]}}},
-            {"$out": _OUT_TARGET},
+            {"$out": "integration_out"},
         ],
         expected=[
             {"_id": 1, "doubled": 20},
@@ -109,7 +106,7 @@ OUT_PIPELINE_INTEGRATION_TESTS: list[StageTestCase] = [
         ],
         pipeline=[
             {"$group": {"_id": "$cat", "total": {"$sum": "$val"}}},
-            {"$out": _OUT_TARGET},
+            {"$out": "integration_out"},
         ],
         expected=[
             {"_id": "a", "total": 30},
@@ -126,7 +123,7 @@ OUT_PIPELINE_INTEGRATION_TESTS: list[StageTestCase] = [
         ],
         pipeline=[
             {"$group": {"_id": "$cat", "n": {"$sum": 1}}},
-            {"$out": _OUT_TARGET},
+            {"$out": "integration_out"},
         ],
         expected=[
             {"_id": "x", "n": 2},
@@ -146,7 +143,7 @@ OUT_PIPELINE_INTEGRATION_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$sort": {"val": -1}},
             {"$limit": 3},
-            {"$out": _OUT_TARGET},
+            {"$out": "integration_out"},
         ],
         expected=[
             {"_id": 1, "val": 50},
@@ -168,7 +165,7 @@ OUT_PIPELINE_INTEGRATION_TESTS: list[StageTestCase] = [
             {"$sort": {"_id": 1}},
             {"$skip": 1},
             {"$limit": 2},
-            {"$out": _OUT_TARGET},
+            {"$out": "integration_out"},
         ],
         expected=[
             {"_id": 2, "val": 20},
@@ -186,7 +183,7 @@ OUT_PIPELINE_INTEGRATION_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$unwind": "$tags"},
             {"$group": {"_id": "$tags", "count": {"$sum": 1}}},
-            {"$out": _OUT_TARGET},
+            {"$out": "integration_out"},
         ],
         expected=[
             {"_id": "a", "count": 2},
@@ -203,7 +200,7 @@ OUT_PIPELINE_INTEGRATION_TESTS: list[StageTestCase] = [
         ],
         pipeline=[
             {"$addFields": {"total": {"$multiply": ["$price", "$qty"]}}},
-            {"$out": _OUT_TARGET},
+            {"$out": "integration_out"},
         ],
         expected=[
             {"_id": 1, "price": 100, "qty": 3, "total": 300},
@@ -220,7 +217,7 @@ OUT_PIPELINE_INTEGRATION_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$replaceRoot": {"newRoot": "$inner"}},
             {"$addFields": {"_id": "$a"}},
-            {"$out": _OUT_TARGET},
+            {"$out": "integration_out"},
         ],
         expected=[
             {"_id": 10, "a": 10, "b": 20},
@@ -245,7 +242,7 @@ OUT_PIPELINE_INTEGRATION_TESTS: list[StageTestCase] = [
                     }
                 }
             },
-            {"$out": _OUT_TARGET},
+            {"$out": "integration_out"},
         ],
         expected=[
             {"_id": 1, "level": 1, "data": "public"},
@@ -259,7 +256,7 @@ OUT_PIPELINE_INTEGRATION_TESTS: list[StageTestCase] = [
             {"_id": 1, "ref": 1},
             {"_id": 2, "ref": 2},
         ],
-        setup=lambda c: c.database[c.name + "_foreign"].insert_many(
+        setup=lambda c: c.database["integration_foreign"].insert_many(
             [
                 {"_id": 1, "label": "first"},
                 {"_id": 2, "label": "second"},
@@ -268,14 +265,14 @@ OUT_PIPELINE_INTEGRATION_TESTS: list[StageTestCase] = [
         pipeline=[
             {
                 "$lookup": {
-                    "from": _FOREIGN,
+                    "from": "integration_foreign",
                     "localField": "ref",
                     "foreignField": "_id",
                     "as": "joined",
                 }
             },
             {"$project": {"ref": 1, "label": {"$arrayElemAt": ["$joined.label", 0]}}},
-            {"$out": _OUT_TARGET},
+            {"$out": "integration_out"},
         ],
         expected=[
             {"_id": 1, "ref": 1, "label": "first"},
@@ -289,15 +286,15 @@ OUT_PIPELINE_INTEGRATION_TESTS: list[StageTestCase] = [
             {"_id": 1, "source": "main"},
             {"_id": 2, "source": "main"},
         ],
-        setup=lambda c: c.database[c.name + "_foreign"].insert_many(
+        setup=lambda c: c.database["integration_foreign"].insert_many(
             [
                 {"_id": 3, "source": "other"},
                 {"_id": 4, "source": "other"},
             ]
         ),
         pipeline=[
-            {"$unionWith": {"coll": _FOREIGN}},
-            {"$out": _OUT_TARGET},
+            {"$unionWith": {"coll": "integration_foreign"}},
+            {"$out": "integration_out"},
         ],
         expected=[
             {"_id": 1, "source": "main"},
@@ -320,7 +317,7 @@ OUT_PIPELINE_INTEGRATION_TESTS: list[StageTestCase] = [
             {"$match": {"salary": {"$gte": 90}}},
             {"$group": {"_id": "$dept", "avg_salary": {"$avg": "$salary"}}},
             {"$sort": {"avg_salary": -1}},
-            {"$out": _OUT_TARGET},
+            {"$out": "integration_out"},
         ],
         expected=[
             {"_id": "eng", "avg_salary": 125.0},
@@ -340,7 +337,7 @@ OUT_PIPELINE_INTEGRATION_TESTS: list[StageTestCase] = [
             {"$project": {"price": 1, "qty": 1}},
             {"$addFields": {"revenue": {"$multiply": ["$price", "$qty"]}}},
             {"$match": {"revenue": {"$gte": 200}}},
-            {"$out": _OUT_TARGET},
+            {"$out": "integration_out"},
         ],
         expected=[
             {"_id": 1, "price": 50, "qty": 4, "revenue": 200},
@@ -351,17 +348,6 @@ OUT_PIPELINE_INTEGRATION_TESTS: list[StageTestCase] = [
 ]
 
 
-def _resolve_placeholders(pipeline: list[dict], out_name: str, foreign_name: str) -> list[dict]:
-    """Replace placeholder strings in a pipeline with runtime collection names."""
-    import json
-
-    raw = json.dumps(pipeline)
-    raw = raw.replace(f'"{_OUT_TARGET}"', f'"{out_name}"')
-    raw = raw.replace(f'"{_FOREIGN}"', f'"{foreign_name}"')
-    result: list[dict] = json.loads(raw)
-    return result
-
-
 @pytest.mark.aggregate
 @pytest.mark.parametrize("test_case", pytest_params(OUT_PIPELINE_INTEGRATION_TESTS))
 def test_out_pipeline_integration(collection, test_case: StageTestCase):
@@ -370,16 +356,13 @@ def test_out_pipeline_integration(collection, test_case: StageTestCase):
     if test_case.setup:
         test_case.setup(collection)
     db = collection.database
-    out_name = collection.name + "_out"
-    foreign_name = collection.name + "_foreign"
-    pipeline = _resolve_placeholders(test_case.pipeline, out_name, foreign_name)
     execute_command(
         collection,
-        {"aggregate": collection.name, "pipeline": pipeline, "cursor": {}},
+        {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
     )
     result = execute_command(
         collection,
-        {"find": out_name, "filter": {}, "sort": {"_id": 1}},
+        {"find": "integration_out", "filter": {}, "sort": {"_id": 1}},
     )
     assertResult(
         result,
@@ -387,5 +370,5 @@ def test_out_pipeline_integration(collection, test_case: StageTestCase):
         error_code=test_case.error_code,
         msg=test_case.msg,
     )
-    db.drop_collection(out_name)
-    db.drop_collection(foreign_name)
+    db.drop_collection("integration_out")
+    db.drop_collection("integration_foreign")
