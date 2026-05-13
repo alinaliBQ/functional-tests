@@ -22,10 +22,10 @@ from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_
 )
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
-    BUCKET_OUTPUT_DOLLAR_PREFIX_ERROR,
-    BUCKET_OUTPUT_DOT_ERROR,
+    ACCUMULATOR_DOLLAR_PREFIX_FIELD_ERROR,
+    ACCUMULATOR_DOT_FIELD_ERROR,
+    ACCUMULATOR_NOT_VALID_ERROR,
     BUCKET_OUTPUT_ID_RESERVED_ERROR,
-    BUCKET_OUTPUT_NOT_ACCUMULATOR_ERROR,
     BUCKET_OUTPUT_NOT_OBJECT_ERROR,
 )
 from documentdb_tests.framework.executor import execute_command
@@ -239,7 +239,7 @@ BUCKET_OUTPUT_DOLLAR_PREFIX_TESTS: list[StageTestCase] = [
         pipeline=[
             {"$bucket": {"groupBy": "$x", "boundaries": [0, 10], "output": {"$": {"$sum": 1}}}}
         ],
-        error_code=BUCKET_OUTPUT_DOLLAR_PREFIX_ERROR,
+        error_code=ACCUMULATOR_DOLLAR_PREFIX_FIELD_ERROR,
         msg="$bucket should reject output field name '$'",
     ),
     StageTestCase(
@@ -254,7 +254,7 @@ BUCKET_OUTPUT_DOLLAR_PREFIX_TESTS: list[StageTestCase] = [
                 }
             }
         ],
-        error_code=BUCKET_OUTPUT_DOLLAR_PREFIX_ERROR,
+        error_code=ACCUMULATOR_DOLLAR_PREFIX_FIELD_ERROR,
         msg="$bucket should reject $-prefixed output field name",
     ),
     StageTestCase(
@@ -269,7 +269,7 @@ BUCKET_OUTPUT_DOLLAR_PREFIX_TESTS: list[StageTestCase] = [
                 }
             }
         ],
-        error_code=BUCKET_OUTPUT_DOLLAR_PREFIX_ERROR,
+        error_code=ACCUMULATOR_DOLLAR_PREFIX_FIELD_ERROR,
         msg="$bucket should reject $$-prefixed output field name",
     ),
 ]
@@ -289,7 +289,7 @@ BUCKET_OUTPUT_DOT_TESTS: list[StageTestCase] = [
                 }
             }
         ],
-        error_code=BUCKET_OUTPUT_DOT_ERROR,
+        error_code=ACCUMULATOR_DOT_FIELD_ERROR,
         msg="$bucket should reject output field name containing dot",
     ),
     StageTestCase(
@@ -304,7 +304,7 @@ BUCKET_OUTPUT_DOT_TESTS: list[StageTestCase] = [
                 }
             }
         ],
-        error_code=BUCKET_OUTPUT_DOT_ERROR,
+        error_code=ACCUMULATOR_DOT_FIELD_ERROR,
         msg="$bucket should reject output field name starting with dot",
     ),
     StageTestCase(
@@ -319,7 +319,7 @@ BUCKET_OUTPUT_DOT_TESTS: list[StageTestCase] = [
                 }
             }
         ],
-        error_code=BUCKET_OUTPUT_DOT_ERROR,
+        error_code=ACCUMULATOR_DOT_FIELD_ERROR,
         msg="$bucket should reject output field name ending with dot",
     ),
 ]
@@ -359,7 +359,7 @@ BUCKET_OUTPUT_NOT_ACCUMULATOR_TESTS: list[StageTestCase] = [
                 }
             }
         ],
-        error_code=BUCKET_OUTPUT_NOT_ACCUMULATOR_ERROR,
+        error_code=ACCUMULATOR_NOT_VALID_ERROR,
         msg="$bucket should reject non-accumulator int value in output",
     ),
     StageTestCase(
@@ -374,7 +374,7 @@ BUCKET_OUTPUT_NOT_ACCUMULATOR_TESTS: list[StageTestCase] = [
                 }
             }
         ],
-        error_code=BUCKET_OUTPUT_NOT_ACCUMULATOR_ERROR,
+        error_code=ACCUMULATOR_NOT_VALID_ERROR,
         msg="$bucket should reject non-accumulator string value in output",
     ),
     StageTestCase(
@@ -389,7 +389,7 @@ BUCKET_OUTPUT_NOT_ACCUMULATOR_TESTS: list[StageTestCase] = [
                 }
             }
         ],
-        error_code=BUCKET_OUTPUT_NOT_ACCUMULATOR_ERROR,
+        error_code=ACCUMULATOR_NOT_VALID_ERROR,
         msg="$bucket should reject non-accumulator null value in output",
     ),
 ]
