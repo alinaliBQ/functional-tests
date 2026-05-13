@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from typing import Any, cast
 
 import pytest
 from bson import Decimal128, Int64
@@ -396,19 +397,16 @@ def test_out_timeseries(collection, test_case: OutTestCase):
         collection,
         {"listCollections": 1, "filter": {"name": test_case.target_coll}},
     )
-    expected_info = {
+    raw_doc = cast(dict, result)["cursor"]["firstBatch"][0]
+    expected_info: dict[str, Any] = {
         "name": test_case.target_coll,
         "type": test_case.expected_type,
         "options": test_case.expected_options,
+        "info": raw_doc["info"],
     }
-    assertSuccess(
-        result,
-        [expected_info],
-        msg=test_case.msg,
-        transform=lambda docs: [
-            {"name": d["name"], "type": d["type"], "options": d.get("options", {})} for d in docs
-        ],
-    )
+    if "idIndex" in raw_doc:
+        expected_info["idIndex"] = raw_doc["idIndex"]
+    assertSuccess(result, [expected_info], msg=test_case.msg)
 
 
 # Property [Timeseries Cross-Database]: $out creates a time series collection
@@ -533,18 +531,16 @@ def test_out_timeseries_datetime_acceptance(collection, test_case: OutTestCase):
 # Property [Timeseries Existing Collection]: writing to an existing time
 # series collection succeeds both with matching timeseries options and
 # without specifying timeseries options (string and document form).
-def _ts_existing_setup(c):
-    c.database.drop_collection("ts_existing_target")
-    c.database.command({"create": "ts_existing_target", "timeseries": {"timeField": "ts"}})
-
-
 OUT_TIMESERIES_EXISTING_TESTS: list[OutTestCase] = [
     OutTestCase(
         "ts_existing_matching_options",
         docs=[{"_id": 1, "ts": datetime(2024, 6, 1), "value": 60}],
         target_coll="ts_existing_target",
         out_spec={"timeseries": {"timeField": "ts"}},
-        setup=_ts_existing_setup,
+        setup=lambda c: (
+            c.database.drop_collection("ts_existing_target"),
+            c.database.command({"create": "ts_existing_target", "timeseries": {"timeField": "ts"}}),
+        ),
         expected=[{"ts": datetime(2024, 6, 1, tzinfo=timezone.utc), "value": 60}],
         msg=(
             "$out should write to an existing time series collection with"
@@ -555,7 +551,10 @@ OUT_TIMESERIES_EXISTING_TESTS: list[OutTestCase] = [
         "ts_existing_string_form",
         docs=[{"_id": 1, "ts": datetime(2024, 6, 1), "value": 60}],
         target_coll="ts_existing_target",
-        setup=_ts_existing_setup,
+        setup=lambda c: (
+            c.database.drop_collection("ts_existing_target"),
+            c.database.command({"create": "ts_existing_target", "timeseries": {"timeField": "ts"}}),
+        ),
         expected=[{"ts": datetime(2024, 6, 1, tzinfo=timezone.utc), "value": 60}],
         msg=(
             "$out should write to an existing time series collection using"
@@ -567,7 +566,10 @@ OUT_TIMESERIES_EXISTING_TESTS: list[OutTestCase] = [
         docs=[{"_id": 1, "ts": datetime(2024, 6, 1), "value": 60}],
         target_coll="ts_existing_target",
         out_spec={},
-        setup=_ts_existing_setup,
+        setup=lambda c: (
+            c.database.drop_collection("ts_existing_target"),
+            c.database.command({"create": "ts_existing_target", "timeseries": {"timeField": "ts"}}),
+        ),
         expected=[{"ts": datetime(2024, 6, 1, tzinfo=timezone.utc), "value": 60}],
         msg=(
             "$out should write to an existing time series collection using"

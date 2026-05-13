@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
+from typing import Any, cast
 
 import pytest
 
@@ -14,8 +14,9 @@ from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_
     populate_collection,
 )
 from documentdb_tests.framework.assertions import (
-    assertFailure,
+    assertFailureCode,
     assertResult,
+    assertSuccess,
 )
 from documentdb_tests.framework.error_codes import (
     COMMAND_NOT_SUPPORTED_ON_VIEW_ERROR,
@@ -381,10 +382,7 @@ OUT_SCHEMA_VALIDATION_ERROR_TESTS: list[OutTestCase] = [
         ),
         error_code=DOCUMENT_VALIDATION_FAILURE_ERROR,
         expected=[{"_id": 99, "value": 42}],
-        msg=(
-            "$out should fail with document validation failure when validationAction"
-            " is error and the pre-existing collection should be unchanged"
-        ),
+        msg="$out should fail with document validation failure when validationAction is error",
     ),
 ]
 
@@ -392,7 +390,7 @@ OUT_SCHEMA_VALIDATION_ERROR_TESTS: list[OutTestCase] = [
 @pytest.mark.aggregate
 @pytest.mark.parametrize("test_case", pytest_params(OUT_SCHEMA_VALIDATION_ERROR_TESTS))
 def test_out_schema_validation_error(collection, test_case: OutTestCase):
-    """Test $out fails with schema validation error and leaves existing data unchanged."""
+    """Test $out fails with document validation failure when validationAction is error."""
     populate_collection(collection, test_case)
     if test_case.setup:
         test_case.setup(collection)
@@ -400,16 +398,25 @@ def test_out_schema_validation_error(collection, test_case: OutTestCase):
         collection,
         {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
     )
-    db = collection.database
-    assertFailure(
-        result,
-        {"code": test_case.error_code, "unchanged": test_case.expected},
-        msg=test_case.msg,
-        transform=lambda err: {
-            "code": err["code"],
-            "unchanged": list(db[test_case.target_coll].find({}, {"_id": 1, "value": 1})),
-        },
+    assertFailureCode(result, cast(int, test_case.error_code), msg=test_case.msg)
+
+
+@pytest.mark.aggregate
+@pytest.mark.parametrize("test_case", pytest_params(OUT_SCHEMA_VALIDATION_ERROR_TESTS))
+def test_out_schema_validation_error_unchanged(collection, test_case: OutTestCase):
+    """Test $out schema validation failure leaves the pre-existing collection unchanged."""
+    populate_collection(collection, test_case)
+    if test_case.setup:
+        test_case.setup(collection)
+    execute_command(
+        collection,
+        {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
     )
+    result = execute_command(
+        collection,
+        {"find": test_case.target_coll, "filter": {}, "projection": {"_id": 1, "value": 1}},
+    )
+    assertSuccess(result, test_case.expected, msg=test_case.msg)
 
 
 def _execute_in_transaction(collection, command: dict[str, Any]) -> Any:
