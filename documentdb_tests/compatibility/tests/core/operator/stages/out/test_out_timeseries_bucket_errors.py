@@ -41,7 +41,7 @@ OUT_TIMESERIES_BUCKET_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {"timeField": "ts", "granularity": 42},
                 }
@@ -56,7 +56,7 @@ OUT_TIMESERIES_BUCKET_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {"timeField": "ts", "granularity": Int64(42)},
                 }
@@ -71,7 +71,7 @@ OUT_TIMESERIES_BUCKET_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {"timeField": "ts", "granularity": 3.14},
                 }
@@ -86,7 +86,7 @@ OUT_TIMESERIES_BUCKET_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {"timeField": "ts", "granularity": Decimal128("99.9")},
                 }
@@ -101,7 +101,7 @@ OUT_TIMESERIES_BUCKET_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {"timeField": "ts", "granularity": True},
                 }
@@ -116,7 +116,7 @@ OUT_TIMESERIES_BUCKET_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {"timeField": "ts", "granularity": [{"timeField": "ts"}]},
                 }
@@ -131,7 +131,7 @@ OUT_TIMESERIES_BUCKET_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {"timeField": "ts", "granularity": Binary(b"\x01")},
                 }
@@ -146,7 +146,7 @@ OUT_TIMESERIES_BUCKET_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {
                         "timeField": "ts",
@@ -164,7 +164,7 @@ OUT_TIMESERIES_BUCKET_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {"timeField": "ts", "granularity": datetime(2024, 1, 1)},
                 }
@@ -179,7 +179,7 @@ OUT_TIMESERIES_BUCKET_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {"timeField": "ts", "granularity": Regex("abc")},
                 }
@@ -194,7 +194,7 @@ OUT_TIMESERIES_BUCKET_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {"timeField": "ts", "granularity": Timestamp(1, 1)},
                 }
@@ -209,7 +209,7 @@ OUT_TIMESERIES_BUCKET_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {"timeField": "ts", "granularity": MinKey()},
                 }
@@ -224,7 +224,7 @@ OUT_TIMESERIES_BUCKET_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {"timeField": "ts", "granularity": MaxKey()},
                 }
@@ -239,7 +239,7 @@ OUT_TIMESERIES_BUCKET_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {"timeField": "ts", "granularity": Code("function() {}")},
                 }
@@ -254,7 +254,7 @@ OUT_TIMESERIES_BUCKET_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {"timeField": "ts", "granularity": {"x": 1}},
                 }
@@ -269,7 +269,7 @@ OUT_TIMESERIES_BUCKET_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {
                         "timeField": "ts",
@@ -288,7 +288,7 @@ OUT_TIMESERIES_BUCKET_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {
                         "timeField": "ts",
@@ -307,7 +307,7 @@ OUT_TIMESERIES_BUCKET_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {
                         "timeField": "ts",
@@ -326,7 +326,7 @@ OUT_TIMESERIES_BUCKET_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {
                         "timeField": "ts",
@@ -345,7 +345,7 @@ OUT_TIMESERIES_BUCKET_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {
                         "timeField": "ts",
@@ -364,7 +364,7 @@ OUT_TIMESERIES_BUCKET_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {
                         "timeField": "ts",
@@ -383,7 +383,7 @@ OUT_TIMESERIES_BUCKET_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {
                         "timeField": "ts",
@@ -402,7 +402,7 @@ OUT_TIMESERIES_BUCKET_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {
                         "timeField": "ts",
@@ -421,7 +421,7 @@ OUT_TIMESERIES_BUCKET_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {
                         "timeField": "ts",
@@ -440,7 +440,7 @@ OUT_TIMESERIES_BUCKET_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {
                         "timeField": "ts",
@@ -459,7 +459,7 @@ OUT_TIMESERIES_BUCKET_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {
                         "timeField": "ts",
@@ -478,7 +478,7 @@ OUT_TIMESERIES_BUCKET_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {
                         "timeField": "ts",
@@ -497,7 +497,7 @@ OUT_TIMESERIES_BUCKET_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {
                         "timeField": "ts",
@@ -516,7 +516,7 @@ OUT_TIMESERIES_BUCKET_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {
                         "timeField": "ts",
@@ -535,7 +535,7 @@ OUT_TIMESERIES_BUCKET_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {
                         "timeField": "ts",
@@ -554,7 +554,7 @@ OUT_TIMESERIES_BUCKET_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {
                         "timeField": "ts",
@@ -573,7 +573,7 @@ OUT_TIMESERIES_BUCKET_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {
                         "timeField": "ts",
@@ -592,7 +592,7 @@ OUT_TIMESERIES_BUCKET_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {
                         "timeField": "ts",
@@ -611,7 +611,7 @@ OUT_TIMESERIES_BUCKET_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {
                         "timeField": "ts",
@@ -630,7 +630,7 @@ OUT_TIMESERIES_BUCKET_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {
                         "timeField": "ts",
@@ -649,7 +649,7 @@ OUT_TIMESERIES_BUCKET_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {
                         "timeField": "ts",
@@ -668,7 +668,7 @@ OUT_TIMESERIES_BUCKET_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {
                         "timeField": "ts",
@@ -687,7 +687,7 @@ OUT_TIMESERIES_BUCKET_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {
                         "timeField": "ts",
@@ -706,7 +706,7 @@ OUT_TIMESERIES_BUCKET_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {
                         "timeField": "ts",
@@ -727,7 +727,7 @@ OUT_TIMESERIES_BUCKET_TYPE_ERROR_TESTS: list[OutTestCase] = [
 def test_out_error(collection, test_case: OutTestCase):
     """Test $out rejects invalid configurations with the expected error code."""
     populate_collection(collection, test_case)
-    pipeline = test_case.resolve_pipeline(collection.database.name)
+    pipeline = test_case.pipeline
     result = execute_command(
         collection,
         {"aggregate": collection.name, "pipeline": pipeline, "cursor": {}},

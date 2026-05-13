@@ -397,7 +397,7 @@ OUT_TIMESERIES_MISSING_UNKNOWN_FIELD_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "ts_missing_time_field_empty_ts",
         docs=[{"_id": 1}],
-        pipeline=[{"$out": {"db": "__DB__", "coll": "target", "timeseries": {}}}],
+        pipeline=[{"$out": {"db": "test", "coll": "target", "timeseries": {}}}],
         msg="$out should reject an empty timeseries document (missing timeField)",
         error_code=MISSING_FIELD_ERROR,
     ),
@@ -407,7 +407,7 @@ OUT_TIMESERIES_MISSING_UNKNOWN_FIELD_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {"metaField": "m"},
                 }
@@ -422,7 +422,7 @@ OUT_TIMESERIES_MISSING_UNKNOWN_FIELD_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {"timeField": "ts", "extra": "x"},
                 }
@@ -437,7 +437,7 @@ OUT_TIMESERIES_MISSING_UNKNOWN_FIELD_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {"timeField": "ts", "TimeField": "ts2"},
                 }
@@ -458,7 +458,7 @@ OUT_TIMESERIES_GRANULARITY_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {"timeField": "ts", "granularity": "Seconds"},
                 }
@@ -473,7 +473,7 @@ OUT_TIMESERIES_GRANULARITY_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {"timeField": "ts", "granularity": "HOURS"},
                 }
@@ -488,7 +488,7 @@ OUT_TIMESERIES_GRANULARITY_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {"timeField": "ts", "granularity": ""},
                 }
@@ -503,7 +503,7 @@ OUT_TIMESERIES_GRANULARITY_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {"timeField": "ts", "granularity": "invalid"},
                 }
@@ -518,7 +518,7 @@ OUT_TIMESERIES_GRANULARITY_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {"timeField": "ts", "granularity": "second"},
                 }
@@ -539,7 +539,7 @@ OUT_BUCKET_PARAM_PAIRING_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {
                         "timeField": "ts",
@@ -557,7 +557,7 @@ OUT_BUCKET_PARAM_PAIRING_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {
                         "timeField": "ts",
@@ -575,7 +575,7 @@ OUT_BUCKET_PARAM_PAIRING_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {
                         "timeField": "ts",
@@ -594,7 +594,7 @@ OUT_BUCKET_PARAM_PAIRING_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {
                         "timeField": "ts",
@@ -654,7 +654,7 @@ def test_out_error(collection, test_case: OutTestCase):
     """Test $out rejects invalid configurations with the expected error code."""
     populate_collection(collection, test_case)
     if test_case.pipeline:
-        pipeline = test_case.resolve_pipeline(collection.database.name)
+        pipeline = test_case.pipeline
     else:
         pipeline = [test_case.build_out_stage(collection)]
     result = execute_command(

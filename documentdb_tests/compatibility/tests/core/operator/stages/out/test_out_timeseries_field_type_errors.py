@@ -42,65 +42,63 @@ OUT_TIMESERIES_FIELD_TYPE_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "ts_field_type_int32",
         docs=[{"_id": 1}],
-        pipeline=[{"$out": {"db": "__DB__", "coll": "target", "timeseries": 42}}],
+        pipeline=[{"$out": {"db": "test", "coll": "target", "timeseries": 42}}],
         msg="$out should reject int32 as timeseries field type",
         error_code=TYPE_MISMATCH_ERROR,
     ),
     OutTestCase(
         "ts_field_type_int64",
         docs=[{"_id": 1}],
-        pipeline=[{"$out": {"db": "__DB__", "coll": "target", "timeseries": Int64(42)}}],
+        pipeline=[{"$out": {"db": "test", "coll": "target", "timeseries": Int64(42)}}],
         msg="$out should reject int64 as timeseries field type",
         error_code=TYPE_MISMATCH_ERROR,
     ),
     OutTestCase(
         "ts_field_type_float",
         docs=[{"_id": 1}],
-        pipeline=[{"$out": {"db": "__DB__", "coll": "target", "timeseries": 3.14}}],
+        pipeline=[{"$out": {"db": "test", "coll": "target", "timeseries": 3.14}}],
         msg="$out should reject float as timeseries field type",
         error_code=TYPE_MISMATCH_ERROR,
     ),
     OutTestCase(
         "ts_field_type_decimal128",
         docs=[{"_id": 1}],
-        pipeline=[{"$out": {"db": "__DB__", "coll": "target", "timeseries": Decimal128("99.9")}}],
+        pipeline=[{"$out": {"db": "test", "coll": "target", "timeseries": Decimal128("99.9")}}],
         msg="$out should reject decimal128 as timeseries field type",
         error_code=TYPE_MISMATCH_ERROR,
     ),
     OutTestCase(
         "ts_field_type_bool",
         docs=[{"_id": 1}],
-        pipeline=[{"$out": {"db": "__DB__", "coll": "target", "timeseries": True}}],
+        pipeline=[{"$out": {"db": "test", "coll": "target", "timeseries": True}}],
         msg="$out should reject bool as timeseries field type",
         error_code=TYPE_MISMATCH_ERROR,
     ),
     OutTestCase(
         "ts_field_type_string",
         docs=[{"_id": 1}],
-        pipeline=[{"$out": {"db": "__DB__", "coll": "target", "timeseries": "invalid"}}],
+        pipeline=[{"$out": {"db": "test", "coll": "target", "timeseries": "invalid"}}],
         msg="$out should reject string as timeseries field type",
         error_code=TYPE_MISMATCH_ERROR,
     ),
     OutTestCase(
         "ts_field_type_array_empty",
         docs=[{"_id": 1}],
-        pipeline=[{"$out": {"db": "__DB__", "coll": "target", "timeseries": []}}],
+        pipeline=[{"$out": {"db": "test", "coll": "target", "timeseries": []}}],
         msg="$out should reject array_empty as timeseries field type",
         error_code=TYPE_MISMATCH_ERROR,
     ),
     OutTestCase(
         "ts_field_type_array_with_object",
         docs=[{"_id": 1}],
-        pipeline=[
-            {"$out": {"db": "__DB__", "coll": "target", "timeseries": [{"timeField": "ts"}]}}
-        ],
+        pipeline=[{"$out": {"db": "test", "coll": "target", "timeseries": [{"timeField": "ts"}]}}],
         msg="$out should reject array_with_object as timeseries field type",
         error_code=TYPE_MISMATCH_ERROR,
     ),
     OutTestCase(
         "ts_field_type_binary",
         docs=[{"_id": 1}],
-        pipeline=[{"$out": {"db": "__DB__", "coll": "target", "timeseries": Binary(b"\x01")}}],
+        pipeline=[{"$out": {"db": "test", "coll": "target", "timeseries": Binary(b"\x01")}}],
         msg="$out should reject binary as timeseries field type",
         error_code=TYPE_MISMATCH_ERROR,
     ),
@@ -110,7 +108,7 @@ OUT_TIMESERIES_FIELD_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": ObjectId("507f1f77bcf86cd799439011"),
                 }
@@ -122,51 +120,49 @@ OUT_TIMESERIES_FIELD_TYPE_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "ts_field_type_datetime",
         docs=[{"_id": 1}],
-        pipeline=[{"$out": {"db": "__DB__", "coll": "target", "timeseries": datetime(2024, 1, 1)}}],
+        pipeline=[{"$out": {"db": "test", "coll": "target", "timeseries": datetime(2024, 1, 1)}}],
         msg="$out should reject datetime as timeseries field type",
         error_code=TYPE_MISMATCH_ERROR,
     ),
     OutTestCase(
         "ts_field_type_regex",
         docs=[{"_id": 1}],
-        pipeline=[{"$out": {"db": "__DB__", "coll": "target", "timeseries": Regex("abc")}}],
+        pipeline=[{"$out": {"db": "test", "coll": "target", "timeseries": Regex("abc")}}],
         msg="$out should reject regex as timeseries field type",
         error_code=TYPE_MISMATCH_ERROR,
     ),
     OutTestCase(
         "ts_field_type_timestamp",
         docs=[{"_id": 1}],
-        pipeline=[{"$out": {"db": "__DB__", "coll": "target", "timeseries": Timestamp(1, 1)}}],
+        pipeline=[{"$out": {"db": "test", "coll": "target", "timeseries": Timestamp(1, 1)}}],
         msg="$out should reject timestamp as timeseries field type",
         error_code=TYPE_MISMATCH_ERROR,
     ),
     OutTestCase(
         "ts_field_type_minkey",
         docs=[{"_id": 1}],
-        pipeline=[{"$out": {"db": "__DB__", "coll": "target", "timeseries": MinKey()}}],
+        pipeline=[{"$out": {"db": "test", "coll": "target", "timeseries": MinKey()}}],
         msg="$out should reject minkey as timeseries field type",
         error_code=TYPE_MISMATCH_ERROR,
     ),
     OutTestCase(
         "ts_field_type_maxkey",
         docs=[{"_id": 1}],
-        pipeline=[{"$out": {"db": "__DB__", "coll": "target", "timeseries": MaxKey()}}],
+        pipeline=[{"$out": {"db": "test", "coll": "target", "timeseries": MaxKey()}}],
         msg="$out should reject maxkey as timeseries field type",
         error_code=TYPE_MISMATCH_ERROR,
     ),
     OutTestCase(
         "ts_field_type_code",
         docs=[{"_id": 1}],
-        pipeline=[
-            {"$out": {"db": "__DB__", "coll": "target", "timeseries": Code("function() {}")}}
-        ],
+        pipeline=[{"$out": {"db": "test", "coll": "target", "timeseries": Code("function() {}")}}],
         msg="$out should reject code as timeseries field type",
         error_code=TYPE_MISMATCH_ERROR,
     ),
     OutTestCase(
         "ts_time_field_type_int32",
         docs=[{"_id": 1}],
-        pipeline=[{"$out": {"db": "__DB__", "coll": "target", "timeseries": {"timeField": 42}}}],
+        pipeline=[{"$out": {"db": "test", "coll": "target", "timeseries": {"timeField": 42}}}],
         msg="$out should reject int32 as timeField type",
         error_code=TYPE_MISMATCH_ERROR,
     ),
@@ -174,7 +170,7 @@ OUT_TIMESERIES_FIELD_TYPE_ERROR_TESTS: list[OutTestCase] = [
         "ts_time_field_type_int64",
         docs=[{"_id": 1}],
         pipeline=[
-            {"$out": {"db": "__DB__", "coll": "target", "timeseries": {"timeField": Int64(42)}}}
+            {"$out": {"db": "test", "coll": "target", "timeseries": {"timeField": Int64(42)}}}
         ],
         msg="$out should reject int64 as timeField type",
         error_code=TYPE_MISMATCH_ERROR,
@@ -182,7 +178,7 @@ OUT_TIMESERIES_FIELD_TYPE_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "ts_time_field_type_float",
         docs=[{"_id": 1}],
-        pipeline=[{"$out": {"db": "__DB__", "coll": "target", "timeseries": {"timeField": 3.14}}}],
+        pipeline=[{"$out": {"db": "test", "coll": "target", "timeseries": {"timeField": 3.14}}}],
         msg="$out should reject float as timeField type",
         error_code=TYPE_MISMATCH_ERROR,
     ),
@@ -192,7 +188,7 @@ OUT_TIMESERIES_FIELD_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {"timeField": Decimal128("99.9")},
                 }
@@ -204,7 +200,7 @@ OUT_TIMESERIES_FIELD_TYPE_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "ts_time_field_type_bool",
         docs=[{"_id": 1}],
-        pipeline=[{"$out": {"db": "__DB__", "coll": "target", "timeseries": {"timeField": True}}}],
+        pipeline=[{"$out": {"db": "test", "coll": "target", "timeseries": {"timeField": True}}}],
         msg="$out should reject bool as timeField type",
         error_code=TYPE_MISMATCH_ERROR,
     ),
@@ -214,7 +210,7 @@ OUT_TIMESERIES_FIELD_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {"timeField": [{"timeField": "ts"}]},
                 }
@@ -229,7 +225,7 @@ OUT_TIMESERIES_FIELD_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {"timeField": Binary(b"\x01")},
                 }
@@ -244,7 +240,7 @@ OUT_TIMESERIES_FIELD_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {"timeField": ObjectId("507f1f77bcf86cd799439011")},
                 }
@@ -259,7 +255,7 @@ OUT_TIMESERIES_FIELD_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {"timeField": datetime(2024, 1, 1)},
                 }
@@ -272,7 +268,7 @@ OUT_TIMESERIES_FIELD_TYPE_ERROR_TESTS: list[OutTestCase] = [
         "ts_time_field_type_regex",
         docs=[{"_id": 1}],
         pipeline=[
-            {"$out": {"db": "__DB__", "coll": "target", "timeseries": {"timeField": Regex("abc")}}}
+            {"$out": {"db": "test", "coll": "target", "timeseries": {"timeField": Regex("abc")}}}
         ],
         msg="$out should reject regex as timeField type",
         error_code=TYPE_MISMATCH_ERROR,
@@ -283,7 +279,7 @@ OUT_TIMESERIES_FIELD_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {"timeField": Timestamp(1, 1)},
                 }
@@ -296,7 +292,7 @@ OUT_TIMESERIES_FIELD_TYPE_ERROR_TESTS: list[OutTestCase] = [
         "ts_time_field_type_minkey",
         docs=[{"_id": 1}],
         pipeline=[
-            {"$out": {"db": "__DB__", "coll": "target", "timeseries": {"timeField": MinKey()}}}
+            {"$out": {"db": "test", "coll": "target", "timeseries": {"timeField": MinKey()}}}
         ],
         msg="$out should reject minkey as timeField type",
         error_code=TYPE_MISMATCH_ERROR,
@@ -305,7 +301,7 @@ OUT_TIMESERIES_FIELD_TYPE_ERROR_TESTS: list[OutTestCase] = [
         "ts_time_field_type_maxkey",
         docs=[{"_id": 1}],
         pipeline=[
-            {"$out": {"db": "__DB__", "coll": "target", "timeseries": {"timeField": MaxKey()}}}
+            {"$out": {"db": "test", "coll": "target", "timeseries": {"timeField": MaxKey()}}}
         ],
         msg="$out should reject maxkey as timeField type",
         error_code=TYPE_MISMATCH_ERROR,
@@ -316,7 +312,7 @@ OUT_TIMESERIES_FIELD_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {"timeField": Code("function() {}")},
                 }
@@ -329,7 +325,7 @@ OUT_TIMESERIES_FIELD_TYPE_ERROR_TESTS: list[OutTestCase] = [
         "ts_time_field_type_object",
         docs=[{"_id": 1}],
         pipeline=[
-            {"$out": {"db": "__DB__", "coll": "target", "timeseries": {"timeField": {"x": 1}}}}
+            {"$out": {"db": "test", "coll": "target", "timeseries": {"timeField": {"x": 1}}}}
         ],
         msg="$out should reject object as timeField type",
         error_code=TYPE_MISMATCH_ERROR,
@@ -340,7 +336,7 @@ OUT_TIMESERIES_FIELD_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {"timeField": "ts", "metaField": 42},
                 }
@@ -355,7 +351,7 @@ OUT_TIMESERIES_FIELD_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {"timeField": "ts", "metaField": Int64(42)},
                 }
@@ -370,7 +366,7 @@ OUT_TIMESERIES_FIELD_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {"timeField": "ts", "metaField": 3.14},
                 }
@@ -385,7 +381,7 @@ OUT_TIMESERIES_FIELD_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {"timeField": "ts", "metaField": Decimal128("99.9")},
                 }
@@ -400,7 +396,7 @@ OUT_TIMESERIES_FIELD_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {"timeField": "ts", "metaField": True},
                 }
@@ -415,7 +411,7 @@ OUT_TIMESERIES_FIELD_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {"timeField": "ts", "metaField": [{"timeField": "ts"}]},
                 }
@@ -430,7 +426,7 @@ OUT_TIMESERIES_FIELD_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {"timeField": "ts", "metaField": Binary(b"\x01")},
                 }
@@ -445,7 +441,7 @@ OUT_TIMESERIES_FIELD_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {
                         "timeField": "ts",
@@ -463,7 +459,7 @@ OUT_TIMESERIES_FIELD_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {"timeField": "ts", "metaField": datetime(2024, 1, 1)},
                 }
@@ -478,7 +474,7 @@ OUT_TIMESERIES_FIELD_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {"timeField": "ts", "metaField": Regex("abc")},
                 }
@@ -493,7 +489,7 @@ OUT_TIMESERIES_FIELD_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {"timeField": "ts", "metaField": Timestamp(1, 1)},
                 }
@@ -508,7 +504,7 @@ OUT_TIMESERIES_FIELD_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {"timeField": "ts", "metaField": MinKey()},
                 }
@@ -523,7 +519,7 @@ OUT_TIMESERIES_FIELD_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {"timeField": "ts", "metaField": MaxKey()},
                 }
@@ -538,7 +534,7 @@ OUT_TIMESERIES_FIELD_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {"timeField": "ts", "metaField": Code("function() {}")},
                 }
@@ -553,7 +549,7 @@ OUT_TIMESERIES_FIELD_TYPE_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {"timeField": "ts", "metaField": {"x": 1}},
                 }
@@ -570,7 +566,7 @@ OUT_TIMESERIES_FIELD_TYPE_ERROR_TESTS: list[OutTestCase] = [
 def test_out_error(collection, test_case: OutTestCase):
     """Test $out rejects invalid configurations with the expected error code."""
     populate_collection(collection, test_case)
-    pipeline = test_case.resolve_pipeline(collection.database.name)
+    pipeline = test_case.pipeline
     result = execute_command(
         collection,
         {"aggregate": collection.name, "pipeline": pipeline, "cursor": {}},

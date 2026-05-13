@@ -40,21 +40,3 @@ class OutTestCase(StageTestCase):
                 spec.update(self.out_spec)
             return {"$out": spec}
         return {"$out": target}
-
-    def resolve_pipeline(self, db_name: str) -> list[dict[str, Any]]:
-        """Replace ``__DB__`` placeholders in ``self.pipeline`` with *db_name*."""
-        resolved = []
-        for stage in self.pipeline:
-            resolved.append({k: _resolve_value(v, db_name) for k, v in stage.items()})
-        return resolved
-
-
-def _resolve_value(value: Any, db_name: str) -> Any:
-    """Recursively replace __DB__ string placeholders."""
-    if value == "__DB__":
-        return db_name
-    if isinstance(value, dict):
-        return {k: _resolve_value(v, db_name) for k, v in value.items()}
-    if isinstance(value, list):
-        return [_resolve_value(v, db_name) for v in value]
-    return value

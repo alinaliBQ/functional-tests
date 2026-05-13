@@ -337,7 +337,7 @@ OUT_NAMESPACE_ERROR_TESTS = (
 def test_out_error(collection, test_case: OutTestCase):
     """Test $out rejects invalid configurations with the expected error code."""
     populate_collection(collection, test_case)
-    pipeline = test_case.resolve_pipeline(collection.database.name)
+    pipeline = test_case.pipeline
     result = execute_command(
         collection,
         {"aggregate": collection.name, "pipeline": pipeline, "cursor": {}},

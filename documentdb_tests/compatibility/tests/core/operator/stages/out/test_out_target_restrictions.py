@@ -296,7 +296,7 @@ def test_out_target_restriction_error(collection, test_case: OutTestCase):
     if test_case.setup:
         test_case.setup(collection)
     if test_case.pipeline:
-        pipeline = test_case.resolve_pipeline(collection.database.name)
+        pipeline = test_case.pipeline
     else:
         pipeline = [test_case.build_out_stage(collection)]
     result = execute_command(

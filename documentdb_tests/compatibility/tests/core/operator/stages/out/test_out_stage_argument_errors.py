@@ -54,7 +54,7 @@ OUT_NULL_MISSING_ERROR_TESTS: list[OutTestCase] = [
         "null_coll_missing",
         docs=[{"_id": 1}],
         target_coll="target",
-        pipeline=[{"$out": {"db": "__DB__", "coll": None}}],
+        pipeline=[{"$out": {"db": "test", "coll": None}}],
         msg="$out should treat null coll as missing, not as a type error",
         error_code=MISSING_FIELD_ERROR,
     ),
@@ -62,7 +62,7 @@ OUT_NULL_MISSING_ERROR_TESTS: list[OutTestCase] = [
         "null_time_field_missing",
         docs=[{"_id": 1}],
         target_coll="target",
-        pipeline=[{"$out": {"db": "__DB__", "coll": "target", "timeseries": {"timeField": None}}}],
+        pipeline=[{"$out": {"db": "test", "coll": "target", "timeseries": {"timeField": None}}}],
         msg="$out should treat null timeField as missing, not as a type error",
         error_code=MISSING_FIELD_ERROR,
     ),
@@ -73,7 +73,7 @@ OUT_NULL_MISSING_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {
                         "timeField": "ts",
@@ -96,7 +96,7 @@ OUT_NULL_MISSING_ERROR_TESTS: list[OutTestCase] = [
         pipeline=[
             {
                 "$out": {
-                    "db": "__DB__",
+                    "db": "test",
                     "coll": "target",
                     "timeseries": {
                         "timeField": "ts",
@@ -260,56 +260,56 @@ OUT_UNKNOWN_FIELD_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "unknown_field",
         docs=[{"_id": 1}],
-        pipeline=[{"$out": {"db": "__DB__", "coll": "target", "extra": "x"}}],
+        pipeline=[{"$out": {"db": "test", "coll": "target", "extra": "x"}}],
         msg="$out should reject unknown field 'extra' in document form",
         error_code=UNRECOGNIZED_COMMAND_FIELD_ERROR,
     ),
     OutTestCase(
         "unknown_field_case_sensitive_db",
         docs=[{"_id": 1}],
-        pipeline=[{"$out": {"Db": "__DB__", "coll": "target"}}],
+        pipeline=[{"$out": {"Db": "test", "coll": "target"}}],
         msg="$out should reject 'Db' as unknown (case-sensitive)",
         error_code=UNRECOGNIZED_COMMAND_FIELD_ERROR,
     ),
     OutTestCase(
         "unknown_field_case_sensitive_coll",
         docs=[{"_id": 1}],
-        pipeline=[{"$out": {"db": "__DB__", "Coll": "target"}}],
+        pipeline=[{"$out": {"db": "test", "Coll": "target"}}],
         msg="$out should reject 'Coll' as unknown (case-sensitive)",
         error_code=UNRECOGNIZED_COMMAND_FIELD_ERROR,
     ),
     OutTestCase(
         "unknown_field_case_sensitive_timeseries",
         docs=[{"_id": 1}],
-        pipeline=[{"$out": {"db": "__DB__", "coll": "target", "Timeseries": {"timeField": "ts"}}}],
+        pipeline=[{"$out": {"db": "test", "coll": "target", "Timeseries": {"timeField": "ts"}}}],
         msg="$out should reject 'Timeseries' as unknown (case-sensitive)",
         error_code=UNRECOGNIZED_COMMAND_FIELD_ERROR,
     ),
     OutTestCase(
         "unknown_field_whitespace_sensitive_db",
         docs=[{"_id": 1}],
-        pipeline=[{"$out": {"db ": "__DB__", "coll": "target"}}],
+        pipeline=[{"$out": {"db ": "test", "coll": "target"}}],
         msg="$out should reject 'db ' as unknown (whitespace-sensitive)",
         error_code=UNRECOGNIZED_COMMAND_FIELD_ERROR,
     ),
     OutTestCase(
         "unknown_field_whitespace_sensitive_coll",
         docs=[{"_id": 1}],
-        pipeline=[{"$out": {"db": "__DB__", " coll": "target"}}],
+        pipeline=[{"$out": {"db": "test", " coll": "target"}}],
         msg="$out should reject ' coll' as unknown (whitespace-sensitive)",
         error_code=UNRECOGNIZED_COMMAND_FIELD_ERROR,
     ),
     OutTestCase(
         "expression_like_object",
         docs=[{"_id": 1}],
-        pipeline=[{"$out": {"db": "__DB__", "coll": "target", "$expr": {"$literal": 1}}}],
+        pipeline=[{"$out": {"db": "test", "coll": "target", "$expr": {"$literal": 1}}}],
         msg="$out should treat expression-like objects as unknown fields",
         error_code=UNRECOGNIZED_COMMAND_FIELD_ERROR,
     ),
     OutTestCase(
         "expression_like_dollar_prefix",
         docs=[{"_id": 1}],
-        pipeline=[{"$out": {"db": "__DB__", "coll": "target", "$merge": "x"}}],
+        pipeline=[{"$out": {"db": "test", "coll": "target", "$merge": "x"}}],
         msg="$out should treat $-prefixed fields as unknown fields",
         error_code=UNRECOGNIZED_COMMAND_FIELD_ERROR,
     ),
@@ -372,7 +372,7 @@ OUT_STAGE_ARGUMENT_ERROR_TESTS = (
 def test_out_error(collection, test_case: OutTestCase):
     """Test $out rejects invalid configurations with the expected error code."""
     populate_collection(collection, test_case)
-    pipeline = test_case.resolve_pipeline(collection.database.name)
+    pipeline = test_case.pipeline
     result = execute_command(
         collection,
         {"aggregate": collection.name, "pipeline": pipeline, "cursor": {}},
