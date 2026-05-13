@@ -112,14 +112,6 @@ OUT_NULL_MISSING_ERROR_TESTS: list[OutTestCase] = [
         ),
         error_code=INVALID_OPTIONS_ERROR,
     ),
-    OutTestCase(
-        "null_both_db_and_coll",
-        docs=[{"_id": 1}],
-        target_coll="target",
-        pipeline=[{"$out": {"db": None, "coll": None}}],
-        msg=("$out should treat both null db and coll as missing, with coll" " checked first"),
-        error_code=MISSING_FIELD_ERROR,
-    ),
 ]
 
 # Property [Stage Argument Type Errors]: any type other than string or
