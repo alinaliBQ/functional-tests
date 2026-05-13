@@ -246,6 +246,13 @@ OUT_DOCUMENT_FIELD_TYPE_ERROR_TESTS: list[OutTestCase] = [
         msg="$out should reject Code coll as a type mismatch",
         error_code=TYPE_MISMATCH_ERROR,
     ),
+    OutTestCase(
+        "both_db_and_coll_type_error",
+        docs=[{"_id": 1}],
+        pipeline=[{"$out": {"db": 42, "coll": 42}}],
+        msg="$out should check db type before coll type when both have type errors",
+        error_code=TYPE_MISMATCH_ERROR,
+    ),
 ]
 
 # Property [Document Form Unknown Fields]: any field other than db, coll,

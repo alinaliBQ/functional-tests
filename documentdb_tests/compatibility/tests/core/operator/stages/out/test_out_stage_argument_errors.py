@@ -26,7 +26,9 @@ from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_
 from documentdb_tests.framework.assertions import (
     assertResult,
 )
+from documentdb_tests.framework.bson_helpers import build_raw_bson_doc
 from documentdb_tests.framework.error_codes import (
+    DUPLICATE_FIELD_ERROR,
     INVALID_OPTIONS_ERROR,
     MISSING_FIELD_ERROR,
     OUT_ARGUMENT_TYPE_ERROR,
@@ -109,6 +111,14 @@ OUT_NULL_MISSING_ERROR_TESTS: list[OutTestCase] = [
             " bucketMaxSpanSeconds as an incomplete pair"
         ),
         error_code=INVALID_OPTIONS_ERROR,
+    ),
+    OutTestCase(
+        "null_both_db_and_coll",
+        docs=[{"_id": 1}],
+        target_coll="target",
+        pipeline=[{"$out": {"db": None, "coll": None}}],
+        msg=("$out should treat both null db and coll as missing, with coll" " checked first"),
+        error_code=MISSING_FIELD_ERROR,
     ),
 ]
 
@@ -317,11 +327,51 @@ OUT_UNKNOWN_FIELD_ERROR_TESTS: list[OutTestCase] = [
 # are rejected with the appropriate error code based on the violation type,
 # with namespace errors taking precedence over illegal operation errors.
 
+# Property [Document Form Duplicate Fields]: duplicate fields (db or coll
+# appearing twice) in the document form produce a duplicate field error.
+OUT_DUPLICATE_FIELD_ERROR_TESTS: list[OutTestCase] = [
+    OutTestCase(
+        "duplicate_db_field",
+        docs=[{"_id": 1}],
+        pipeline=[
+            {
+                "$out": build_raw_bson_doc(
+                    [
+                        ("db", "test"),
+                        ("coll", "target"),
+                        ("db", "test"),
+                    ]
+                )
+            }
+        ],
+        msg="$out should reject duplicate 'db' field in document form",
+        error_code=DUPLICATE_FIELD_ERROR,
+    ),
+    OutTestCase(
+        "duplicate_coll_field",
+        docs=[{"_id": 1}],
+        pipeline=[
+            {
+                "$out": build_raw_bson_doc(
+                    [
+                        ("db", "test"),
+                        ("coll", "target"),
+                        ("coll", "target"),
+                    ]
+                )
+            }
+        ],
+        msg="$out should reject duplicate 'coll' field in document form",
+        error_code=DUPLICATE_FIELD_ERROR,
+    ),
+]
+
 
 OUT_STAGE_ARGUMENT_ERROR_TESTS = (
     OUT_NULL_MISSING_ERROR_TESTS
     + OUT_STAGE_ARGUMENT_TYPE_ERROR_TESTS
     + OUT_UNKNOWN_FIELD_ERROR_TESTS
+    + OUT_DUPLICATE_FIELD_ERROR_TESTS
 )
 
 
