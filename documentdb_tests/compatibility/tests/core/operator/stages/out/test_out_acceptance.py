@@ -507,9 +507,9 @@ def test_out_schema_validation_success(collection, test_case: OutTestCase):
 # Property [Index Constraint Errors - Nonexistent Target]: when a unique
 # index violation occurs writing to a nonexistent target, the target
 # collection is not created.
-OUT_INDEX_NONEXISTENT_TARGET_TESTS: list[OutTestCase] = [
+OUT_INDEX_NONEXISTENT_TARGET_NOT_CREATED_TESTS: list[OutTestCase] = [
     OutTestCase(
-        "idx_nonexist",
+        "idx_nonexist_not_created",
         docs=[{"_id": 1, "x": 1}, {"_id": 2, "x": 2}],
         target_coll="idx_nonexist_target",
         pipeline=[
@@ -524,7 +524,7 @@ OUT_INDEX_NONEXISTENT_TARGET_TESTS: list[OutTestCase] = [
 
 
 @pytest.mark.aggregate
-@pytest.mark.parametrize("test_case", pytest_params(OUT_INDEX_NONEXISTENT_TARGET_TESTS))
+@pytest.mark.parametrize("test_case", pytest_params(OUT_INDEX_NONEXISTENT_TARGET_NOT_CREATED_TESTS))
 def test_out_unique_violation_nonexistent_target_not_created(collection, test_case: OutTestCase):
     """Test $out does not create the target when a unique index violation occurs."""
     populate_collection(collection, test_case)

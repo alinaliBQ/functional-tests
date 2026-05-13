@@ -325,7 +325,7 @@ def test_out_replacement_self(collection, test_case: OutTestCase):
 
 # Property [Collection Replacement - Failure Rollback]: if the aggregation
 # fails during $out, the pre-existing collection and its indexes are unchanged.
-OUT_REPLACEMENT_FAILURE_TESTS: list[OutTestCase] = [
+OUT_REPLACEMENT_FAILURE_UNCHANGED_TESTS: list[OutTestCase] = [
     OutTestCase(
         "replacement_failure_unchanged",
         docs=[{"_id": 10, "x": 1}, {"_id": 20, "x": 1}],
@@ -346,19 +346,16 @@ OUT_REPLACEMENT_FAILURE_TESTS: list[OutTestCase] = [
 
 
 @pytest.mark.aggregate
-@pytest.mark.parametrize("test_case", pytest_params(OUT_REPLACEMENT_FAILURE_TESTS))
+@pytest.mark.parametrize("test_case", pytest_params(OUT_REPLACEMENT_FAILURE_UNCHANGED_TESTS))
 def test_out_replacement_failure_unchanged(collection, test_case: OutTestCase):
     """Test $out leaves the pre-existing collection unchanged on failure."""
     populate_collection(collection, test_case)
     if test_case.setup:
         test_case.setup(collection)
-    pipeline = [{"$out": test_case.target_coll}]
     execute_command(
         collection,
-        {"aggregate": collection.name, "pipeline": pipeline, "cursor": {}},
+        {"aggregate": collection.name, "pipeline": [{"$out": test_case.target_coll}], "cursor": {}},
     )
-    # The aggregation fails due to unique index violation; verify the
-    # pre-existing collection and its indexes are unchanged.
     idx_result = execute_command(
         collection,
         {"listIndexes": test_case.target_coll},
