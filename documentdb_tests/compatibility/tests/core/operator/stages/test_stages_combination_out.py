@@ -1,4 +1,4 @@
-"""Tests for $out composing with other pipeline stages."""
+"""Tests for $out stage — pipeline integration with other stages."""
 
 from __future__ import annotations
 
@@ -8,16 +8,19 @@ from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_
     StageTestCase,
     populate_collection,
 )
-from documentdb_tests.framework.assertions import assertSuccess
+from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
 _OUT_TARGET = "__OUT_TARGET__"
 _FOREIGN = "__FOREIGN__"
 
-# Property [Match → Out]: $match narrows the document stream before $out
-# writes the filtered results to the target collection.
-MATCH_OUT_TESTS: list[StageTestCase] = [
+# Property [Pipeline Integration]: $out composes correctly with other
+# aggregation stages — $match filters before writing, $project reshapes
+# output, $group aggregates, $sort/$limit/$skip paginate, $unwind expands
+# arrays, $addFields enriches, $replaceRoot restructures, $redact prunes,
+# $lookup joins, and $unionWith merges collections.
+OUT_PIPELINE_INTEGRATION_TESTS: list[StageTestCase] = [
     StageTestCase(
         "match_equality",
         docs=[
@@ -65,11 +68,6 @@ MATCH_OUT_TESTS: list[StageTestCase] = [
         expected=[],
         msg="$out should create an empty collection when $match filters all documents",
     ),
-]
-
-# Property [Project → Out]: $project reshapes documents before $out writes
-# the projected results to the target collection.
-PROJECT_OUT_TESTS: list[StageTestCase] = [
     StageTestCase(
         "project_inclusion",
         docs=[
@@ -102,11 +100,6 @@ PROJECT_OUT_TESTS: list[StageTestCase] = [
         ],
         msg="$out should write computed fields from a $project stage",
     ),
-]
-
-# Property [Group → Out]: $group aggregates documents before $out writes
-# the grouped results to the target collection.
-GROUP_OUT_TESTS: list[StageTestCase] = [
     StageTestCase(
         "group_sum",
         docs=[
@@ -141,11 +134,6 @@ GROUP_OUT_TESTS: list[StageTestCase] = [
         ],
         msg="$out should write $group count results to the target collection",
     ),
-]
-
-# Property [Sort → Limit → Out]: $sort followed by $limit selects the
-# top-N documents which $out writes to the target collection.
-SORT_LIMIT_OUT_TESTS: list[StageTestCase] = [
     StageTestCase(
         "sort_limit_top_n",
         docs=[
@@ -167,11 +155,6 @@ SORT_LIMIT_OUT_TESTS: list[StageTestCase] = [
         ],
         msg="$out should write the top-N sorted documents after $sort and $limit",
     ),
-]
-
-# Property [Skip → Limit → Out]: $skip and $limit paginate the document
-# stream before $out writes the page to the target collection.
-SKIP_LIMIT_OUT_TESTS: list[StageTestCase] = [
     StageTestCase(
         "skip_limit_page",
         docs=[
@@ -193,11 +176,6 @@ SKIP_LIMIT_OUT_TESTS: list[StageTestCase] = [
         ],
         msg="$out should write the paginated window from $skip and $limit",
     ),
-]
-
-# Property [Unwind → Group → Out]: $unwind expands arrays, $group
-# re-aggregates, and $out persists the result.
-UNWIND_GROUP_OUT_TESTS: list[StageTestCase] = [
     StageTestCase(
         "unwind_group_tag_count",
         docs=[
@@ -217,11 +195,6 @@ UNWIND_GROUP_OUT_TESTS: list[StageTestCase] = [
         ],
         msg="$out should write unwound-then-grouped tag counts to the target collection",
     ),
-]
-
-# Property [AddFields → Out]: $addFields enriches documents with computed
-# fields before $out writes the enriched results.
-ADDFIELDS_OUT_TESTS: list[StageTestCase] = [
     StageTestCase(
         "addfields_computed",
         docs=[
@@ -238,11 +211,6 @@ ADDFIELDS_OUT_TESTS: list[StageTestCase] = [
         ],
         msg="$out should write documents enriched by $addFields to the target collection",
     ),
-]
-
-# Property [ReplaceRoot → Out]: $replaceRoot reshapes documents to a nested
-# sub-document before $out writes the new root structure.
-REPLACEROOT_OUT_TESTS: list[StageTestCase] = [
     StageTestCase(
         "replaceroot_nested",
         docs=[
@@ -260,11 +228,6 @@ REPLACEROOT_OUT_TESTS: list[StageTestCase] = [
         ],
         msg="$out should write the new root structure after $replaceRoot",
     ),
-]
-
-# Property [Redact → Out]: $redact controls document-level access before
-# $out writes the redacted results.
-REDACT_OUT_TESTS: list[StageTestCase] = [
     StageTestCase(
         "redact_keep_prune",
         docs=[
@@ -290,11 +253,6 @@ REDACT_OUT_TESTS: list[StageTestCase] = [
         ],
         msg="$out should write only documents kept by $redact",
     ),
-]
-
-# Property [Lookup → Out]: $lookup joins documents from a foreign collection
-# before $out writes the enriched results.
-LOOKUP_OUT_TESTS: list[StageTestCase] = [
     StageTestCase(
         "lookup_equality",
         docs=[
@@ -325,11 +283,6 @@ LOOKUP_OUT_TESTS: list[StageTestCase] = [
         ],
         msg="$out should write $lookup-joined documents to the target collection",
     ),
-]
-
-# Property [UnionWith → Out]: $unionWith combines documents from multiple
-# collections before $out writes the merged results.
-UNIONWITH_OUT_TESTS: list[StageTestCase] = [
     StageTestCase(
         "unionwith_merge",
         docs=[
@@ -354,11 +307,6 @@ UNIONWITH_OUT_TESTS: list[StageTestCase] = [
         ],
         msg="$out should write $unionWith-merged documents to the target collection",
     ),
-]
-
-# Property [Multi-Stage Pipeline → Out]: a complex pipeline combining
-# multiple transformation stages feeds correct results into $out.
-MULTI_STAGE_OUT_TESTS: list[StageTestCase] = [
     StageTestCase(
         "match_group_sort_out",
         docs=[
@@ -402,21 +350,6 @@ MULTI_STAGE_OUT_TESTS: list[StageTestCase] = [
     ),
 ]
 
-STAGE_COMBINATIONS_OUT_TESTS = (
-    MATCH_OUT_TESTS
-    + PROJECT_OUT_TESTS
-    + GROUP_OUT_TESTS
-    + SORT_LIMIT_OUT_TESTS
-    + SKIP_LIMIT_OUT_TESTS
-    + UNWIND_GROUP_OUT_TESTS
-    + ADDFIELDS_OUT_TESTS
-    + REPLACEROOT_OUT_TESTS
-    + REDACT_OUT_TESTS
-    + LOOKUP_OUT_TESTS
-    + UNIONWITH_OUT_TESTS
-    + MULTI_STAGE_OUT_TESTS
-)
-
 
 def _resolve_placeholders(pipeline: list[dict], out_name: str, foreign_name: str) -> list[dict]:
     """Replace placeholder strings in a pipeline with runtime collection names."""
@@ -430,9 +363,9 @@ def _resolve_placeholders(pipeline: list[dict], out_name: str, foreign_name: str
 
 
 @pytest.mark.aggregate
-@pytest.mark.parametrize("test_case", pytest_params(STAGE_COMBINATIONS_OUT_TESTS))
-def test_stage_combinations_out(collection, test_case: StageTestCase):
-    """Test pipeline stages composing with $out."""
+@pytest.mark.parametrize("test_case", pytest_params(OUT_PIPELINE_INTEGRATION_TESTS))
+def test_out_pipeline_integration(collection, test_case: StageTestCase):
+    """Test $out pipeline integration with other stages."""
     populate_collection(collection, test_case)
     if test_case.setup:
         test_case.setup(collection)
@@ -448,6 +381,11 @@ def test_stage_combinations_out(collection, test_case: StageTestCase):
         collection,
         {"find": out_name, "filter": {}, "sort": {"_id": 1}},
     )
-    assertSuccess(result, test_case.expected, msg=test_case.msg)
+    assertResult(
+        result,
+        expected=test_case.expected,
+        error_code=test_case.error_code,
+        msg=test_case.msg,
+    )
     db.drop_collection(out_name)
     db.drop_collection(foreign_name)
