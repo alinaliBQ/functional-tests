@@ -1,4 +1,4 @@
-"""Tests for $sum accumulator in $group context."""
+"""Tests for $sum accumulator across $group, $bucket, and $bucketAuto stages."""
 
 from __future__ import annotations
 
@@ -9,15 +9,12 @@ from typing import Any
 import pytest
 from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
-from documentdb_tests.framework.assertions import (
-    assertFailureCode,
-    assertResult,
-    assertSuccess,
-)
+from documentdb_tests.framework.assertions import assertFailureCode, assertSuccess
 from documentdb_tests.framework.error_codes import (
     ACCUMULATOR_UNARY_OPERATOR_ERROR,
     CONVERSION_FAILURE_ERROR,
     DIVIDE_BY_ZERO_V2_ERROR,
+    EXPRESSION_OBJECT_MULTIPLE_FIELDS_ERROR,
     INVALID_DOLLAR_FIELD_PATH,
 )
 from documentdb_tests.framework.executor import execute_command
@@ -58,407 +55,488 @@ from documentdb_tests.framework.test_constants import (
     INT64_MIN_PLUS_1,
 )
 
+STAGES = ["group", "bucket", "bucketAuto"]
+
 
 @dataclass(frozen=True)
-class SumAccumulatorTest(BaseTestCase):
+class AccumulatorSumTestCase(BaseTestCase):
     """Test case for $sum accumulator."""
 
     docs: list[dict] | None = None
-    expression: Any = None
+    accumulator: Any = None
 
 
-# Property [Null and Missing Behavior]: null and missing values are ignored
-# by $sum, producing 0 (int32) when no numeric values remain.
-SUM_NULL_MISSING_TESTS: list[SumAccumulatorTest] = [
-    SumAccumulatorTest(
+def _execute_accumulator(collection, test_case: AccumulatorSumTestCase, stage: str):
+    """Insert docs and run $sum through the specified stage."""
+    if test_case.docs:
+        collection.insert_many(test_case.docs)
+
+    pipeline: list[dict[str, Any]]
+    if stage == "group":
+        pipeline = [{"$group": {"_id": None, "result": {"$sum": test_case.accumulator}}}]
+    elif stage == "bucket":
+        pipeline = [
+            {
+                "$bucket": {
+                    "groupBy": {"$literal": 0},
+                    "boundaries": [-1, 1],
+                    "output": {"result": {"$sum": test_case.accumulator}},
+                }
+            }
+        ]
+    else:
+        pipeline = [
+            {
+                "$bucketAuto": {
+                    "groupBy": {"$literal": 0},
+                    "buckets": 1,
+                    "output": {"result": {"$sum": test_case.accumulator}},
+                }
+            }
+        ]
+
+    return execute_command(
+        collection,
+        {"aggregate": collection.name, "pipeline": pipeline, "cursor": {}},
+    )
+
+
+def _execute_accumulator_with_type(collection, test_case: AccumulatorSumTestCase, stage: str):
+    """Insert docs and run $sum with a $type projection through the specified stage."""
+    if test_case.docs:
+        collection.insert_many(test_case.docs)
+
+    pipeline: list[dict[str, Any]]
+    if stage == "group":
+        pipeline = [
+            {"$group": {"_id": None, "result": {"$sum": test_case.accumulator}}},
+            {"$project": {"_id": 0, "value": "$result", "type": {"$type": "$result"}}},
+        ]
+    elif stage == "bucket":
+        pipeline = [
+            {
+                "$bucket": {
+                    "groupBy": {"$literal": 0},
+                    "boundaries": [-1, 1],
+                    "output": {"result": {"$sum": test_case.accumulator}},
+                }
+            },
+            {"$project": {"_id": 0, "value": "$result", "type": {"$type": "$result"}}},
+        ]
+    else:
+        pipeline = [
+            {
+                "$bucketAuto": {
+                    "groupBy": {"$literal": 0},
+                    "buckets": 1,
+                    "output": {"result": {"$sum": test_case.accumulator}},
+                }
+            },
+            {"$project": {"_id": 0, "value": "$result", "type": {"$type": "$result"}}},
+        ]
+
+    return execute_command(
+        collection,
+        {"aggregate": collection.name, "pipeline": pipeline, "cursor": {}},
+    )
+
+
+# Property [Null and Missing Behavior]: null and missing values are ignored by
+# $sum, producing 0 (int32) when no numeric values remain.
+SUM_NULL_MISSING_TESTS: list[AccumulatorSumTestCase] = [
+    AccumulatorSumTestCase(
         "null_all",
         docs=[{"v": None}, {"v": None}],
-        expression="$v",
+        accumulator="$v",
         expected=0,
         msg="$sum should return 0 when all values are null",
     ),
-    SumAccumulatorTest(
-        "null_all_missing",
+    AccumulatorSumTestCase(
+        "missing_all",
         docs=[{"x": 1}, {"x": 2}],
-        expression="$v",
+        accumulator="$v",
         expected=0,
         msg="$sum should return 0 when all documents have missing field",
     ),
-    SumAccumulatorTest(
-        "null_mixed_null_and_missing",
+    AccumulatorSumTestCase(
+        "null_and_missing_mix",
         docs=[{"v": None}, {"x": 1}],
-        expression="$v",
+        accumulator="$v",
         expected=0,
         msg="$sum should return 0 when group has only null and missing values",
     ),
-    SumAccumulatorTest(
-        "null_with_numerics",
+    AccumulatorSumTestCase(
+        "null_with_numeric",
         docs=[{"v": None}, {"v": 5}, {"v": 3}],
-        expression="$v",
+        accumulator="$v",
         expected=8,
         msg="$sum should ignore null and sum only numeric values",
     ),
-    SumAccumulatorTest(
-        "null_missing_with_numerics",
+    AccumulatorSumTestCase(
+        "missing_with_numeric",
         docs=[{"x": 1}, {"v": 7}, {"v": 2}],
-        expression="$v",
+        accumulator="$v",
         expected=9,
-        msg="$sum should ignore missing fields and sum only numeric values",
+        msg="$sum should ignore missing and sum only numeric values",
     ),
-    SumAccumulatorTest(
-        "null_mixed_null_missing_with_numerics",
+    AccumulatorSumTestCase(
+        "null_and_missing_with_numeric",
         docs=[{"v": None}, {"x": 1}, {"v": 10}],
-        expression="$v",
+        accumulator="$v",
         expected=10,
-        msg="$sum should ignore both null and missing, summing only numerics",
+        msg="$sum should ignore both null and missing, summing only numeric values",
     ),
-    SumAccumulatorTest(
-        "null_constant_null",
+    AccumulatorSumTestCase(
+        "constant_null",
         docs=[{"x": 1}, {"x": 2}],
-        expression=None,
+        accumulator=None,
         expected=0,
         msg="$sum should return 0 for a constant null expression",
     ),
-    SumAccumulatorTest(
-        "null_literal_null",
+    AccumulatorSumTestCase(
+        "literal_null_expr",
         docs=[{"x": 1}, {"x": 2}],
-        expression={"$literal": None},
+        accumulator={"$literal": None},
         expected=0,
         msg="$sum should return 0 when expression evaluates to null",
     ),
-    SumAccumulatorTest(
-        "null_remove_only",
+    AccumulatorSumTestCase(
+        "remove_only",
         docs=[{"v": 5}],
-        expression={"$cond": [False, 1, "$$REMOVE"]},
+        accumulator={"$cond": [False, 1, "$$REMOVE"]},
         expected=0,
         msg="$sum should treat $$REMOVE as missing and return 0",
     ),
 ]
 
-# Property [Non-Numeric Types Ignored]: all non-numeric BSON types are
-# silently ignored, contributing nothing to the result. Returns 0 (int32)
-# when no numeric values remain.
-SUM_NON_NUMERIC_TESTS: list[SumAccumulatorTest] = [
-    SumAccumulatorTest(
-        "non_numeric_string",
+# Property [Non-Numeric Type Handling]: non-numeric BSON types are silently
+# ignored by $sum, contributing nothing to the result.
+SUM_NON_NUMERIC_TESTS: list[AccumulatorSumTestCase] = [
+    AccumulatorSumTestCase(
+        "non_numeric_string_ignored",
         docs=[{"v": "hello"}, {"v": 10}],
-        expression="$v",
+        accumulator="$v",
         expected=10,
-        msg="$sum should ignore string values and sum only numerics",
+        msg="$sum should ignore string values and sum only numeric values",
     ),
-    SumAccumulatorTest(
-        "non_numeric_boolean_true",
+    AccumulatorSumTestCase(
+        "non_numeric_bool_true_ignored",
         docs=[{"v": True}, {"v": 7}],
-        expression="$v",
+        accumulator="$v",
         expected=7,
-        msg="$sum should ignore boolean true without coercing to 1",
+        msg="$sum should ignore boolean True (not coerce to 1)",
     ),
-    SumAccumulatorTest(
-        "non_numeric_boolean_false",
+    AccumulatorSumTestCase(
+        "non_numeric_bool_false_ignored",
         docs=[{"v": False}, {"v": 3}],
-        expression="$v",
+        accumulator="$v",
         expected=3,
-        msg="$sum should ignore boolean false without coercing to 0",
+        msg="$sum should ignore boolean False (not coerce to 0)",
     ),
-    SumAccumulatorTest(
-        "non_numeric_object",
+    AccumulatorSumTestCase(
+        "non_numeric_array_ignored",
+        docs=[{"v": ["a", "b"]}, {"v": 4}],
+        accumulator="$v",
+        expected=4,
+        msg="$sum should ignore array values",
+    ),
+    AccumulatorSumTestCase(
+        "non_numeric_object_ignored",
         docs=[{"v": {"a": 1}}, {"v": 6}],
-        expression="$v",
+        accumulator="$v",
         expected=6,
-        msg="$sum should ignore embedded document values",
+        msg="$sum should ignore embedded object values",
     ),
-    SumAccumulatorTest(
-        "non_numeric_empty_object",
+    AccumulatorSumTestCase(
+        "non_numeric_empty_object_ignored",
         docs=[{"v": {}}, {"v": 4}],
-        expression="$v",
+        accumulator="$v",
         expected=4,
         msg="$sum should ignore empty document values",
     ),
-    SumAccumulatorTest(
-        "non_numeric_objectid",
+    AccumulatorSumTestCase(
+        "non_numeric_objectid_ignored",
         docs=[{"v": ObjectId()}, {"v": 8}],
-        expression="$v",
+        accumulator="$v",
         expected=8,
         msg="$sum should ignore ObjectId values",
     ),
-    SumAccumulatorTest(
-        "non_numeric_datetime",
-        docs=[
-            {"v": datetime(2023, 1, 1, tzinfo=timezone.utc)},
-            {"v": 2},
-        ],
-        expression="$v",
+    AccumulatorSumTestCase(
+        "non_numeric_datetime_ignored",
+        docs=[{"v": datetime(2023, 1, 1, tzinfo=timezone.utc)}, {"v": 2}],
+        accumulator="$v",
         expected=2,
         msg="$sum should ignore datetime values",
     ),
-    SumAccumulatorTest(
-        "non_numeric_timestamp",
+    AccumulatorSumTestCase(
+        "non_numeric_timestamp_ignored",
         docs=[{"v": Timestamp(1, 1)}, {"v": 9}],
-        expression="$v",
+        accumulator="$v",
         expected=9,
         msg="$sum should ignore Timestamp values",
     ),
-    SumAccumulatorTest(
-        "non_numeric_binary",
+    AccumulatorSumTestCase(
+        "non_numeric_binary_ignored",
         docs=[{"v": Binary(b"\x01\x02")}, {"v": 5}],
-        expression="$v",
+        accumulator="$v",
         expected=5,
         msg="$sum should ignore Binary values",
     ),
-    SumAccumulatorTest(
-        "non_numeric_regex",
+    AccumulatorSumTestCase(
+        "non_numeric_regex_ignored",
         docs=[{"v": Regex("abc", "i")}, {"v": 11}],
-        expression="$v",
+        accumulator="$v",
         expected=11,
         msg="$sum should ignore Regex values",
     ),
-    SumAccumulatorTest(
-        "non_numeric_code",
+    AccumulatorSumTestCase(
+        "non_numeric_code_ignored",
         docs=[{"v": Code("function(){}")}, {"v": 12}],
-        expression="$v",
+        accumulator="$v",
         expected=12,
         msg="$sum should ignore Code values",
     ),
-    SumAccumulatorTest(
-        "non_numeric_minkey",
+    AccumulatorSumTestCase(
+        "non_numeric_minkey_ignored",
         docs=[{"v": MinKey()}, {"v": 14}],
-        expression="$v",
+        accumulator="$v",
         expected=14,
         msg="$sum should ignore MinKey values",
     ),
-    SumAccumulatorTest(
-        "non_numeric_maxkey",
+    AccumulatorSumTestCase(
+        "non_numeric_maxkey_ignored",
         docs=[{"v": MaxKey()}, {"v": 15}],
-        expression="$v",
+        accumulator="$v",
         expected=15,
         msg="$sum should ignore MaxKey values",
     ),
-    SumAccumulatorTest(
-        "non_numeric_array",
-        docs=[{"v": [1, 2, 3]}, {"v": 20}],
-        expression="$v",
-        expected=20,
-        msg="$sum should treat arrays as non-numeric in $group context",
-    ),
-    SumAccumulatorTest(
-        "non_numeric_single_element_array",
-        docs=[{"v": [5]}, {"v": 10}],
-        expression="$v",
-        expected=10,
-        msg="$sum should not unwrap single-element numeric arrays",
-    ),
-    SumAccumulatorTest(
-        "non_numeric_empty_array",
-        docs=[{"v": []}, {"v": 7}],
-        expression="$v",
-        expected=7,
-        msg="$sum should treat empty arrays as non-numeric",
-    ),
-    SumAccumulatorTest(
-        "non_numeric_nested_array",
-        docs=[{"v": [[1, 2]]}, {"v": 3}],
-        expression="$v",
-        expected=3,
-        msg="$sum should treat nested arrays as non-numeric",
-    ),
-    SumAccumulatorTest(
-        "non_numeric_array_from_expression",
-        docs=[{"v": 1}],
-        expression={"$literal": [1, 2, 3]},
-        expected=0,
-        msg="$sum should treat array expressions as non-numeric",
-    ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "non_numeric_all_non_numeric",
         docs=[{"v": "abc"}, {"v": True}, {"v": [1]}, {"v": {"a": 1}}],
-        expression="$v",
+        accumulator="$v",
         expected=0,
-        msg="$sum should return 0 when all values are non-numeric",
+        msg="$sum should return 0 when all values in a group are non-numeric",
     ),
-    SumAccumulatorTest(
-        "non_numeric_numeric_string",
+    AccumulatorSumTestCase(
+        "non_numeric_numeric_string_not_coerced",
         docs=[{"v": "123"}, {"v": 5}],
-        expression="$v",
+        accumulator="$v",
         expected=5,
         msg="$sum should not coerce numeric strings to numbers",
+    ),
+    AccumulatorSumTestCase(
+        "non_numeric_array_single_element",
+        docs=[{"v": [5]}, {"v": 10}],
+        accumulator="$v",
+        expected=10,
+        msg="$sum should treat single-element numeric array as non-numeric",
+    ),
+    AccumulatorSumTestCase(
+        "non_numeric_array_empty",
+        docs=[{"v": []}, {"v": 7}],
+        accumulator="$v",
+        expected=7,
+        msg="$sum should treat empty array as non-numeric",
+    ),
+    AccumulatorSumTestCase(
+        "non_numeric_array_nested",
+        docs=[{"v": [[1, 2]]}, {"v": 3}],
+        accumulator="$v",
+        expected=3,
+        msg="$sum should treat nested array as non-numeric",
+    ),
+    AccumulatorSumTestCase(
+        "non_numeric_array_of_numbers",
+        docs=[{"v": [1, 2, 3]}, {"v": 20}],
+        accumulator="$v",
+        expected=20,
+        msg="$sum should treat array of numbers as non-numeric in accumulator context",
+    ),
+    AccumulatorSumTestCase(
+        "non_numeric_array_from_expression",
+        docs=[{"v": 1}],
+        accumulator={"$literal": [1, 2, 3]},
+        expected=0,
+        msg="$sum should treat array expressions as non-numeric",
     ),
 ]
 
 # Property [Special Float Values]: NaN propagates through summation and
-# dominates all other values; Infinity arithmetic follows IEEE 754 rules.
-SUM_SPECIAL_FLOAT_TESTS: list[SumAccumulatorTest] = [
-    SumAccumulatorTest(
-        "special_inf_plus_inf",
+# dominates all other values; inf + (-inf) produces NaN; inf + inf produces
+# inf; inf + finite produces inf; non-numeric values are ignored.
+SUM_SPECIAL_FLOAT_TESTS: list[AccumulatorSumTestCase] = [
+    AccumulatorSumTestCase(
+        "special_float_inf_plus_inf",
         docs=[{"v": FLOAT_INFINITY}, {"v": FLOAT_INFINITY}],
-        expression="$v",
+        accumulator="$v",
         expected=FLOAT_INFINITY,
-        msg="$sum should produce Infinity when summing Infinity + Infinity",
+        msg="$sum should produce inf when summing inf + inf",
     ),
-    SumAccumulatorTest(
-        "special_neg_inf_plus_neg_inf",
+    AccumulatorSumTestCase(
+        "special_float_neg_inf_plus_neg_inf",
         docs=[{"v": FLOAT_NEGATIVE_INFINITY}, {"v": FLOAT_NEGATIVE_INFINITY}],
-        expression="$v",
+        accumulator="$v",
         expected=FLOAT_NEGATIVE_INFINITY,
-        msg="$sum should produce -Infinity when summing -Infinity + -Infinity",
+        msg="$sum should produce -inf when summing -inf + -inf",
     ),
-    SumAccumulatorTest(
-        "special_inf_plus_finite",
+    AccumulatorSumTestCase(
+        "special_float_inf_plus_finite",
         docs=[{"v": FLOAT_INFINITY}, {"v": 42.0}],
-        expression="$v",
+        accumulator="$v",
         expected=FLOAT_INFINITY,
-        msg="$sum should produce Infinity when summing Infinity + finite",
+        msg="$sum should produce inf when summing inf + finite",
     ),
-    SumAccumulatorTest(
-        "special_neg_inf_plus_finite",
+    AccumulatorSumTestCase(
+        "special_float_neg_inf_plus_finite",
         docs=[{"v": FLOAT_NEGATIVE_INFINITY}, {"v": 42.0}],
-        expression="$v",
+        accumulator="$v",
         expected=FLOAT_NEGATIVE_INFINITY,
-        msg="$sum should produce -Infinity when summing -Infinity + finite",
+        msg="$sum should produce -inf when summing -inf + finite",
     ),
-    SumAccumulatorTest(
-        "special_nan_propagates",
+    AccumulatorSumTestCase(
+        "special_float_nan_propagates",
         docs=[{"v": FLOAT_NAN}, {"v": 5.0}],
-        expression="$v",
+        accumulator="$v",
         expected=pytest.approx(FLOAT_NAN, nan_ok=True),
         msg="$sum should propagate NaN through summation",
     ),
-    SumAccumulatorTest(
-        "special_nan_dominates_inf",
+    AccumulatorSumTestCase(
+        "special_float_nan_dominates_inf",
         docs=[{"v": FLOAT_NAN}, {"v": FLOAT_INFINITY}],
-        expression="$v",
+        accumulator="$v",
         expected=pytest.approx(FLOAT_NAN, nan_ok=True),
-        msg="$sum should produce NaN when NaN is summed with Infinity",
+        msg="$sum should produce NaN when NaN is summed with inf",
     ),
-    SumAccumulatorTest(
-        "special_inf_plus_neg_inf",
+    AccumulatorSumTestCase(
+        "special_float_inf_plus_neg_inf",
         docs=[{"v": FLOAT_INFINITY}, {"v": FLOAT_NEGATIVE_INFINITY}],
-        expression="$v",
+        accumulator="$v",
         expected=pytest.approx(FLOAT_NAN, nan_ok=True),
-        msg="$sum should produce NaN for Infinity + (-Infinity)",
+        msg="$sum should produce NaN for inf + (-inf) indeterminate form",
     ),
-    SumAccumulatorTest(
-        "special_non_numeric_with_nan",
+    AccumulatorSumTestCase(
+        "special_float_non_numeric_with_nan",
         docs=[{"v": "hello"}, {"v": FLOAT_NAN}],
-        expression="$v",
+        accumulator="$v",
         expected=pytest.approx(FLOAT_NAN, nan_ok=True),
         msg="$sum should ignore non-numeric values and preserve NaN",
     ),
 ]
 
-# Property [Decimal128 Special Values]: Decimal128 NaN and Infinity follow
-# the same propagation rules in the Decimal128 domain.
-SUM_DECIMAL128_SPECIAL_TESTS: list[SumAccumulatorTest] = [
-    SumAccumulatorTest(
-        "special_decimal_nan_propagates",
+# Property [Decimal128 Special Values]: Decimal128 NaN propagates through
+# summation, Decimal128 Infinity + Decimal128 -Infinity produces Decimal128
+# NaN, and Decimal128 Infinity + Decimal128 Infinity produces Decimal128
+# Infinity.
+SUM_DECIMAL128_SPECIAL_TESTS: list[AccumulatorSumTestCase] = [
+    AccumulatorSumTestCase(
+        "decimal128_special_nan_propagates",
         docs=[{"v": DECIMAL128_NAN}, {"v": Decimal128("5")}],
-        expression="$v",
+        accumulator="$v",
         expected=DECIMAL128_NAN,
         msg="$sum should propagate Decimal128 NaN through summation",
     ),
-    SumAccumulatorTest(
-        "special_decimal_inf_plus_neg_inf",
+    AccumulatorSumTestCase(
+        "decimal128_special_inf_plus_neg_inf",
         docs=[{"v": DECIMAL128_INFINITY}, {"v": DECIMAL128_NEGATIVE_INFINITY}],
-        expression="$v",
+        accumulator="$v",
         expected=DECIMAL128_NAN,
         msg="$sum should produce Decimal128 NaN for Decimal128 Infinity + -Infinity",
     ),
-    SumAccumulatorTest(
-        "special_decimal_inf_plus_inf",
+    AccumulatorSumTestCase(
+        "decimal128_special_inf_plus_inf",
         docs=[{"v": DECIMAL128_INFINITY}, {"v": DECIMAL128_INFINITY}],
-        expression="$v",
+        accumulator="$v",
         expected=DECIMAL128_INFINITY,
         msg="$sum should produce Decimal128 Infinity for Decimal128 Infinity + Infinity",
     ),
 ]
 
 # Property [Precision]: Decimal128 provides exact arithmetic and preserves
-# trailing zeros; double follows IEEE 754 with precision loss for large
-# values; subnormal values are handled correctly.
-SUM_PRECISION_TESTS: list[SumAccumulatorTest] = [
-    SumAccumulatorTest(
+# trailing zeros based on the highest-precision operand, while double follows
+# IEEE 754 rules with precision loss for large values and correct handling of
+# subnormal values.
+SUM_PRECISION_TESTS: list[AccumulatorSumTestCase] = [
+    AccumulatorSumTestCase(
         "precision_decimal128_exact",
         docs=[{"v": Decimal128("0.1")} for _ in range(100)],
-        expression="$v",
+        accumulator="$v",
         expected=Decimal128("10.0"),
         msg="$sum should produce exact Decimal128 result for 100 x 0.1",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "precision_decimal128_trailing_zeros",
         docs=[{"v": Decimal128("1.100")}, {"v": Decimal128("2.20")}],
-        expression="$v",
+        accumulator="$v",
         expected=Decimal128("3.300"),
         msg="$sum should preserve trailing zeros based on highest-precision operand",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "precision_double_accumulation",
         docs=[{"v": 0.1} for _ in range(100)],
-        expression="$v",
+        accumulator="$v",
         expected=10.0,
         msg="$sum should produce 10.0 for 100 x double 0.1 due to accumulation",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "precision_double_loss_large_value",
         docs=[{"v": 1e16}, {"v": 1.0}],
-        expression="$v",
+        accumulator="$v",
         expected=1e16,
         msg="$sum should lose precision for double when adding 1.0 to 1e16",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "precision_int64_max_plus_decimal128_exact",
         docs=[{"v": INT64_MAX}, {"v": Decimal128("1")}],
-        expression="$v",
+        accumulator="$v",
         expected=DECIMAL128_INT64_OVERFLOW,
         msg="$sum should preserve exact value for Int64_max + Decimal128(1)",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "precision_int64_max_plus_double_loses",
         docs=[{"v": INT64_MAX}, {"v": 1.0}],
-        expression="$v",
+        accumulator="$v",
         expected=DOUBLE_FROM_INT64_MAX,
         msg="$sum should lose precision for Int64_max + double(1.0)",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "precision_subnormal_double_addition",
         docs=[{"v": DOUBLE_MIN_SUBNORMAL}, {"v": DOUBLE_MIN_SUBNORMAL}],
-        expression="$v",
+        accumulator="$v",
         expected=1e-323,
         msg="$sum should correctly add subnormal double values",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "precision_subnormal_double_negative",
-        docs=[
-            {"v": DOUBLE_MIN_NEGATIVE_SUBNORMAL},
-            {"v": DOUBLE_MIN_NEGATIVE_SUBNORMAL},
-        ],
-        expression="$v",
+        docs=[{"v": DOUBLE_MIN_NEGATIVE_SUBNORMAL}, {"v": DOUBLE_MIN_NEGATIVE_SUBNORMAL}],
+        accumulator="$v",
         expected=-1e-323,
         msg="$sum should correctly add negative subnormal double values",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "precision_subnormal_double_cancellation",
         docs=[{"v": DOUBLE_MIN_SUBNORMAL}, {"v": DOUBLE_MIN_NEGATIVE_SUBNORMAL}],
-        expression="$v",
+        accumulator="$v",
         expected=DOUBLE_ZERO,
         msg="$sum should produce 0.0 when subnormal values cancel",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "precision_decimal128_subnormal",
         docs=[{"v": DECIMAL128_MIN_POSITIVE}, {"v": DECIMAL128_MIN_POSITIVE}],
-        expression="$v",
+        accumulator="$v",
         expected=Decimal128("2E-6176"),
         msg="$sum should correctly add Decimal128 subnormal values",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "precision_decimal128_large_exponent",
         docs=[{"v": DECIMAL128_LARGE_EXPONENT}, {"v": DECIMAL128_LARGE_EXPONENT}],
-        expression="$v",
+        accumulator="$v",
         expected=Decimal128("2.000000000000000000000000000000000E+6144"),
         msg="$sum should correctly add Decimal128 large exponent values",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "precision_decimal128_34_digit_overflow",
         docs=[{"v": DECIMAL128_MAX_COEFFICIENT}, {"v": Decimal128("1")}],
-        expression="$v",
+        accumulator="$v",
         expected=Decimal128("1.000000000000000000000000000000000E+34"),
         msg="$sum should round correctly when Decimal128 34-digit precision overflows",
     ),
@@ -467,107 +545,107 @@ SUM_PRECISION_TESTS: list[SumAccumulatorTest] = [
 # Property [Constant Expression Behavior]: a numeric constant counts documents
 # by multiplying the constant by the group size; a non-numeric constant
 # produces 0 (int32); NaN and Infinity constants propagate.
-SUM_CONSTANT_EXPRESSION_TESTS: list[SumAccumulatorTest] = [
-    SumAccumulatorTest(
+SUM_CONSTANT_EXPRESSION_TESTS: list[AccumulatorSumTestCase] = [
+    AccumulatorSumTestCase(
         "constant_int32",
         docs=[{"x": 1}, {"x": 2}, {"x": 3}],
-        expression=1,
+        accumulator=1,
         expected=3,
-        msg="$sum should count documents when given an int32 constant of 1",
+        msg="$sum should count documents when given an int32 constant",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "constant_int32_larger",
         docs=[{"x": 1}, {"x": 2}],
-        expression=5,
+        accumulator=5,
         expected=10,
         msg="$sum should multiply int32 constant by group size",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "constant_non_numeric_true",
         docs=[{"x": 1}, {"x": 2}],
-        expression=True,
+        accumulator=True,
         expected=0,
         msg="$sum should return 0 for non-numeric constant True",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "constant_non_numeric_false",
         docs=[{"x": 1}, {"x": 2}],
-        expression=False,
+        accumulator=False,
         expected=0,
         msg="$sum should return 0 for non-numeric constant False",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "constant_non_numeric_string",
         docs=[{"x": 1}, {"x": 2}],
-        expression="hello",
+        accumulator="hello",
         expected=0,
         msg="$sum should return 0 for non-numeric string constant without $",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "constant_non_numeric_empty_object",
         docs=[{"x": 1}, {"x": 2}],
-        expression={},
+        accumulator={},
         expected=0,
         msg="$sum should return 0 for empty object constant",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "constant_non_numeric_non_operator_object",
         docs=[{"x": 1}, {"x": 2}],
-        expression={"a": 1},
+        accumulator={"a": 1},
         expected=0,
         msg="$sum should return 0 for non-operator object constant",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "constant_nan_propagates",
         docs=[{"x": 1}, {"x": 2}],
-        expression=FLOAT_NAN,
+        accumulator=FLOAT_NAN,
         expected=pytest.approx(FLOAT_NAN, nan_ok=True),
         msg="$sum should propagate NaN constant",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "constant_inf_propagates",
         docs=[{"x": 1}, {"x": 2}],
-        expression=FLOAT_INFINITY,
+        accumulator=FLOAT_INFINITY,
         expected=FLOAT_INFINITY,
-        msg="$sum should propagate Infinity constant",
+        msg="$sum should propagate infinity constant",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "constant_neg_inf_propagates",
         docs=[{"x": 1}, {"x": 2}],
-        expression=FLOAT_NEGATIVE_INFINITY,
+        accumulator=FLOAT_NEGATIVE_INFINITY,
         expected=FLOAT_NEGATIVE_INFINITY,
-        msg="$sum should propagate negative Infinity constant",
+        msg="$sum should propagate negative infinity constant",
     ),
 ]
 
 # Property [Expression Arguments]: $sum accepts any expression that resolves
-# to a value; numeric results are summed, non-numeric results are ignored,
-# and nested $sum (array summation) is supported.
-SUM_EXPRESSION_ARGS_TESTS: list[SumAccumulatorTest] = [
-    SumAccumulatorTest(
-        "expr_args_arithmetic",
+# to a value; numeric results are summed, non-numeric results are ignored, and
+# nested $sum (array summation) is supported.
+SUM_EXPRESSION_ARGS_TESTS: list[AccumulatorSumTestCase] = [
+    AccumulatorSumTestCase(
+        "expr_args_arithmetic_expression",
         docs=[{"a": 3, "b": 2}, {"a": 5, "b": 1}],
-        expression={"$add": ["$a", "$b"]},
+        accumulator={"$add": ["$a", "$b"]},
         expected=11,
         msg="$sum should accept an arithmetic expression and sum its numeric results",
     ),
-    SumAccumulatorTest(
-        "expr_args_non_numeric_ignored",
+    AccumulatorSumTestCase(
+        "expr_args_non_numeric_expression_ignored",
         docs=[{"a": "hello", "b": " world"}, {"a": "foo", "b": "bar"}],
-        expression={"$concat": ["$a", "$b"]},
+        accumulator={"$concat": ["$a", "$b"]},
         expected=0,
         msg="$sum should ignore non-numeric expression results and return 0",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "expr_args_nested_sum_array",
         docs=[{"v": [1, 2, 3]}, {"v": [4, 5]}],
-        expression={"$sum": "$v"},
+        accumulator={"$sum": "$v"},
         expected=15,
         msg="$sum should accept nested $sum (array summation) as its expression",
     ),
 ]
 
-SUM_SUCCESS_TESTS = (
+SUM_TESTS = (
     SUM_NULL_MISSING_TESTS
     + SUM_NON_NUMERIC_TESTS
     + SUM_SPECIAL_FLOAT_TESTS
@@ -577,168 +655,105 @@ SUM_SUCCESS_TESTS = (
     + SUM_EXPRESSION_ARGS_TESTS
 )
 
-# Property [Expression Error Propagation]: errors from sub-expressions
-# propagate through $sum without being caught or suppressed.
-SUM_EXPRESSION_ERROR_TESTS: list[SumAccumulatorTest] = [
-    SumAccumulatorTest(
-        "error_prop_toint_non_convertible",
-        docs=[{"v": "abc"}],
-        expression={"$toInt": "$v"},
-        error_code=CONVERSION_FAILURE_ERROR,
-        msg="$sum should propagate $toInt conversion error for non-convertible value",
-    ),
-    SumAccumulatorTest(
-        "error_prop_divide_by_zero",
-        docs=[{"v": 10}],
-        expression={"$divide": ["$v", 0]},
-        error_code=DIVIDE_BY_ZERO_V2_ERROR,
-        msg="$sum should propagate $divide by zero error",
-    ),
-]
 
-# Property [Syntax Validation]: invalid FieldPath syntax is rejected.
-SUM_SYNTAX_ERROR_TESTS: list[SumAccumulatorTest] = [
-    SumAccumulatorTest(
-        "syntax_bare_dollar",
-        docs=[{"v": 1}],
-        expression="$",
-        error_code=INVALID_DOLLAR_FIELD_PATH,
-        msg="$sum should reject '$' as an invalid FieldPath",
-    ),
-]
-
-SUM_TESTS = SUM_SUCCESS_TESTS + SUM_EXPRESSION_ERROR_TESTS + SUM_SYNTAX_ERROR_TESTS
-
-
+@pytest.mark.parametrize("stage", STAGES)
 @pytest.mark.parametrize("test_case", pytest_params(SUM_TESTS))
-def test_accumulator_sum(collection, test_case: SumAccumulatorTest):
-    """Test $sum accumulator behavior."""
-    collection.insert_many(test_case.docs)
-    result = execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [
-                {"$group": {"_id": None, "result": {"$sum": test_case.expression}}},
-                {"$project": {"_id": 0, "result": 1}},
-            ],
-            "cursor": {},
-        },
-    )
-    assertResult(
-        result,
-        expected=[{"result": test_case.expected}] if test_case.error_code is None else None,
-        error_code=test_case.error_code,
-        msg=test_case.msg,
-    )
-
-
-def test_accumulator_sum_empty_collection(collection):
-    """Test $sum returns no documents for an empty collection."""
-    result = execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [
-                {"$group": {"_id": None, "result": {"$sum": "$v"}}},
-                {"$project": {"_id": 0, "result": 1}},
-            ],
-            "cursor": {},
-        },
-    )
+def test_accumulator_sum(collection, test_case: AccumulatorSumTestCase, stage: str):
+    """Test $sum accumulator cases."""
+    result = _execute_accumulator(collection, test_case, stage)
     assertSuccess(
         result,
-        [],
-        msg="$sum should produce no group output for an empty collection",
+        [{"result": test_case.expected}],
+        msg=test_case.msg,
+        transform=lambda docs: [{"result": docs[0]["result"]}],
     )
 
 
 # Property [Return Type and Type Promotion]: the result type is the widest
-# numeric type present in the group following int32 < Int64 < double <
-# Decimal128, with no demotion. When all values are non-numeric, the result
-# is int32 zero.
-SUM_RETURN_TYPE_TESTS: list[SumAccumulatorTest] = [
-    SumAccumulatorTest(
+# numeric type present in the group following int32 < Int64 < double < Decimal128,
+# with no demotion.
+SUM_TYPE_PROMOTION_TESTS: list[AccumulatorSumTestCase] = [
+    AccumulatorSumTestCase(
         "type_single_int32",
         docs=[{"v": 5}],
-        expression="$v",
+        accumulator="$v",
         expected={"value": 5, "type": "int"},
         msg="$sum should preserve int32 type for a single int32 value",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "type_single_int64",
         docs=[{"v": Int64(5)}],
-        expression="$v",
+        accumulator="$v",
         expected={"value": Int64(5), "type": "long"},
         msg="$sum should preserve Int64 type for a single Int64 value",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "type_single_double",
         docs=[{"v": 5.5}],
-        expression="$v",
+        accumulator="$v",
         expected={"value": 5.5, "type": "double"},
         msg="$sum should preserve double type for a single double value",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "type_single_decimal128",
         docs=[{"v": Decimal128("5.5")}],
-        expression="$v",
+        accumulator="$v",
         expected={"value": Decimal128("5.5"), "type": "decimal"},
         msg="$sum should preserve Decimal128 type for a single Decimal128 value",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "type_int32_int64_promotes",
         docs=[{"v": 5}, {"v": Int64(10)}],
-        expression="$v",
+        accumulator="$v",
         expected={"value": Int64(15), "type": "long"},
         msg="$sum should promote int32 + Int64 to Int64",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "type_int32_double_promotes",
         docs=[{"v": 5}, {"v": 2.5}],
-        expression="$v",
+        accumulator="$v",
         expected={"value": 7.5, "type": "double"},
         msg="$sum should promote int32 + double to double",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "type_int64_double_promotes",
         docs=[{"v": Int64(5)}, {"v": 2.5}],
-        expression="$v",
+        accumulator="$v",
         expected={"value": 7.5, "type": "double"},
         msg="$sum should promote Int64 + double to double",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "type_int32_decimal128_promotes",
         docs=[{"v": 5}, {"v": DECIMAL128_TWO_AND_HALF}],
-        expression="$v",
+        accumulator="$v",
         expected={"value": Decimal128("7.5"), "type": "decimal"},
         msg="$sum should promote int32 + Decimal128 to Decimal128",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "type_int64_decimal128_promotes",
         docs=[{"v": Int64(5)}, {"v": Decimal128("3")}],
-        expression="$v",
+        accumulator="$v",
         expected={"value": Decimal128("8"), "type": "decimal"},
         msg="$sum should promote Int64 + Decimal128 to Decimal128",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "type_double_decimal128_promotes",
         docs=[{"v": 2.5}, {"v": Decimal128("3.5")}],
-        expression="$v",
+        accumulator="$v",
         expected={"value": Decimal128("6.0"), "type": "decimal"},
         msg="$sum should promote double + Decimal128 to Decimal128",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "type_no_demotion_int64_fits_int32",
         docs=[{"v": Int64(1)}, {"v": Int64(2)}],
-        expression="$v",
+        accumulator="$v",
         expected={"value": Int64(3), "type": "long"},
         msg="$sum should not demote Int64 to int32 even when result fits int32",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "type_all_non_numeric_is_int32",
         docs=[{"v": "abc"}, {"v": True}],
-        expression="$v",
+        accumulator="$v",
         expected={"value": 0, "type": "int"},
         msg="$sum should return int32 zero when all values are non-numeric",
     ),
@@ -746,32 +761,32 @@ SUM_RETURN_TYPE_TESTS: list[SumAccumulatorTest] = [
 
 # Property [Overflow Behavior]: double and Decimal128 overflow produces
 # infinity without type promotion.
-SUM_OVERFLOW_TESTS: list[SumAccumulatorTest] = [
-    SumAccumulatorTest(
+SUM_OVERFLOW_TESTS: list[AccumulatorSumTestCase] = [
+    AccumulatorSumTestCase(
         "overflow_double_positive",
         docs=[{"v": DOUBLE_MAX}, {"v": DOUBLE_MAX}],
-        expression="$v",
+        accumulator="$v",
         expected={"value": FLOAT_INFINITY, "type": "double"},
-        msg="$sum should produce positive Infinity on double overflow",
+        msg="$sum should produce positive infinity on double overflow",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "overflow_double_negative",
         docs=[{"v": DOUBLE_MIN}, {"v": DOUBLE_MIN}],
-        expression="$v",
+        accumulator="$v",
         expected={"value": FLOAT_NEGATIVE_INFINITY, "type": "double"},
-        msg="$sum should produce negative Infinity on double overflow",
+        msg="$sum should produce negative infinity on double overflow",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "overflow_decimal128_positive",
         docs=[{"v": DECIMAL128_MAX}, {"v": DECIMAL128_MAX}],
-        expression="$v",
+        accumulator="$v",
         expected={"value": DECIMAL128_INFINITY, "type": "decimal"},
         msg="$sum should produce Decimal128 Infinity on positive overflow",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "overflow_decimal128_negative",
         docs=[{"v": DECIMAL128_MIN}, {"v": DECIMAL128_MIN}],
-        expression="$v",
+        accumulator="$v",
         expected={"value": DECIMAL128_NEGATIVE_INFINITY, "type": "decimal"},
         msg="$sum should produce Decimal128 -Infinity on negative overflow",
     ),
@@ -780,50 +795,50 @@ SUM_OVERFLOW_TESTS: list[SumAccumulatorTest] = [
 # Property [Overflow Recovery]: if intermediate values overflow but the final
 # sum fits the original type, the result is returned in the original type.
 # Double and Decimal128 overflow does not recover once infinity is reached.
-SUM_OVERFLOW_RECOVERY_TESTS: list[SumAccumulatorTest] = [
-    SumAccumulatorTest(
+SUM_OVERFLOW_RECOVERY_TESTS: list[AccumulatorSumTestCase] = [
+    AccumulatorSumTestCase(
         "recovery_int32_positive",
         docs=[{"v": INT32_MAX}, {"v": 1000}, {"v": -1000}],
-        expression="$v",
+        accumulator="$v",
         expected={"value": INT32_MAX, "type": "int"},
         msg="$sum should recover int32 when intermediate overflows but final fits int32",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "recovery_int32_negative",
         docs=[{"v": INT32_MIN}, {"v": -1000}, {"v": 1000}],
-        expression="$v",
+        accumulator="$v",
         expected={"value": INT32_MIN, "type": "int"},
         msg="$sum should recover int32 when intermediate underflows but final fits int32",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "recovery_int64_positive",
         docs=[{"v": INT64_MAX}, {"v": Int64(100)}, {"v": Int64(-100)}],
-        expression="$v",
+        accumulator="$v",
         expected={"value": INT64_MAX, "type": "long"},
         msg="$sum should recover Int64 when intermediate overflows but final fits Int64",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "recovery_int64_negative",
         docs=[{"v": INT64_MIN}, {"v": Int64(-1000)}, {"v": Int64(1000)}],
-        expression="$v",
+        accumulator="$v",
         expected={"value": INT64_MIN, "type": "long"},
         msg="$sum should recover Int64 when intermediate underflows but final fits Int64",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "recovery_double_no_recover",
         docs=[{"v": DOUBLE_MAX}, {"v": DOUBLE_MAX}, {"v": DOUBLE_MIN}],
-        expression="$v",
+        accumulator="$v",
         expected={"value": FLOAT_INFINITY, "type": "double"},
-        msg="$sum should not recover double once intermediate reaches Infinity",
+        msg="$sum should not recover double once intermediate reaches infinity",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "recovery_decimal128_no_recover",
         docs=[
             {"v": DECIMAL128_MAX},
             {"v": DECIMAL128_MAX},
             {"v": DECIMAL128_MIN},
         ],
-        expression="$v",
+        accumulator="$v",
         expected={"value": DECIMAL128_INFINITY, "type": "decimal"},
         msg="$sum should not recover Decimal128 once intermediate reaches Infinity",
     ),
@@ -832,29 +847,29 @@ SUM_OVERFLOW_RECOVERY_TESTS: list[SumAccumulatorTest] = [
 # Property [Decimal128 Presence Changes Overflow Path]: when Int64 values
 # overflow and a Decimal128 value is present in the group, the result is
 # Decimal128 with exact precision instead of promoting to double.
-SUM_DECIMAL128_OVERFLOW_PATH_TESTS: list[SumAccumulatorTest] = [
-    SumAccumulatorTest(
+SUM_DECIMAL128_OVERFLOW_PATH_TESTS: list[AccumulatorSumTestCase] = [
+    AccumulatorSumTestCase(
         "decimal128_path_int64_overflow_with_decimal_zero",
         docs=[{"v": INT64_MAX}, {"v": Int64(1)}, {"v": DECIMAL128_ZERO}],
-        expression="$v",
+        accumulator="$v",
         expected={"value": DECIMAL128_INT64_OVERFLOW, "type": "decimal"},
         msg="$sum should produce exact Decimal128 when Int64 overflows with Decimal128(0) present",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "decimal128_path_decimal_first",
         docs=[{"v": DECIMAL128_ZERO}, {"v": INT64_MAX}, {"v": Int64(1)}],
-        expression="$v",
+        accumulator="$v",
         expected={"value": DECIMAL128_INT64_OVERFLOW, "type": "decimal"},
         msg="$sum should produce Decimal128 regardless of Decimal128 position in group",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "decimal128_path_double_does_not_redirect",
         docs=[{"v": INT64_MAX}, {"v": Int64(1)}, {"v": DOUBLE_ZERO}],
-        expression="$v",
+        accumulator="$v",
         expected={"value": DOUBLE_FROM_INT64_MAX, "type": "double"},
         msg="$sum should not redirect Int64 overflow to Decimal128 when only double is present",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "decimal128_path_both_double_and_decimal128",
         docs=[
             {"v": INT64_MAX},
@@ -862,74 +877,74 @@ SUM_DECIMAL128_OVERFLOW_PATH_TESTS: list[SumAccumulatorTest] = [
             {"v": DOUBLE_ZERO},
             {"v": DECIMAL128_ZERO},
         ],
-        expression="$v",
+        accumulator="$v",
         expected={"value": DECIMAL128_INT64_OVERFLOW, "type": "decimal"},
         msg="$sum should produce Decimal128 when both double and Decimal128 present with overflow",
     ),
 ]
 
-# Property [Cross-Type NaN/Infinity Interactions]: when double NaN or
-# infinity is mixed with Decimal128 values, the result is promoted to
-# Decimal128 with NaN or Infinity propagating in the Decimal128 domain.
-SUM_CROSS_TYPE_NAN_INF_TESTS: list[SumAccumulatorTest] = [
-    SumAccumulatorTest(
+# Property [Cross-Type NaN/Infinity Interactions]: when double NaN or infinity
+# is mixed with Decimal128 values, the result is promoted to Decimal128 with
+# NaN or Infinity propagating in the Decimal128 domain.
+SUM_CROSS_TYPE_NAN_INF_TESTS: list[AccumulatorSumTestCase] = [
+    AccumulatorSumTestCase(
         "cross_type_double_nan_plus_decimal128",
         docs=[{"v": FLOAT_NAN}, {"v": Decimal128("5")}],
-        expression="$v",
+        accumulator="$v",
         expected={"value": DECIMAL128_NAN, "type": "decimal"},
         msg="$sum should promote double NaN + Decimal128 to Decimal128 NaN",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "cross_type_decimal128_nan_plus_double",
         docs=[{"v": DECIMAL128_NAN}, {"v": 5.0}],
-        expression="$v",
+        accumulator="$v",
         expected={"value": DECIMAL128_NAN, "type": "decimal"},
         msg="$sum should promote Decimal128 NaN + double to Decimal128 NaN",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "cross_type_double_inf_plus_decimal128",
         docs=[{"v": FLOAT_INFINITY}, {"v": Decimal128("5")}],
-        expression="$v",
+        accumulator="$v",
         expected={"value": DECIMAL128_INFINITY, "type": "decimal"},
-        msg="$sum should promote double Infinity + Decimal128 to Decimal128 Infinity",
+        msg="$sum should promote double inf + Decimal128 to Decimal128 Infinity",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "cross_type_double_neg_inf_plus_decimal128_inf",
         docs=[{"v": FLOAT_NEGATIVE_INFINITY}, {"v": DECIMAL128_INFINITY}],
-        expression="$v",
+        accumulator="$v",
         expected={"value": DECIMAL128_NAN, "type": "decimal"},
-        msg="$sum should produce Decimal128 NaN for double -Infinity + Decimal128 Infinity",
+        msg="$sum should produce Decimal128 NaN for double -inf + Decimal128 Infinity",
     ),
 ]
 
-# Property [Constant Type Preservation]: the result type of a numeric
-# constant matches the constant's input type.
-SUM_CONSTANT_TYPE_TESTS: list[SumAccumulatorTest] = [
-    SumAccumulatorTest(
+# Property [Constant Type Preservation]: the result type of a numeric constant
+# matches the constant's input type.
+SUM_CONSTANT_TYPE_TESTS: list[AccumulatorSumTestCase] = [
+    AccumulatorSumTestCase(
         "constant_type_int32",
         docs=[{"x": 1}, {"x": 2}],
-        expression=1,
+        accumulator=1,
         expected={"value": 2, "type": "int"},
         msg="$sum should preserve int32 type for int32 constant",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "constant_type_int64",
         docs=[{"x": 1}, {"x": 2}],
-        expression=Int64(1),
+        accumulator=Int64(1),
         expected={"value": Int64(2), "type": "long"},
         msg="$sum should preserve Int64 type for Int64 constant",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "constant_type_double",
         docs=[{"x": 1}, {"x": 2}],
-        expression=2.5,
+        accumulator=2.5,
         expected={"value": 5.0, "type": "double"},
         msg="$sum should preserve double type for double constant",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "constant_type_decimal128",
         docs=[{"x": 1}, {"x": 2}],
-        expression=Decimal128("3"),
+        accumulator=Decimal128("3"),
         expected={"value": Decimal128("6"), "type": "decimal"},
         msg="$sum should preserve Decimal128 type for Decimal128 constant",
     ),
@@ -938,107 +953,107 @@ SUM_CONSTANT_TYPE_TESTS: list[SumAccumulatorTest] = [
 # Property [Integer Boundary Values]: boundary values at the edges of int32
 # and Int64 ranges stay in their original type when no overflow occurs, and
 # promote to the next wider type when the sum crosses the boundary by one.
-SUM_INTEGER_BOUNDARY_TESTS: list[SumAccumulatorTest] = [
-    SumAccumulatorTest(
+SUM_INTEGER_BOUNDARY_TESTS: list[AccumulatorSumTestCase] = [
+    AccumulatorSumTestCase(
         "boundary_int32_max_single",
         docs=[{"v": INT32_MAX}],
-        expression="$v",
+        accumulator="$v",
         expected={"value": INT32_MAX, "type": "int"},
-        msg="$sum should keep INT32_MAX as int32 when it is the only value",
+        msg="$sum should keep int32_max as int32 when it is the only value",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "boundary_int32_min_single",
         docs=[{"v": INT32_MIN}],
-        expression="$v",
+        accumulator="$v",
         expected={"value": INT32_MIN, "type": "int"},
-        msg="$sum should keep INT32_MIN as int32 when it is the only value",
+        msg="$sum should keep int32_min as int32 when it is the only value",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "boundary_int64_max_single",
         docs=[{"v": INT64_MAX}],
-        expression="$v",
+        accumulator="$v",
         expected={"value": INT64_MAX, "type": "long"},
-        msg="$sum should keep INT64_MAX as Int64 when it is the only value",
+        msg="$sum should keep int64_max as Int64 when it is the only value",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "boundary_int64_min_single",
         docs=[{"v": INT64_MIN}],
-        expression="$v",
+        accumulator="$v",
         expected={"value": INT64_MIN, "type": "long"},
-        msg="$sum should keep INT64_MIN as Int64 when it is the only value",
+        msg="$sum should keep int64_min as Int64 when it is the only value",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "boundary_int32_max_no_overflow",
         docs=[{"v": INT32_MAX_MINUS_1}, {"v": 1}],
-        expression="$v",
+        accumulator="$v",
         expected={"value": INT32_MAX, "type": "int"},
-        msg="$sum should stay int32 when INT32_MAX-1 + 1 equals INT32_MAX",
+        msg="$sum should stay int32 when int32_max-1 + 1 equals int32_max",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "boundary_int32_max_overflow",
         docs=[{"v": INT32_MAX_MINUS_1}, {"v": 2}],
-        expression="$v",
+        accumulator="$v",
         expected={"value": Int64(INT32_OVERFLOW), "type": "long"},
-        msg="$sum should promote to Int64 when INT32_MAX-1 + 2 overflows int32",
+        msg="$sum should promote to Int64 when int32_max-1 + 2 overflows int32",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "boundary_int32_min_no_overflow",
         docs=[{"v": INT32_MIN_PLUS_1}, {"v": -1}],
-        expression="$v",
+        accumulator="$v",
         expected={"value": INT32_MIN, "type": "int"},
-        msg="$sum should stay int32 when INT32_MIN+1 + (-1) equals INT32_MIN",
+        msg="$sum should stay int32 when int32_min+1 + (-1) equals int32_min",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "boundary_int32_min_overflow",
         docs=[{"v": INT32_MIN_PLUS_1}, {"v": -2}],
-        expression="$v",
+        accumulator="$v",
         expected={"value": Int64(INT32_UNDERFLOW), "type": "long"},
-        msg="$sum should promote to Int64 when INT32_MIN+1 + (-2) overflows int32",
+        msg="$sum should promote to Int64 when int32_min+1 + (-2) overflows int32",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "boundary_int64_max_no_overflow",
         docs=[{"v": INT64_MAX_MINUS_1}, {"v": Int64(1)}],
-        expression="$v",
+        accumulator="$v",
         expected={"value": INT64_MAX, "type": "long"},
-        msg="$sum should stay Int64 when INT64_MAX-1 + 1 equals INT64_MAX",
+        msg="$sum should stay Int64 when int64_max-1 + 1 equals int64_max",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "boundary_int64_max_overflow",
         docs=[{"v": INT64_MAX_MINUS_1}, {"v": Int64(2)}],
-        expression="$v",
+        accumulator="$v",
         expected={"value": DOUBLE_FROM_INT64_MAX, "type": "double"},
-        msg="$sum should promote to double when INT64_MAX-1 + 2 overflows Int64",
+        msg="$sum should promote to double when int64_max-1 + 2 overflows Int64",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "boundary_int64_min_no_overflow",
         docs=[{"v": INT64_MIN_PLUS_1}, {"v": Int64(-1)}],
-        expression="$v",
+        accumulator="$v",
         expected={"value": INT64_MIN, "type": "long"},
-        msg="$sum should stay Int64 when INT64_MIN+1 + (-1) equals INT64_MIN",
+        msg="$sum should stay Int64 when int64_min+1 + (-1) equals int64_min",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "boundary_int64_min_overflow",
         docs=[{"v": INT64_MIN_PLUS_1}, {"v": Int64(-2)}],
-        expression="$v",
+        accumulator="$v",
         expected={"value": -DOUBLE_FROM_INT64_MAX, "type": "double"},
-        msg="$sum should promote to double when INT64_MIN+1 + (-2) overflows Int64",
+        msg="$sum should promote to double when int64_min+1 + (-2) overflows Int64",
     ),
 ]
 
 # Property [Large Groups]: $sum correctly accumulates values across large
 # groups without precision loss or type promotion.
-SUM_LARGE_GROUP_TESTS: list[SumAccumulatorTest] = [
-    SumAccumulatorTest(
+SUM_LARGE_GROUP_TESTS: list[AccumulatorSumTestCase] = [
+    AccumulatorSumTestCase(
         "large_group_10k_int1",
         docs=[{"v": 1} for _ in range(10_000)],
-        expression="$v",
+        accumulator="$v",
         expected={"value": 10_000, "type": "int"},
         msg="$sum should produce 10000 (int32) for 10000 documents with int(1)",
     ),
 ]
 
 SUM_TYPE_TESTS = (
-    SUM_RETURN_TYPE_TESTS
+    SUM_TYPE_PROMOTION_TESTS
     + SUM_OVERFLOW_TESTS
     + SUM_OVERFLOW_RECOVERY_TESTS
     + SUM_DECIMAL128_OVERFLOW_PATH_TESTS
@@ -1049,21 +1064,11 @@ SUM_TYPE_TESTS = (
 )
 
 
+@pytest.mark.parametrize("stage", STAGES)
 @pytest.mark.parametrize("test_case", pytest_params(SUM_TYPE_TESTS))
-def test_accumulator_sum_return_type(collection, test_case: SumAccumulatorTest):
+def test_accumulator_sum_return_type(collection, test_case: AccumulatorSumTestCase, stage: str):
     """Test $sum return type and type promotion."""
-    collection.insert_many(test_case.docs)
-    result = execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [
-                {"$group": {"_id": None, "result": {"$sum": test_case.expression}}},
-                {"$project": {"_id": 0, "value": "$result", "type": {"$type": "$result"}}},
-            ],
-            "cursor": {},
-        },
-    )
+    result = _execute_accumulator_with_type(collection, test_case, stage)
     assertSuccess(
         result,
         [test_case.expected],
@@ -1074,52 +1079,77 @@ def test_accumulator_sum_return_type(collection, test_case: SumAccumulatorTest):
 
 # Property [Negative Zero Normalization]: $sum normalizes negative zero to
 # positive zero for both double and Decimal128.
-SUM_NEGATIVE_ZERO_TESTS: list[SumAccumulatorTest] = [
-    SumAccumulatorTest(
+SUM_NEGATIVE_ZERO_TESTS: list[AccumulatorSumTestCase] = [
+    AccumulatorSumTestCase(
         "neg_zero_double_single",
         docs=[{"v": DOUBLE_NEGATIVE_ZERO}],
-        expression="$v",
+        accumulator="$v",
         expected="0",
         msg="$sum should normalize a single double -0.0 to +0.0",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "neg_zero_double_sum",
         docs=[{"v": DOUBLE_NEGATIVE_ZERO}, {"v": DOUBLE_NEGATIVE_ZERO}],
-        expression="$v",
+        accumulator="$v",
         expected="0",
         msg="$sum should normalize -0.0 + -0.0 to +0.0",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "neg_zero_decimal128_single",
         docs=[{"v": DECIMAL128_NEGATIVE_ZERO}],
-        expression="$v",
+        accumulator="$v",
         expected="0",
         msg="$sum should normalize a single Decimal128('-0') to Decimal128('0')",
     ),
-    SumAccumulatorTest(
+    AccumulatorSumTestCase(
         "neg_zero_decimal128_sum",
         docs=[{"v": DECIMAL128_NEGATIVE_ZERO}, {"v": DECIMAL128_NEGATIVE_ZERO}],
-        expression="$v",
+        accumulator="$v",
         expected="0",
         msg="$sum should normalize Decimal128('-0') + Decimal128('-0') to Decimal128('0')",
     ),
 ]
 
 
+@pytest.mark.parametrize("stage", STAGES)
 @pytest.mark.parametrize("test_case", pytest_params(SUM_NEGATIVE_ZERO_TESTS))
-def test_accumulator_sum_negative_zero(collection, test_case: SumAccumulatorTest):
+def test_accumulator_sum_negative_zero(collection, test_case: AccumulatorSumTestCase, stage: str):
     """Test $sum negative zero normalization."""
-    collection.insert_many(test_case.docs)
+    if test_case.docs:
+        collection.insert_many(test_case.docs)
+
+    pipeline: list[dict[str, Any]]
+    if stage == "group":
+        pipeline = [
+            {"$group": {"_id": None, "result": {"$sum": test_case.accumulator}}},
+            {"$project": {"_id": 0, "str": {"$toString": "$result"}}},
+        ]
+    elif stage == "bucket":
+        pipeline = [
+            {
+                "$bucket": {
+                    "groupBy": {"$literal": 0},
+                    "boundaries": [-1, 1],
+                    "output": {"result": {"$sum": test_case.accumulator}},
+                }
+            },
+            {"$project": {"_id": 0, "str": {"$toString": "$result"}}},
+        ]
+    else:
+        pipeline = [
+            {
+                "$bucketAuto": {
+                    "groupBy": {"$literal": 0},
+                    "buckets": 1,
+                    "output": {"result": {"$sum": test_case.accumulator}},
+                }
+            },
+            {"$project": {"_id": 0, "str": {"$toString": "$result"}}},
+        ]
+
     result = execute_command(
         collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": [
-                {"$group": {"_id": None, "result": {"$sum": test_case.expression}}},
-                {"$project": {"_id": 0, "str": {"$toString": "$result"}}},
-            ],
-            "cursor": {},
-        },
+        {"aggregate": collection.name, "pipeline": pipeline, "cursor": {}},
     )
     assertSuccess(
         result,
@@ -1129,126 +1159,100 @@ def test_accumulator_sum_negative_zero(collection, test_case: SumAccumulatorTest
     )
 
 
-@dataclass(frozen=True)
-class SumArityTest(BaseTestCase):
-    """Test case for $sum arity rejection."""
+# Property [Syntax Validation]: "$" by itself is not a valid FieldPath and
+# produces an error.
+SUM_SYNTAX_VALIDATION_TESTS: list[AccumulatorSumTestCase] = [
+    AccumulatorSumTestCase(
+        "syntax_bare_dollar",
+        docs=[{"v": 1}],
+        accumulator="$",
+        error_code=INVALID_DOLLAR_FIELD_PATH,
+        msg="$sum should reject '$' as an invalid FieldPath",
+    ),
+]
 
-    pipeline: list[dict] = None  # type: ignore[assignment]
+# Property [Arity Errors]: array syntax is rejected in accumulator context,
+# and multi-key expression objects produce an expression parsing error.
+SUM_ARITY_ERROR_TESTS: list[AccumulatorSumTestCase] = [
+    AccumulatorSumTestCase(
+        "arity_empty_array",
+        docs=[{"v": 1}],
+        accumulator=[],
+        error_code=ACCUMULATOR_UNARY_OPERATOR_ERROR,
+        msg="$sum should reject empty array in accumulator context",
+    ),
+    AccumulatorSumTestCase(
+        "arity_single_element_array",
+        docs=[{"v": 1}],
+        accumulator=[1],
+        error_code=ACCUMULATOR_UNARY_OPERATOR_ERROR,
+        msg="$sum should reject single-element array in accumulator context",
+    ),
+    AccumulatorSumTestCase(
+        "arity_single_field_ref_array",
+        docs=[{"v": 1}],
+        accumulator=["$v"],
+        error_code=ACCUMULATOR_UNARY_OPERATOR_ERROR,
+        msg="$sum should reject single field ref in array in accumulator context",
+    ),
+    AccumulatorSumTestCase(
+        "arity_multi_element_array",
+        docs=[{"v": 1}],
+        accumulator=[1, 2, 3],
+        error_code=ACCUMULATOR_UNARY_OPERATOR_ERROR,
+        msg="$sum should reject multi-element array in accumulator context",
+    ),
+    AccumulatorSumTestCase(
+        "arity_multi_key_expression_object",
+        docs=[{"v": 1}],
+        accumulator={"$add": [1, 2], "$multiply": [3, 4]},
+        error_code=EXPRESSION_OBJECT_MULTIPLE_FIELDS_ERROR,
+        msg="$sum should reject multi-key expression object",
+    ),
+]
+
+# Property [Expression Error Propagation]: when the accumulator expression
+# errors for any document in the group, the error propagates to the caller.
+SUM_EXPRESSION_ERROR_PROPAGATION_TESTS: list[AccumulatorSumTestCase] = [
+    AccumulatorSumTestCase(
+        "expr_error_to_int_invalid_string",
+        docs=[{"v": "abc"}],
+        accumulator={"$toInt": "$v"},
+        error_code=CONVERSION_FAILURE_ERROR,
+        msg="$sum should propagate $toInt conversion error from expression",
+    ),
+]
+
+SUM_ERROR_TESTS = (
+    SUM_SYNTAX_VALIDATION_TESTS + SUM_ARITY_ERROR_TESTS + SUM_EXPRESSION_ERROR_PROPAGATION_TESTS
+)
 
 
-# Property [Arity]: $sum in accumulator context is a unary operator and
-# rejects array syntax in $group, $bucket, and $bucketAuto.
-SUM_ARITY_TESTS: list[SumArityTest] = [
-    SumArityTest(
-        "arity_multi_element_group",
-        pipeline=[{"$group": {"_id": None, "result": {"$sum": ["$v", "$v"]}}}],
-        msg="$sum should reject multi-element array syntax in $group",
-    ),
-    SumArityTest(
-        "arity_empty_array_group",
-        pipeline=[{"$group": {"_id": None, "result": {"$sum": []}}}],
-        msg="$sum should reject empty array syntax in $group",
-    ),
-    SumArityTest(
-        "arity_single_element_group",
-        pipeline=[{"$group": {"_id": None, "result": {"$sum": ["$v"]}}}],
-        msg="$sum should reject single-element array syntax in $group",
-    ),
-    SumArityTest(
-        "arity_multi_element_bucket",
-        pipeline=[
-            {
-                "$bucket": {
-                    "groupBy": "$v",
-                    "boundaries": [0, 10],
-                    "output": {"result": {"$sum": ["$v", "$v"]}},
-                }
-            }
-        ],
-        msg="$sum should reject multi-element array syntax in $bucket",
-    ),
-    SumArityTest(
-        "arity_empty_array_bucket",
-        pipeline=[
-            {
-                "$bucket": {
-                    "groupBy": "$v",
-                    "boundaries": [0, 10],
-                    "output": {"result": {"$sum": []}},
-                }
-            }
-        ],
-        msg="$sum should reject empty array syntax in $bucket",
-    ),
-    SumArityTest(
-        "arity_single_element_bucket",
-        pipeline=[
-            {
-                "$bucket": {
-                    "groupBy": "$v",
-                    "boundaries": [0, 10],
-                    "output": {"result": {"$sum": ["$v"]}},
-                }
-            }
-        ],
-        msg="$sum should reject single-element array syntax in $bucket",
-    ),
-    SumArityTest(
-        "arity_multi_element_bucket_auto",
-        pipeline=[
-            {
-                "$bucketAuto": {
-                    "groupBy": "$v",
-                    "buckets": 1,
-                    "output": {"result": {"$sum": ["$v", "$v"]}},
-                }
-            }
-        ],
-        msg="$sum should reject multi-element array syntax in $bucketAuto",
-    ),
-    SumArityTest(
-        "arity_empty_array_bucket_auto",
-        pipeline=[
-            {
-                "$bucketAuto": {
-                    "groupBy": "$v",
-                    "buckets": 1,
-                    "output": {"result": {"$sum": []}},
-                }
-            }
-        ],
-        msg="$sum should reject empty array syntax in $bucketAuto",
-    ),
-    SumArityTest(
-        "arity_single_element_bucket_auto",
-        pipeline=[
-            {
-                "$bucketAuto": {
-                    "groupBy": "$v",
-                    "buckets": 1,
-                    "output": {"result": {"$sum": ["$v"]}},
-                }
-            }
-        ],
-        msg="$sum should reject single-element array syntax in $bucketAuto",
+@pytest.mark.parametrize("stage", STAGES)
+@pytest.mark.parametrize("test_case", pytest_params(SUM_ERROR_TESTS))
+def test_accumulator_sum_errors(collection, test_case, stage: str):
+    """Test $sum error cases."""
+    result = _execute_accumulator(collection, test_case, stage)
+    assertFailureCode(result, test_case.error_code, msg=test_case.msg)
+
+
+# Property [Expression Error Propagation - Divide by Zero]: $divide by zero
+# errors propagate through $sum in $group and $bucket stages; $bucketAuto
+# wraps this error with a different code (BAD_VALUE_ERROR).
+SUM_EXPRESSION_ERROR_DIVIDE_TESTS: list[AccumulatorSumTestCase] = [
+    AccumulatorSumTestCase(
+        "expr_error_divide_by_zero",
+        docs=[{"v": 1}],
+        accumulator={"$divide": ["$v", 0]},
+        error_code=DIVIDE_BY_ZERO_V2_ERROR,
+        msg="$sum should propagate $divide by zero error from expression",
     ),
 ]
 
 
-@pytest.mark.parametrize("test_case", pytest_params(SUM_ARITY_TESTS))
-def test_accumulator_sum_arity(collection, test_case: SumArityTest):
-    """Test $sum rejects array syntax in accumulator context."""
-    collection.insert_one({"v": 1})
-    result = execute_command(
-        collection,
-        {
-            "aggregate": collection.name,
-            "pipeline": test_case.pipeline,
-            "cursor": {},
-        },
-    )
-    assertFailureCode(
-        result,
-        ACCUMULATOR_UNARY_OPERATOR_ERROR,
-        msg=test_case.msg,
-    )
+@pytest.mark.parametrize("stage", ["group", "bucket"])
+@pytest.mark.parametrize("test_case", pytest_params(SUM_EXPRESSION_ERROR_DIVIDE_TESTS))
+def test_accumulator_sum_errors_divide(collection, test_case, stage: str):
+    """Test $sum divide-by-zero error propagation."""
+    result = _execute_accumulator(collection, test_case, stage)
+    assertFailureCode(result, test_case.error_code, msg=test_case.msg)
