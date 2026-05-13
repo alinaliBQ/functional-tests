@@ -113,9 +113,9 @@ def test_out_database_name_acceptance(collection, test_case: OutTestCase):
         client.drop_database(db_name)
 
 
-# Property [Collection Creation]: $out creates a new collection (and database
-# if needed) when the target does not exist, and an empty pipeline result
-# creates an empty collection or empties an existing one.
+# Property [Collection Creation]: $out creates a new collection when the
+# target does not exist, and an empty pipeline result creates an empty
+# collection or empties an existing one.
 OUT_COLLECTION_CREATION_TESTS: list[OutTestCase] = [
     OutTestCase(
         "new_collection_created",
@@ -124,14 +124,6 @@ OUT_COLLECTION_CREATION_TESTS: list[OutTestCase] = [
         out_spec=None,
         expected=[{"_id": 1, "value": 10}, {"_id": 2, "value": 20}],
         msg="$out should create a new collection when the target does not exist",
-    ),
-    OutTestCase(
-        "new_database_created",
-        docs=[{"_id": 1, "value": 10}],
-        target_coll="creation_cross_db_target",
-        target_db="__CROSS_DB__",
-        expected=[{"_id": 1, "value": 10}],
-        msg="$out should create a new database when the output database does not exist",
     ),
     OutTestCase(
         "empty_pipeline_creates_empty_collection",
@@ -146,6 +138,7 @@ OUT_COLLECTION_CREATION_TESTS: list[OutTestCase] = [
         docs=[],
         target_coll="creation_emptied_target",
         out_spec=None,
+        setup=lambda c: c.database["creation_emptied_target"].insert_one({"_id": 99, "old": True}),
         expected=[],
         msg="$out with no documents should empty an existing collection",
     ),
@@ -155,61 +148,65 @@ OUT_COLLECTION_CREATION_TESTS: list[OutTestCase] = [
 @pytest.mark.aggregate
 @pytest.mark.parametrize("test_case", pytest_params(OUT_COLLECTION_CREATION_TESTS))
 def test_out_collection_creation(collection, test_case: OutTestCase):
-    """Test $out creates collections and databases as needed."""
+    """Test $out creates collections as needed."""
     populate_collection(collection, test_case)
+    if test_case.setup:
+        test_case.setup(collection)
+    out_stage = test_case.build_out_stage(collection)
+    execute_command(
+        collection,
+        {"aggregate": collection.name, "pipeline": [out_stage], "cursor": {}},
+    )
+    # Use listCollections to verify the collection exists. find on a
+    # non-existent collection also returns empty, which would make
+    # empty-result cases pass even if $out never created the target.
+    result = execute_command(
+        collection,
+        {"listCollections": 1, "filter": {"name": test_case.target_coll}},
+    )
+    db = collection.database
+    assertSuccess(
+        result,
+        {"exists": True, "docs": test_case.expected},
+        msg=test_case.msg,
+        transform=lambda r: {
+            "exists": len(r) == 1,
+            "docs": list(db[test_case.target_coll].find({}, sort=[("_id", 1)])),
+        },
+    )
+
+
+# Property [Database Creation]: $out creates a new database when the output
+# database does not exist.
+
+
+@pytest.mark.aggregate
+def test_out_database_creation(collection):
+    """Test $out creates a new database when the output database does not exist."""
+    collection.insert_many([{"_id": 1, "value": 10}])
     db = collection.database
     client = db.client
     cross_db_name = db.name + "_cross"
-    if test_case.id == "empty_pipeline_empties_existing_collection":
-        db[test_case.target_coll].insert_one({"_id": 99, "old": True})
-    # Replace placeholder with a unique cross-database name.
-    if test_case.target_db == "__CROSS_DB__":
-        client.drop_database(cross_db_name)
-        effective_case = OutTestCase(
-            id=test_case.id,
-            docs=test_case.docs,
-            target_coll=test_case.target_coll,
-            target_db=cross_db_name,
-            expected=test_case.expected,
-            msg=test_case.msg,
-        )
-    else:
-        effective_case = test_case
+    target_coll_name = "creation_cross_db_target"
+    client.drop_database(cross_db_name)
     try:
-        out_stage = effective_case.build_out_stage(collection)
+        out_stage = {"$out": {"db": cross_db_name, "coll": target_coll_name}}
         execute_command(
             collection,
             {"aggregate": collection.name, "pipeline": [out_stage], "cursor": {}},
         )
-        target_db = client[effective_case.target_db] if effective_case.target_db else db
-        target_coll = target_db[effective_case.target_coll]
-        # Use listCollections to verify the collection exists. This is
-        # necessary because find on a non-existent collection also returns
-        # an empty firstBatch, which would make empty-result cases pass
-        # even if $out never created the target.
+        target_coll = client[cross_db_name][target_coll_name]
         result = execute_command(
             target_coll,
-            {"listCollections": 1, "filter": {"name": effective_case.target_coll}},
+            {"find": target_coll_name, "filter": {}},
         )
-        expected_docs = effective_case.expected
         assertSuccess(
             result,
-            {"exists": True, "docs": expected_docs},
-            msg=effective_case.msg,
-            transform=lambda r: {
-                "exists": len(r) == 1,
-                "docs": sorted(
-                    target_coll.find(
-                        {},
-                        {k: 1 for d in (expected_docs or [{}]) for k in d},
-                    ),
-                    key=lambda d: d.get("_id", 0),
-                ),
-            },
+            [{"_id": 1, "value": 10}],
+            msg="$out should create a new database when the output database does not exist",
         )
     finally:
-        if effective_case.target_db and effective_case.target_db != db.name:
-            client.drop_database(effective_case.target_db)
+        client.drop_database(cross_db_name)
 
 
 # Property [Collection Replacement - Atomic Replace]: an existing collection
