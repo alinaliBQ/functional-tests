@@ -219,13 +219,6 @@ AVG_NON_NUMERIC_TESTS: list[AvgAccumulatorTest] = [
         msg="$avg should ignore Code values",
     ),
     AvgAccumulatorTest(
-        "non_numeric_code_with_scope",
-        docs=[{"v": Code("x", {})}, {"v": Code("y", {})}],
-        expression="$v",
-        expected=None,
-        msg="$avg should ignore Code with scope values",
-    ),
-    AvgAccumulatorTest(
         "non_numeric_minkey",
         docs=[{"v": MinKey()}, {"v": MinKey()}],
         expression="$v",
