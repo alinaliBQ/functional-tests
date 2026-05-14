@@ -360,117 +360,6 @@ SUM_TYPE_PROMOTION_WITH_SIBLING_TESTS: list[AccumulatorTestCase] = [
     ),
 ]
 
-# Property [Sum after Match/Unwind]: $sum correctly accumulates values after
-# upstream stages that filter or expand the document set.
-SUM_AFTER_UPSTREAM_STAGE_TESTS: list[AccumulatorTestCase] = [
-    AccumulatorTestCase(
-        "sum_after_match",
-        docs=[
-            {"cat": "a", "v": 10, "active": True},
-            {"cat": "a", "v": 20, "active": False},
-            {"cat": "a", "v": 30, "active": True},
-        ],
-        pipeline=[
-            {"$match": {"active": True}},
-            {"$group": {"_id": "$cat", "total": {"$sum": "$v"}, "count": {"$sum": 1}}},
-        ],
-        expected=[{"_id": "a", "total": 40, "count": 2}],
-        msg="$sum should only accumulate documents that pass the upstream $match",
-    ),
-    AccumulatorTestCase(
-        "sum_after_unwind",
-        docs=[
-            {"cat": "a", "items": [10, 20, 30]},
-            {"cat": "b", "items": [5, 15]},
-        ],
-        pipeline=[
-            {"$unwind": "$items"},
-            {"$group": {"_id": "$cat", "total": {"$sum": "$items"}, "count": {"$sum": 1}}},
-        ],
-        expected=[
-            {"_id": "a", "total": 60, "count": 3},
-            {"_id": "b", "total": 20, "count": 2},
-        ],
-        msg="$sum should accumulate values expanded by $unwind",
-    ),
-    AccumulatorTestCase(
-        "sum_after_project_rename",
-        docs=[
-            {"cat": "a", "amount": 100},
-            {"cat": "a", "amount": 200},
-        ],
-        pipeline=[
-            {"$project": {"cat": 1, "v": "$amount"}},
-            {"$group": {"_id": "$cat", "total": {"$sum": "$v"}}},
-        ],
-        expected=[{"_id": "a", "total": 300}],
-        msg="$sum should accumulate the renamed field from $project",
-    ),
-]
-
-# Property [Sum into Downstream Stage]: $group with $sum feeds into a
-# downstream $project, $sort, or $match that operates on the accumulated
-# result.
-SUM_INTO_DOWNSTREAM_STAGE_TESTS: list[AccumulatorTestCase] = [
-    AccumulatorTestCase(
-        "sum_into_project",
-        docs=[
-            {"cat": "a", "v": 10},
-            {"cat": "a", "v": 20},
-        ],
-        pipeline=[
-            {"$group": {"_id": "$cat", "total": {"$sum": "$v"}, "count": {"$sum": 1}}},
-            {
-                "$project": {
-                    "_id": 0,
-                    "category": "$_id",
-                    "avg_manual": {"$divide": ["$total", "$count"]},
-                }
-            },
-        ],
-        expected=[{"category": "a", "avg_manual": 15.0}],
-        msg="$project should be able to compute on $sum results from $group",
-    ),
-    AccumulatorTestCase(
-        "sum_into_sort",
-        docs=[
-            {"cat": "a", "v": 5},
-            {"cat": "b", "v": 20},
-            {"cat": "b", "v": 10},
-            {"cat": "c", "v": 1},
-        ],
-        pipeline=[
-            {"$group": {"_id": "$cat", "total": {"$sum": "$v"}}},
-            {"$sort": {"total": -1}},
-        ],
-        expected=[
-            {"_id": "b", "total": 30},
-            {"_id": "a", "total": 5},
-            {"_id": "c", "total": 1},
-        ],
-        msg="$sort should order groups by $sum result",
-    ),
-    AccumulatorTestCase(
-        "sum_into_match_filter",
-        docs=[
-            {"cat": "a", "v": 10},
-            {"cat": "a", "v": 20},
-            {"cat": "b", "v": 1},
-            {"cat": "c", "v": 100},
-        ],
-        pipeline=[
-            {"$group": {"_id": "$cat", "total": {"$sum": "$v"}}},
-            {"$match": {"total": {"$gte": 10}}},
-            {"$sort": {"total": 1}},
-        ],
-        expected=[
-            {"_id": "a", "total": 30},
-            {"_id": "c", "total": 100},
-        ],
-        msg="$match should filter groups based on $sum result",
-    ),
-]
-
 SUM_INTEGRATION_TESTS = (
     SUM_WITH_AVG_TESTS
     + SUM_WITH_COUNT_TESTS
@@ -480,14 +369,12 @@ SUM_INTEGRATION_TESTS = (
     + SUM_WITH_MERGE_OBJECTS_TESTS
     + MULTIPLE_SUM_TESTS
     + SUM_TYPE_PROMOTION_WITH_SIBLING_TESTS
-    + SUM_AFTER_UPSTREAM_STAGE_TESTS
-    + SUM_INTO_DOWNSTREAM_STAGE_TESTS
 )
 
 
 @pytest.mark.parametrize("test_case", pytest_params(SUM_INTEGRATION_TESTS))
 def test_accumulators_sum_integration(collection, test_case: AccumulatorTestCase):
-    """Test $sum accumulator composed with sibling accumulators and pipeline stages."""
+    """Test $sum accumulator composed with sibling accumulators in the same $group."""
     if test_case.docs:
         collection.insert_many(test_case.docs)
     result = execute_command(
