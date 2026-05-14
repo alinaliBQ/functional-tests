@@ -7,9 +7,6 @@ from datetime import datetime, timezone
 import pytest
 from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
-from documentdb_tests.compatibility.tests.core.operator.accumulators.utils.accumulator_common import (  # noqa: E501
-    execute_accumulator,
-)
 from documentdb_tests.compatibility.tests.core.operator.accumulators.utils.accumulator_test_case import (  # noqa: E501
     AccumulatorTestCase,
 )
@@ -21,6 +18,7 @@ from documentdb_tests.framework.error_codes import (
     EXPRESSION_OBJECT_MULTIPLE_FIELDS_ERROR,
     INVALID_DOLLAR_FIELD_PATH,
 )
+from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import (
     DECIMAL128_INFINITY,
@@ -575,7 +573,12 @@ SUM_TESTS = (
 @pytest.mark.parametrize("test_case", pytest_params(SUM_TESTS))
 def test_accumulator_sum(collection, test_case: AccumulatorTestCase):
     """Test $sum accumulator cases."""
-    result = execute_accumulator(collection, test_case.docs, test_case.pipeline)
+    if test_case.docs:
+        collection.insert_many(test_case.docs)
+    result = execute_command(
+        collection,
+        {"aggregate": collection.name, "pipeline": test_case.pipeline or [], "cursor": {}},
+    )
     assertSuccess(
         result,
         [{"result": test_case.expected}],
@@ -1123,7 +1126,12 @@ SUM_TYPE_TESTS = (
 @pytest.mark.parametrize("test_case", pytest_params(SUM_TYPE_TESTS))
 def test_accumulator_sum_return_type(collection, test_case: AccumulatorTestCase):
     """Test $sum return type and type promotion."""
-    result = execute_accumulator(collection, test_case.docs, test_case.pipeline)
+    if test_case.docs:
+        collection.insert_many(test_case.docs)
+    result = execute_command(
+        collection,
+        {"aggregate": collection.name, "pipeline": test_case.pipeline or [], "cursor": {}},
+    )
     assertSuccess(
         result,
         [test_case.expected],
@@ -1181,7 +1189,12 @@ SUM_NEGATIVE_ZERO_TESTS: list[AccumulatorTestCase] = [
 @pytest.mark.parametrize("test_case", pytest_params(SUM_NEGATIVE_ZERO_TESTS))
 def test_accumulator_sum_negative_zero(collection, test_case: AccumulatorTestCase):
     """Test $sum negative zero normalization."""
-    result = execute_accumulator(collection, test_case.docs, test_case.pipeline)
+    if test_case.docs:
+        collection.insert_many(test_case.docs)
+    result = execute_command(
+        collection,
+        {"aggregate": collection.name, "pipeline": test_case.pipeline or [], "cursor": {}},
+    )
     assertSuccess(
         result,
         [{"str": test_case.expected}],
@@ -1280,5 +1293,10 @@ SUM_ERROR_TESTS = (
 @pytest.mark.parametrize("test_case", pytest_params(SUM_ERROR_TESTS))
 def test_accumulator_sum_errors(collection, test_case):
     """Test $sum error cases."""
-    result = execute_accumulator(collection, test_case.docs, test_case.pipeline)
+    if test_case.docs:
+        collection.insert_many(test_case.docs)
+    result = execute_command(
+        collection,
+        {"aggregate": collection.name, "pipeline": test_case.pipeline or [], "cursor": {}},
+    )
     assertFailureCode(result, test_case.error_code, msg=test_case.msg)
