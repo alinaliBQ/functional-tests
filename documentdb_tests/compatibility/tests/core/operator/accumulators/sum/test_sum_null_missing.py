@@ -252,3 +252,18 @@ def test_sum_null_missing(collection, test_case: AccumulatorTestCase):
         msg=test_case.msg,
         transform=lambda docs: [{"result": docs[0]["result"]}],
     )
+
+
+# Property [Empty Collection]: empty collection produces no group output
+# (empty result set).
+def test_sum_empty_collection(collection):
+    """Test $sum on empty collection returns empty result set."""
+    result = execute_command(
+        collection,
+        {
+            "aggregate": collection.name,
+            "pipeline": [{"$group": {"_id": None, "result": {"$sum": "$v"}}}],
+            "cursor": {},
+        },
+    )
+    assertSuccess(result, [], msg="$sum on empty collection should return empty result set")

@@ -34,11 +34,11 @@ SUM_SYNTAX_VALIDATION_TESTS: list[AccumulatorTestCase] = [
 # and multi-key expression objects produce an expression parsing error.
 SUM_ARITY_ERROR_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
-        "arity_empty_array",
+        "arity_empty_array_group",
         docs=[{"v": 1}],
         pipeline=[{"$group": {"_id": None, "result": {"$sum": []}}}],
         error_code=ACCUMULATOR_UNARY_OPERATOR_ERROR,
-        msg="$sum should reject empty array in accumulator context",
+        msg="$sum should reject empty array in $group",
     ),
     AccumulatorTestCase(
         "arity_single_element_array",
@@ -55,11 +55,11 @@ SUM_ARITY_ERROR_TESTS: list[AccumulatorTestCase] = [
         msg="$sum should reject single field ref in array in accumulator context",
     ),
     AccumulatorTestCase(
-        "arity_multi_element_array",
+        "arity_multi_element_array_group",
         docs=[{"v": 1}],
         pipeline=[{"$group": {"_id": None, "result": {"$sum": [1, 2, 3]}}}],
         error_code=ACCUMULATOR_UNARY_OPERATOR_ERROR,
-        msg="$sum should reject multi-element array in accumulator context",
+        msg="$sum should reject multi-element array in $group",
     ),
     AccumulatorTestCase(
         "arity_multi_key_expression_object",
@@ -69,6 +69,60 @@ SUM_ARITY_ERROR_TESTS: list[AccumulatorTestCase] = [
         ],
         error_code=EXPRESSION_OBJECT_MULTIPLE_FIELDS_ERROR,
         msg="$sum should reject multi-key expression object",
+    ),
+    AccumulatorTestCase(
+        "arity_empty_array_bucket",
+        docs=[{"v": 1}],
+        pipeline=[
+            {
+                "$bucket": {
+                    "groupBy": "$v",
+                    "boundaries": [0, 10],
+                    "output": {"result": {"$sum": []}},
+                }
+            }
+        ],
+        error_code=ACCUMULATOR_UNARY_OPERATOR_ERROR,
+        msg="$sum should reject empty array in $bucket",
+    ),
+    AccumulatorTestCase(
+        "arity_multi_element_array_bucket",
+        docs=[{"v": 1}],
+        pipeline=[
+            {
+                "$bucket": {
+                    "groupBy": "$v",
+                    "boundaries": [0, 10],
+                    "output": {"result": {"$sum": [1, 2, 3]}},
+                }
+            }
+        ],
+        error_code=ACCUMULATOR_UNARY_OPERATOR_ERROR,
+        msg="$sum should reject multi-element array in $bucket",
+    ),
+    AccumulatorTestCase(
+        "arity_empty_array_bucket_auto",
+        docs=[{"v": 1}],
+        pipeline=[
+            {"$bucketAuto": {"groupBy": "$v", "buckets": 1, "output": {"result": {"$sum": []}}}}
+        ],
+        error_code=ACCUMULATOR_UNARY_OPERATOR_ERROR,
+        msg="$sum should reject empty array in $bucketAuto",
+    ),
+    AccumulatorTestCase(
+        "arity_multi_element_array_bucket_auto",
+        docs=[{"v": 1}],
+        pipeline=[
+            {
+                "$bucketAuto": {
+                    "groupBy": "$v",
+                    "buckets": 1,
+                    "output": {"result": {"$sum": [1, 2, 3]}},
+                }
+            }
+        ],
+        error_code=ACCUMULATOR_UNARY_OPERATOR_ERROR,
+        msg="$sum should reject multi-element array in $bucketAuto",
     ),
 ]
 
@@ -89,11 +143,26 @@ SUM_EXPRESSION_ERROR_PROPAGATION_TESTS: list[AccumulatorTestCase] = [
 # wraps this error with a different code (BAD_VALUE_ERROR).
 SUM_EXPRESSION_ERROR_DIVIDE_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
-        "expr_error_divide_by_zero",
+        "expr_error_divide_by_zero_group",
         docs=[{"v": 1}],
         pipeline=[{"$group": {"_id": None, "result": {"$sum": {"$divide": ["$v", 0]}}}}],
         error_code=DIVIDE_BY_ZERO_V2_ERROR,
-        msg="$sum should propagate $divide by zero error from expression",
+        msg="$sum should propagate $divide by zero error in $group",
+    ),
+    AccumulatorTestCase(
+        "expr_error_divide_by_zero_bucket",
+        docs=[{"v": 1}],
+        pipeline=[
+            {
+                "$bucket": {
+                    "groupBy": "$v",
+                    "boundaries": [0, 10],
+                    "output": {"result": {"$sum": {"$divide": ["$v", 0]}}},
+                }
+            }
+        ],
+        error_code=DIVIDE_BY_ZERO_V2_ERROR,
+        msg="$sum should propagate $divide by zero error in $bucket",
     ),
 ]
 
