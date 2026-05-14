@@ -33,7 +33,6 @@ def validate_test_format(file_path: str) -> list[str]:
             "execute_expression",
             "execute_expression_with_insert",
             "execute_accumulator",
-            "execute_accumulator_with_type",
         ]
     )
 

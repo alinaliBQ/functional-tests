@@ -13,4 +13,4 @@ class AccumulatorTestCase(BaseTestCase):
     """Test case for accumulator tests."""
 
     docs: list[dict] | None = None
-    accumulator: Any = None
+    pipeline: list[dict[str, Any]] | None = None
