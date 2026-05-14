@@ -393,5 +393,4 @@ def test_sum_type_promotion(collection, test_case: AccumulatorTestCase):
         result,
         [test_case.expected],
         msg=test_case.msg,
-        transform=lambda docs: [{"value": docs[0]["value"], "type": docs[0]["type"]}],
     )

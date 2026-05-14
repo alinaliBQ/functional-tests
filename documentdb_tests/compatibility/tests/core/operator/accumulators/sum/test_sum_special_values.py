@@ -226,7 +226,6 @@ def test_sum_special_values(collection, test_case: AccumulatorTestCase):
     )
     assertSuccess(
         result,
-        [{"result": test_case.expected}],
+        [{"_id": None, "result": test_case.expected}],
         msg=test_case.msg,
-        transform=lambda docs: [{"result": docs[0]["result"]}],
     )

@@ -184,7 +184,6 @@ def test_sum_boundary(collection, test_case: AccumulatorTestCase):
         result,
         [test_case.expected],
         msg=test_case.msg,
-        transform=lambda docs: [{"value": docs[0]["value"], "type": docs[0]["type"]}],
     )
 
 
@@ -247,5 +246,4 @@ def test_sum_negative_zero(collection, test_case: AccumulatorTestCase):
         result,
         [{"str": test_case.expected}],
         msg=test_case.msg,
-        transform=lambda docs: [{"str": docs[0]["str"]}],
     )

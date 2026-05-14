@@ -134,9 +134,8 @@ def test_sum_constants(collection, test_case: AccumulatorTestCase):
     )
     assertSuccess(
         result,
-        [{"result": test_case.expected}],
+        [{"_id": None, "result": test_case.expected}],
         msg=test_case.msg,
-        transform=lambda docs: [{"result": docs[0]["result"]}],
     )
 
 
@@ -199,5 +198,4 @@ def test_sum_constant_type(collection, test_case: AccumulatorTestCase):
         result,
         [test_case.expected],
         msg=test_case.msg,
-        transform=lambda docs: [{"value": docs[0]["value"], "type": docs[0]["type"]}],
     )
