@@ -8,6 +8,10 @@ from typing import Any
 import pytest
 from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
+from documentdb_tests.compatibility.tests.core.operator.accumulators.utils.accumulator_common import (  # noqa: E501
+    execute_accumulator,
+    execute_accumulator_with_type,
+)
 from documentdb_tests.compatibility.tests.core.operator.accumulators.utils.accumulator_test_case import (  # noqa: E501
     AccumulatorTestCase,
 )
@@ -57,81 +61,6 @@ from documentdb_tests.framework.test_constants import (
 )
 
 STAGES = ["group", "bucket", "bucketAuto"]
-
-
-def _execute_accumulator(collection, test_case: AccumulatorTestCase, stage: str):
-    """Insert docs and run $sum through the specified stage."""
-    if test_case.docs:
-        collection.insert_many(test_case.docs)
-
-    pipeline: list[dict[str, Any]]
-    if stage == "group":
-        pipeline = [{"$group": {"_id": None, "result": {"$sum": test_case.accumulator}}}]
-    elif stage == "bucket":
-        pipeline = [
-            {
-                "$bucket": {
-                    "groupBy": {"$literal": 0},
-                    "boundaries": [-1, 1],
-                    "output": {"result": {"$sum": test_case.accumulator}},
-                }
-            }
-        ]
-    else:
-        pipeline = [
-            {
-                "$bucketAuto": {
-                    "groupBy": {"$literal": 0},
-                    "buckets": 1,
-                    "output": {"result": {"$sum": test_case.accumulator}},
-                }
-            }
-        ]
-
-    return execute_command(
-        collection,
-        {"aggregate": collection.name, "pipeline": pipeline, "cursor": {}},
-    )
-
-
-def _execute_accumulator_with_type(collection, test_case: AccumulatorTestCase, stage: str):
-    """Insert docs and run $sum with a $type projection through the specified stage."""
-    if test_case.docs:
-        collection.insert_many(test_case.docs)
-
-    pipeline: list[dict[str, Any]]
-    if stage == "group":
-        pipeline = [
-            {"$group": {"_id": None, "result": {"$sum": test_case.accumulator}}},
-            {"$project": {"_id": 0, "value": "$result", "type": {"$type": "$result"}}},
-        ]
-    elif stage == "bucket":
-        pipeline = [
-            {
-                "$bucket": {
-                    "groupBy": {"$literal": 0},
-                    "boundaries": [-1, 1],
-                    "output": {"result": {"$sum": test_case.accumulator}},
-                }
-            },
-            {"$project": {"_id": 0, "value": "$result", "type": {"$type": "$result"}}},
-        ]
-    else:
-        pipeline = [
-            {
-                "$bucketAuto": {
-                    "groupBy": {"$literal": 0},
-                    "buckets": 1,
-                    "output": {"result": {"$sum": test_case.accumulator}},
-                }
-            },
-            {"$project": {"_id": 0, "value": "$result", "type": {"$type": "$result"}}},
-        ]
-
-    return execute_command(
-        collection,
-        {"aggregate": collection.name, "pipeline": pipeline, "cursor": {}},
-    )
 
 
 # Property [Null and Missing Behavior]: null and missing values are ignored by
@@ -653,7 +582,7 @@ SUM_TESTS = (
 @pytest.mark.parametrize("test_case", pytest_params(SUM_TESTS))
 def test_accumulator_sum(collection, test_case: AccumulatorTestCase, stage: str):
     """Test $sum accumulator cases."""
-    result = _execute_accumulator(collection, test_case, stage)
+    result = execute_accumulator(collection, test_case, stage, "$sum")
     assertSuccess(
         result,
         [{"result": test_case.expected}],
@@ -1061,7 +990,7 @@ SUM_TYPE_TESTS = (
 @pytest.mark.parametrize("test_case", pytest_params(SUM_TYPE_TESTS))
 def test_accumulator_sum_return_type(collection, test_case: AccumulatorTestCase, stage: str):
     """Test $sum return type and type promotion."""
-    result = _execute_accumulator_with_type(collection, test_case, stage)
+    result = execute_accumulator_with_type(collection, test_case, stage, "$sum")
     assertSuccess(
         result,
         [test_case.expected],
@@ -1225,7 +1154,7 @@ SUM_ERROR_TESTS = (
 @pytest.mark.parametrize("test_case", pytest_params(SUM_ERROR_TESTS))
 def test_accumulator_sum_errors(collection, test_case, stage: str):
     """Test $sum error cases."""
-    result = _execute_accumulator(collection, test_case, stage)
+    result = execute_accumulator(collection, test_case, stage, "$sum")
     assertFailureCode(result, test_case.error_code, msg=test_case.msg)
 
 
@@ -1247,5 +1176,5 @@ SUM_EXPRESSION_ERROR_DIVIDE_TESTS: list[AccumulatorTestCase] = [
 @pytest.mark.parametrize("test_case", pytest_params(SUM_EXPRESSION_ERROR_DIVIDE_TESTS))
 def test_accumulator_sum_errors_divide(collection, test_case, stage: str):
     """Test $sum divide-by-zero error propagation."""
-    result = _execute_accumulator(collection, test_case, stage)
+    result = execute_accumulator(collection, test_case, stage, "$sum")
     assertFailureCode(result, test_case.error_code, msg=test_case.msg)
