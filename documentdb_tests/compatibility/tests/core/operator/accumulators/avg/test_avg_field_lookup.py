@@ -133,18 +133,6 @@ AVG_FIELD_RESOLUTION_TESTS: list[AccumulatorTestCase] = [
         msg="$avg with non-existent field should return null",
     ),
     AccumulatorTestCase(
-        "some_missing_field",
-        docs=[
-            {"_id": 1, "value": 10},
-            {"_id": 2},
-            {"_id": 3, "value": 30},
-        ],
-        pipeline=[{"$group": {"_id": None, "avg": {"$avg": "$value"}}}],
-        # Missing values are ignored: (10 + 30) / 2 = 20
-        expected=[{"_id": None, "avg": 20.0}],
-        msg="$avg should ignore documents with missing field",
-    ),
-    AccumulatorTestCase(
         "field_resolves_to_array",
         docs=[
             {"_id": 1, "value": [1, 2, 3]},

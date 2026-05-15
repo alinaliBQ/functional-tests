@@ -279,13 +279,6 @@ AVG_DOUBLE_BOUNDARY_TESTS: list[AccumulatorTestCase] = [
         expected=[{"result": DOUBLE_NEAR_MAX}],
         msg="$avg should handle values near maximum finite correctly",
     ),
-    AccumulatorTestCase(
-        id="double_near_max_pair",
-        docs=[{"_id": 0, "v": DOUBLE_NEAR_MAX}, {"_id": 1, "v": DOUBLE_NEAR_MAX}],
-        pipeline=[{"$group": {"_id": None, "avg": {"$avg": "$v"}}}],
-        expected=[{"_id": None, "avg": float("inf")}],
-        msg="avg of two DOUBLE_NEAR_MAX overflows sum to inf",
-    ),
 ]
 
 # Property [Decimal128 Precision]: $avg preserves Decimal128 precision
@@ -454,6 +447,13 @@ AVG_DECIMAL128_BOUNDARY_TESTS: list[AccumulatorTestCase] = [
 # doubles and Decimal128, and int32/int64 overflow is handled via type
 # promotion without error.
 AVG_OVERFLOW_TESTS: list[AccumulatorTestCase] = [
+    AccumulatorTestCase(
+        id="overflow_double_near_max_pair",
+        docs=[{"_id": 0, "v": DOUBLE_NEAR_MAX}, {"_id": 1, "v": DOUBLE_NEAR_MAX}],
+        pipeline=[{"$group": {"_id": None, "avg": {"$avg": "$v"}}}],
+        expected=[{"_id": None, "avg": float("inf")}],
+        msg="avg of two DOUBLE_NEAR_MAX overflows sum to inf",
+    ),
     AccumulatorTestCase(
         id="overflow_double_max",
         docs=[{"v": DOUBLE_MAX}, {"v": DOUBLE_MAX}],
