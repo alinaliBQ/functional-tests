@@ -1813,7 +1813,7 @@ MAX_EXPRESSION_ERROR_TESTS = (
 
 
 @pytest.mark.parametrize("test_case", pytest_params(MAX_EXPRESSION_ERROR_TESTS))
-def test_accumulator_max_expression_errors(collection, test_case: AccumulatorTestCase):
+def test_accumulator_max_expression_errors(collection, test_case):
     """Test $max expression error propagation."""
     result = _run(collection, test_case)
     assertFailureCode(result, test_case.error_code, msg=test_case.msg)
@@ -1945,7 +1945,7 @@ MAX_ARITY_ERROR_TESTS = (
 
 
 @pytest.mark.parametrize("test_case", pytest_params(MAX_ARITY_ERROR_TESTS))
-def test_accumulator_max_arity_errors(collection, test_case: AccumulatorTestCase):
+def test_accumulator_max_arity_errors(collection, test_case):
     """Test $max arity rejection across all three stages."""
     result = _run(collection, test_case)
     assertFailureCode(result, test_case.error_code, msg=test_case.msg)
