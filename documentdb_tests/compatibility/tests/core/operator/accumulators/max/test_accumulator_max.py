@@ -23,11 +23,13 @@ from documentdb_tests.compatibility.tests.core.operator.accumulators.max.utils i
 )
 from documentdb_tests.framework.assertions import assertFailureCode, assertSuccess
 from documentdb_tests.framework.error_codes import (
+    BAD_VALUE_ERROR,
     CONVERSION_FAILURE_ERROR,
     DIVIDE_BY_ZERO_V2_ERROR,
     EXPRESSION_OBJECT_MULTIPLE_FIELDS_ERROR,
     GROUP_ACCUMULATOR_ARRAY_ARGUMENT_ERROR,
     MODULO_BY_ZERO_V2_ERROR,
+    MODULO_ZERO_REMAINDER_ERROR,
 )
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
@@ -78,7 +80,10 @@ def _execute_accumulator(collection, test_case: AccumulatorMaxTestCase, stage: s
         collection.insert_many(test_case.docs)
 
     if stage == "group":
-        pipeline = [{"$group": {"_id": None, "result": {"$max": test_case.accumulator}}}]
+        pipeline = [
+            {"$group": {"_id": None, "result": {"$max": test_case.accumulator}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ]
     elif stage == "bucket":
         pipeline = [
             {
@@ -87,7 +92,8 @@ def _execute_accumulator(collection, test_case: AccumulatorMaxTestCase, stage: s
                     "boundaries": [-1, 1],
                     "output": {"result": {"$max": test_case.accumulator}},
                 }
-            }
+            },
+            {"$project": {"_id": 0, "result": 1}},
         ]
     else:
         pipeline = [
@@ -97,7 +103,8 @@ def _execute_accumulator(collection, test_case: AccumulatorMaxTestCase, stage: s
                     "buckets": 1,
                     "output": {"result": {"$max": test_case.accumulator}},
                 }
-            }
+            },
+            {"$project": {"_id": 0, "result": 1}},
         ]
 
     return execute_command(
@@ -315,27 +322,10 @@ MAX_BSON_ORDER_TESTS: list[AccumulatorMaxTestCase] = [
         expected=Regex("a"),
         msg="$max should pick regex over timestamp per BSON order",
     ),
-    AccumulatorMaxTestCase(
-        "bson_regex_vs_code",
-        docs=[{"v": Regex("zzz")}, {"v": Code("a")}],
-        accumulator="$v",
-        expected=Code("a"),
-        msg="$max should pick Code over regex per BSON order",
-    ),
-    AccumulatorMaxTestCase(
-        "bson_code_vs_maxkey",
-        docs=[{"v": Code("zzz")}, {"v": MaxKey()}],
-        accumulator="$v",
-        expected=MaxKey(),
-        msg="$max should pick MaxKey over Code per BSON order",
-    ),
-    AccumulatorMaxTestCase(
-        "bson_minkey_vs_maxkey",
-        docs=[{"v": MinKey()}, {"v": MaxKey()}],
-        accumulator="$v",
-        expected=MaxKey(),
-        msg="$max should pick MaxKey over MinKey (full BSON range)",
-    ),
+    # NOTE: bson_regex_vs_code, bson_code_vs_maxkey, and bson_minkey_vs_maxkey
+    # are stage-dependent and tested separately below (see MAX_BSON_ORDER_*
+    # lists and test_accumulator_max_bson_order_group_bucket /
+    # test_accumulator_max_bson_order_bucket_auto).
     AccumulatorMaxTestCase(
         "bson_false_vs_zero",
         docs=[{"v": False}, {"v": 0}],
@@ -357,13 +347,8 @@ MAX_BSON_ORDER_TESTS: list[AccumulatorMaxTestCase] = [
         expected="a",
         msg="$max should pick string over number regardless of insertion order",
     ),
-    AccumulatorMaxTestCase(
-        "bson_maxkey_before_minkey",
-        docs=[{"v": MaxKey()}, {"v": MinKey()}],
-        accumulator="$v",
-        expected=MaxKey(),
-        msg="$max should pick MaxKey even when it appears first",
-    ),
+    # NOTE: bson_maxkey_before_minkey is stage-dependent and tested separately
+    # below (see MAX_BSON_ORDER_* lists).
 ]
 
 
@@ -664,14 +649,10 @@ MAX_REGEX_TESTS: list[AccumulatorMaxTestCase] = [
 ]
 
 # 3i. Code ordering
+# NOTE: code_basic is stage-dependent (pymongo returns Code without scope as
+# str in $group/$bucket but as Code in $bucketAuto) and tested separately
+# below (see MAX_CODE_GROUP_BUCKET_TESTS / MAX_CODE_BUCKET_AUTO_TESTS).
 MAX_CODE_TESTS: list[AccumulatorMaxTestCase] = [
-    AccumulatorMaxTestCase(
-        "code_basic",
-        docs=[{"v": Code("a()")}, {"v": Code("b()")}],
-        accumulator="$v",
-        expected=Code("b()"),
-        msg="$max should pick the Code with the higher string value",
-    ),
     AccumulatorMaxTestCase(
         "code_with_scope_vs_code",
         docs=[{"v": Code("z")}, {"v": Code("a", {"x": 1})}],
@@ -810,13 +791,9 @@ MAX_NAN_TESTS: list[AccumulatorMaxTestCase] = [
         expected=FLOAT_NEGATIVE_INFINITY,
         msg="$max should pick -Infinity over float NaN",
     ),
-    AccumulatorMaxTestCase(
-        "nan_float_vs_decimal",
-        docs=[{"v": FLOAT_NAN}, {"v": DECIMAL128_NAN}],
-        accumulator="$v",
-        expected=pytest.approx(math.nan, nan_ok=True),
-        msg="$max should return first NaN when float NaN and Decimal128 NaN tie",
-    ),
+    # NOTE: nan_float_vs_decimal is stage-dependent ($group/$bucket return
+    # the last NaN type, $bucketAuto returns the first) and tested separately
+    # below (see MAX_NAN_* lists).
     AccumulatorMaxTestCase(
         "nan_as_only_nonnull",
         docs=[{"v": None}, {"v": FLOAT_NAN}],
@@ -1013,23 +990,11 @@ MAX_BOUNDARY_TESTS: list[AccumulatorMaxTestCase] = [
 # 7. Negative Zero
 # ---------------------------------------------------------------------------
 
-# Property [Negative Zero]: -0.0 and +0.0 are numerically equal; the first
-# encountered value wins (tie-breaking by document order).
+# Property [Negative Zero]: -0.0 and +0.0 are numerically equal; tie-breaking
+# by document order differs by stage ($group/$bucket: last wins, $bucketAuto:
+# first wins). The negzero_double and negzero_decimal tests are stage-dependent
+# and tested separately below.
 MAX_NEGZERO_TESTS: list[AccumulatorMaxTestCase] = [
-    AccumulatorMaxTestCase(
-        "negzero_double",
-        docs=[{"v": DOUBLE_NEGATIVE_ZERO}, {"v": DOUBLE_ZERO}],
-        accumulator="$v",
-        expected=DOUBLE_NEGATIVE_ZERO,
-        msg="$max should return first value when -0.0 and 0.0 tie",
-    ),
-    AccumulatorMaxTestCase(
-        "negzero_decimal",
-        docs=[{"v": DECIMAL128_NEGATIVE_ZERO}, {"v": DECIMAL128_ZERO}],
-        accumulator="$v",
-        expected=DECIMAL128_NEGATIVE_ZERO,
-        msg="$max should return first value when Decimal128 -0 and 0 tie",
-    ),
     AccumulatorMaxTestCase(
         "negzero_double_vs_positive",
         docs=[{"v": DOUBLE_NEGATIVE_ZERO}, {"v": 1}],
@@ -1064,13 +1029,9 @@ MAX_DECIMAL_PRECISION_TESTS: list[AccumulatorMaxTestCase] = [
         expected=Decimal128("1.234567890123456789012345678901235"),
         msg="$max should distinguish 34-digit Decimal128 values",
     ),
-    AccumulatorMaxTestCase(
-        "decimal_trailing_zeros",
-        docs=[{"v": Decimal128("1.0")}, {"v": Decimal128("1.00")}],
-        accumulator="$v",
-        expected=Decimal128("1.0"),
-        msg="$max should treat Decimal128 1.0 and 1.00 as equal, first wins",
-    ),
+    # NOTE: decimal_trailing_zeros is stage-dependent ($group/$bucket return
+    # the last equal value, $bucketAuto returns the first) and tested separately
+    # below (see MAX_DECIMAL_TRAILING_* lists).
     AccumulatorMaxTestCase(
         "decimal_large_exponent",
         docs=[{"v": DECIMAL128_LARGE_EXPONENT}, {"v": DECIMAL128_MAX}],
@@ -1121,49 +1082,99 @@ MAX_DECIMAL_PRECISION_TESTS: list[AccumulatorMaxTestCase] = [
 # ---------------------------------------------------------------------------
 
 # Property [Tie-Breaking]: when values are numerically equal but different
-# types, the first encountered value wins and its BSON type is preserved.
-MAX_TIE_BREAKING_TESTS: list[AccumulatorMaxTestCase] = [
+# types, $group/$bucket preserve the last encountered type while $bucketAuto
+# preserves the first. These are tested separately per stage group.
+MAX_TIE_BREAKING_TESTS: list[AccumulatorMaxTestCase] = []
+
+# $group and $bucket: last encountered value wins
+MAX_TIE_BREAKING_GROUP_BUCKET_TESTS: list[AccumulatorMaxTestCase] = [
+    AccumulatorMaxTestCase(
+        "tie_int32_int64",
+        docs=[{"v": 5}, {"v": Int64(5)}],
+        accumulator="$v",
+        expected=Int64(5),
+        msg="$max should preserve type of last equal value (Int64) in $group/$bucket",
+    ),
+    AccumulatorMaxTestCase(
+        "tie_int64_int32",
+        docs=[{"v": Int64(5)}, {"v": 5}],
+        accumulator="$v",
+        expected=5,
+        msg="$max should preserve type of last equal value (int32) in $group/$bucket",
+    ),
+    AccumulatorMaxTestCase(
+        "tie_double_int32",
+        docs=[{"v": 5.0}, {"v": 5}],
+        accumulator="$v",
+        expected=5,
+        msg="$max should preserve type of last equal value (int32) in $group/$bucket",
+    ),
+    AccumulatorMaxTestCase(
+        "tie_decimal_int64",
+        docs=[{"v": Decimal128("5")}, {"v": Int64(5)}],
+        accumulator="$v",
+        expected=Int64(5),
+        msg="$max should preserve type of last equal value (Int64) in $group/$bucket",
+    ),
+    AccumulatorMaxTestCase(
+        "tie_all_four_types",
+        docs=[{"v": 5}, {"v": Int64(5)}, {"v": 5.0}, {"v": Decimal128("5")}],
+        accumulator="$v",
+        expected=Decimal128("5"),
+        msg="$max should preserve type of last equal value (Decimal128) in $group/$bucket",
+    ),
+    AccumulatorMaxTestCase(
+        "tie_reversed_order",
+        docs=[{"v": Decimal128("5")}, {"v": 5.0}, {"v": Int64(5)}, {"v": 5}],
+        accumulator="$v",
+        expected=5,
+        msg="$max should preserve type of last equal value (int32) in $group/$bucket",
+    ),
+]
+
+# $bucketAuto: first encountered value wins
+MAX_TIE_BREAKING_BUCKET_AUTO_TESTS: list[AccumulatorMaxTestCase] = [
     AccumulatorMaxTestCase(
         "tie_int32_int64",
         docs=[{"v": 5}, {"v": Int64(5)}],
         accumulator="$v",
         expected=5,
-        msg="$max should preserve int32 type when int32(5) appears first",
+        msg="$max should preserve type of first equal value (int32) in $bucketAuto",
     ),
     AccumulatorMaxTestCase(
         "tie_int64_int32",
         docs=[{"v": Int64(5)}, {"v": 5}],
         accumulator="$v",
         expected=Int64(5),
-        msg="$max should preserve int64 type when Int64(5) appears first",
+        msg="$max should preserve type of first equal value (Int64) in $bucketAuto",
     ),
     AccumulatorMaxTestCase(
         "tie_double_int32",
         docs=[{"v": 5.0}, {"v": 5}],
         accumulator="$v",
         expected=5.0,
-        msg="$max should preserve double type when double(5.0) appears first",
+        msg="$max should preserve type of first equal value (double) in $bucketAuto",
     ),
     AccumulatorMaxTestCase(
         "tie_decimal_int64",
         docs=[{"v": Decimal128("5")}, {"v": Int64(5)}],
         accumulator="$v",
         expected=Decimal128("5"),
-        msg="$max should preserve Decimal128 type when Decimal128(5) appears first",
+        msg="$max should preserve type of first equal value (Decimal128) in $bucketAuto",
     ),
     AccumulatorMaxTestCase(
         "tie_all_four_types",
         docs=[{"v": 5}, {"v": Int64(5)}, {"v": 5.0}, {"v": Decimal128("5")}],
         accumulator="$v",
         expected=5,
-        msg="$max should preserve int32 type when all four types equal and int32 is first",
+        msg="$max should preserve type of first equal value (int32) in $bucketAuto",
     ),
     AccumulatorMaxTestCase(
         "tie_reversed_order",
         docs=[{"v": Decimal128("5")}, {"v": 5.0}, {"v": Int64(5)}, {"v": 5}],
         accumulator="$v",
         expected=Decimal128("5"),
-        msg="$max should preserve Decimal128 type when it appears first among equal values",
+        msg="$max should preserve type of first equal value (Decimal128) in $bucketAuto",
     ),
 ]
 
@@ -1173,21 +1184,41 @@ MAX_TIE_BREAKING_TESTS: list[AccumulatorMaxTestCase] = [
 # ---------------------------------------------------------------------------
 
 # Property [Numeric Equivalence]: numerically equivalent values across types
-# are treated as equal for comparison; first wins.
-MAX_NUMERIC_EQUIV_TESTS: list[AccumulatorMaxTestCase] = [
+# are treated as equal for comparison; tie-breaking differs by stage
+# ($group/$bucket: last wins, $bucketAuto: first wins).
+MAX_NUMERIC_EQUIV_TESTS: list[AccumulatorMaxTestCase] = []
+
+MAX_NUMERIC_EQUIV_GROUP_BUCKET_TESTS: list[AccumulatorMaxTestCase] = [
+    AccumulatorMaxTestCase(
+        "equiv_int_long_double_decimal",
+        docs=[{"v": 5}, {"v": Int64(5)}, {"v": 5.0}, {"v": Decimal128("5")}],
+        accumulator="$v",
+        expected=Decimal128("5"),
+        msg="$max should return last type (Decimal128) for equal values in $group/$bucket",
+    ),
+    AccumulatorMaxTestCase(
+        "equiv_zeros",
+        docs=[{"v": 0}, {"v": Int64(0)}, {"v": DOUBLE_ZERO}, {"v": DECIMAL128_ZERO}],
+        accumulator="$v",
+        expected=DECIMAL128_ZERO,
+        msg="$max should return last type (Decimal128) for zero values in $group/$bucket",
+    ),
+]
+
+MAX_NUMERIC_EQUIV_BUCKET_AUTO_TESTS: list[AccumulatorMaxTestCase] = [
     AccumulatorMaxTestCase(
         "equiv_int_long_double_decimal",
         docs=[{"v": 5}, {"v": Int64(5)}, {"v": 5.0}, {"v": Decimal128("5")}],
         accumulator="$v",
         expected=5,
-        msg="$max should treat int32/int64/double/Decimal128 5 as equal, first wins",
+        msg="$max should return first type (int32) for equal values in $bucketAuto",
     ),
     AccumulatorMaxTestCase(
         "equiv_zeros",
         docs=[{"v": 0}, {"v": Int64(0)}, {"v": DOUBLE_ZERO}, {"v": DECIMAL128_ZERO}],
         accumulator="$v",
         expected=0,
-        msg="$max should treat all zero types as equal, first wins",
+        msg="$max should return first type (int32) for zero values in $bucketAuto",
     ),
 ]
 
@@ -1236,14 +1267,9 @@ MAX_TYPE_DISTINCTION_TESTS: list[AccumulatorMaxTestCase] = [
 
 # Property [Expression Error Propagation]: errors in sub-expressions used as
 # $max operand propagate as errors.
+# NOTE: divide-by-zero and mod-by-zero have stage-specific error codes
+# ($bucketAuto wraps them differently) and are tested separately.
 MAX_EXPRESSION_ERROR_TESTS: list[AccumulatorMaxTestCase] = [
-    AccumulatorMaxTestCase(
-        "error_divide_by_zero",
-        docs=[{"v": 10}],
-        accumulator={"$divide": ["$v", 0]},
-        error_code=DIVIDE_BY_ZERO_V2_ERROR,
-        msg="$max should propagate divide-by-zero error from sub-expression",
-    ),
     AccumulatorMaxTestCase(
         "error_toInt_invalid",
         docs=[{"v": "not_a_number"}],
@@ -1251,12 +1277,39 @@ MAX_EXPRESSION_ERROR_TESTS: list[AccumulatorMaxTestCase] = [
         error_code=CONVERSION_FAILURE_ERROR,
         msg="$max should propagate conversion error from $toInt sub-expression",
     ),
+]
+
+MAX_EXPRESSION_ERROR_GROUP_BUCKET_TESTS: list[AccumulatorMaxTestCase] = [
+    AccumulatorMaxTestCase(
+        "error_divide_by_zero",
+        docs=[{"v": 10}],
+        accumulator={"$divide": ["$v", 0]},
+        error_code=DIVIDE_BY_ZERO_V2_ERROR,
+        msg="$max should propagate divide-by-zero error in $group/$bucket",
+    ),
     AccumulatorMaxTestCase(
         "error_mod_by_zero",
         docs=[{"v": 10}],
         accumulator={"$mod": ["$v", 0]},
         error_code=MODULO_BY_ZERO_V2_ERROR,
-        msg="$max should propagate mod-by-zero error from sub-expression",
+        msg="$max should propagate mod-by-zero error in $group/$bucket",
+    ),
+]
+
+MAX_EXPRESSION_ERROR_BUCKET_AUTO_TESTS: list[AccumulatorMaxTestCase] = [
+    AccumulatorMaxTestCase(
+        "error_divide_by_zero",
+        docs=[{"v": 10}],
+        accumulator={"$divide": ["$v", 0]},
+        error_code=BAD_VALUE_ERROR,
+        msg="$max should propagate divide-by-zero error in $bucketAuto (wrapped as BAD_VALUE)",
+    ),
+    AccumulatorMaxTestCase(
+        "error_mod_by_zero",
+        docs=[{"v": 10}],
+        accumulator={"$mod": ["$v", 0]},
+        error_code=MODULO_ZERO_REMAINDER_ERROR,
+        msg="$max should propagate mod-by-zero error in $bucketAuto (wrapped as 16610)",
     ),
 ]
 
@@ -1368,42 +1421,42 @@ MAX_RETURN_TYPE_TESTS: list[AccumulatorMaxTestCase] = [
         "return_type_int32",
         docs=[{"v": 10}, {"v": 30}, {"v": 20}],
         accumulator="$v",
-        expected=[{"type": "int"}],
+        expected=[{"value": 30, "type": "int"}],
         msg="$max of int32 values should return type 'int'",
     ),
     AccumulatorMaxTestCase(
         "return_type_int64",
         docs=[{"v": Int64(100)}, {"v": Int64(300)}, {"v": Int64(200)}],
         accumulator="$v",
-        expected=[{"type": "long"}],
+        expected=[{"value": Int64(300), "type": "long"}],
         msg="$max of int64 values should return type 'long'",
     ),
     AccumulatorMaxTestCase(
         "return_type_double",
         docs=[{"v": 1.5}, {"v": 3.5}, {"v": 2.5}],
         accumulator="$v",
-        expected=[{"type": "double"}],
+        expected=[{"value": 3.5, "type": "double"}],
         msg="$max of double values should return type 'double'",
     ),
     AccumulatorMaxTestCase(
         "return_type_decimal",
         docs=[{"v": Decimal128("1")}, {"v": Decimal128("3")}, {"v": Decimal128("2")}],
         accumulator="$v",
-        expected=[{"type": "decimal"}],
+        expected=[{"value": Decimal128("3"), "type": "decimal"}],
         msg="$max of Decimal128 values should return type 'decimal'",
     ),
     AccumulatorMaxTestCase(
         "return_type_string",
         docs=[{"v": "a"}, {"v": "c"}, {"v": "b"}],
         accumulator="$v",
-        expected=[{"type": "string"}],
+        expected=[{"value": "c", "type": "string"}],
         msg="$max of string values should return type 'string'",
     ),
     AccumulatorMaxTestCase(
         "return_type_boolean",
         docs=[{"v": True}, {"v": False}],
         accumulator="$v",
-        expected=[{"type": "bool"}],
+        expected=[{"value": True, "type": "bool"}],
         msg="$max of boolean values should return type 'bool'",
     ),
     AccumulatorMaxTestCase(
@@ -1413,14 +1466,14 @@ MAX_RETURN_TYPE_TESTS: list[AccumulatorMaxTestCase] = [
             {"v": datetime(2023, 1, 1, tzinfo=timezone.utc)},
         ],
         accumulator="$v",
-        expected=[{"type": "date"}],
+        expected=[{"value": datetime(2023, 1, 1, tzinfo=timezone.utc), "type": "date"}],
         msg="$max of datetime values should return type 'date'",
     ),
     AccumulatorMaxTestCase(
         "return_type_null_all",
         docs=[{"v": None}, {"v": None}],
         accumulator="$v",
-        expected=[{"type": "null"}],
+        expected=[{"value": None, "type": "null"}],
         msg="$max of all null values should return type 'null'",
     ),
 ]
@@ -1510,6 +1563,200 @@ MAX_SUCCESS_TESTS = (
 )
 
 
+# ---------------------------------------------------------------------------
+# Stage-Specific Test Data (behavior differs between $group/$bucket and
+# $bucketAuto)
+# ---------------------------------------------------------------------------
+
+# BSON Order: In $group/$bucket, Code without scope is returned as str by
+# pymongo, and MaxKey is wrapped in {'': MaxKey()}. In $bucketAuto, Code is
+# returned as Code object and MaxKey is returned directly.
+MAX_BSON_ORDER_GROUP_BUCKET_TESTS: list[AccumulatorMaxTestCase] = [
+    AccumulatorMaxTestCase(
+        "bson_regex_vs_code",
+        docs=[{"v": Regex("zzz")}, {"v": Code("a")}],
+        accumulator="$v",
+        expected="a",
+        msg="$max should pick Code over regex per BSON order (returned as str in $group/$bucket)",
+    ),
+    AccumulatorMaxTestCase(
+        "bson_code_vs_maxkey",
+        docs=[{"v": Code("zzz")}, {"v": MaxKey()}],
+        accumulator="$v",
+        expected={"": MaxKey()},
+        msg="$max should pick MaxKey over Code per BSON order (wrapped in dict in $group/$bucket)",
+    ),
+    AccumulatorMaxTestCase(
+        "bson_minkey_vs_maxkey",
+        docs=[{"v": MinKey()}, {"v": MaxKey()}],
+        accumulator="$v",
+        expected={"": MaxKey()},
+        msg="$max should pick MaxKey over MinKey (wrapped in dict in $group/$bucket)",
+    ),
+    AccumulatorMaxTestCase(
+        "bson_maxkey_before_minkey",
+        docs=[{"v": MaxKey()}, {"v": MinKey()}],
+        accumulator="$v",
+        expected={"": MaxKey()},
+        msg="$max should pick MaxKey even when first (wrapped in dict in $group/$bucket)",
+    ),
+]
+
+MAX_BSON_ORDER_BUCKET_AUTO_TESTS: list[AccumulatorMaxTestCase] = [
+    AccumulatorMaxTestCase(
+        "bson_regex_vs_code",
+        docs=[{"v": Regex("zzz")}, {"v": Code("a")}],
+        accumulator="$v",
+        expected=Code("a"),
+        msg="$max should pick Code over regex per BSON order in $bucketAuto",
+    ),
+    AccumulatorMaxTestCase(
+        "bson_code_vs_maxkey",
+        docs=[{"v": Code("zzz")}, {"v": MaxKey()}],
+        accumulator="$v",
+        expected=MaxKey(),
+        msg="$max should pick MaxKey over Code per BSON order in $bucketAuto",
+    ),
+    AccumulatorMaxTestCase(
+        "bson_minkey_vs_maxkey",
+        docs=[{"v": MinKey()}, {"v": MaxKey()}],
+        accumulator="$v",
+        expected=MaxKey(),
+        msg="$max should pick MaxKey over MinKey in $bucketAuto",
+    ),
+    AccumulatorMaxTestCase(
+        "bson_maxkey_before_minkey",
+        docs=[{"v": MaxKey()}, {"v": MinKey()}],
+        accumulator="$v",
+        expected=MaxKey(),
+        msg="$max should pick MaxKey even when first in $bucketAuto",
+    ),
+]
+
+# Code ordering: pymongo returns Code without scope as str in $group/$bucket
+# but as Code in $bucketAuto.
+MAX_CODE_GROUP_BUCKET_TESTS: list[AccumulatorMaxTestCase] = [
+    AccumulatorMaxTestCase(
+        "code_basic",
+        docs=[{"v": Code("a()")}, {"v": Code("b()")}],
+        accumulator="$v",
+        expected="b()",
+        msg="$max should pick Code with higher string value (returned as str in $group/$bucket)",
+    ),
+]
+
+MAX_CODE_BUCKET_AUTO_TESTS: list[AccumulatorMaxTestCase] = [
+    AccumulatorMaxTestCase(
+        "code_basic",
+        docs=[{"v": Code("a()")}, {"v": Code("b()")}],
+        accumulator="$v",
+        expected=Code("b()"),
+        msg="$max should pick Code with higher string value in $bucketAuto",
+    ),
+]
+
+# NaN tie-breaking: $group/$bucket return last NaN type, $bucketAuto returns first.
+MAX_NAN_GROUP_BUCKET_TESTS: list[AccumulatorMaxTestCase] = [
+    AccumulatorMaxTestCase(
+        "nan_float_vs_decimal",
+        docs=[{"v": FLOAT_NAN}, {"v": DECIMAL128_NAN}],
+        accumulator="$v",
+        expected=DECIMAL128_NAN,
+        msg="$max should return last NaN type (Decimal128 NaN) in $group/$bucket",
+    ),
+]
+
+MAX_NAN_BUCKET_AUTO_TESTS: list[AccumulatorMaxTestCase] = [
+    AccumulatorMaxTestCase(
+        "nan_float_vs_decimal",
+        docs=[{"v": FLOAT_NAN}, {"v": DECIMAL128_NAN}],
+        accumulator="$v",
+        expected=pytest.approx(math.nan, nan_ok=True),
+        msg="$max should return first NaN type (float NaN) in $bucketAuto",
+    ),
+]
+
+# Negative zero tie-breaking: $group/$bucket return last (positive zero),
+# $bucketAuto returns first (negative zero).
+MAX_NEGZERO_GROUP_BUCKET_TESTS: list[AccumulatorMaxTestCase] = [
+    AccumulatorMaxTestCase(
+        "negzero_double",
+        docs=[{"v": DOUBLE_NEGATIVE_ZERO}, {"v": DOUBLE_ZERO}],
+        accumulator="$v",
+        expected=DOUBLE_ZERO,
+        msg="$max should return last zero (positive) when -0.0 and 0.0 tie in $group/$bucket",
+    ),
+    AccumulatorMaxTestCase(
+        "negzero_decimal",
+        docs=[{"v": DECIMAL128_NEGATIVE_ZERO}, {"v": DECIMAL128_ZERO}],
+        accumulator="$v",
+        expected=DECIMAL128_ZERO,
+        msg="$max should return last zero (positive) when Decimal128 -0 and 0 tie in $group/$bucket",
+    ),
+]
+
+MAX_NEGZERO_BUCKET_AUTO_TESTS: list[AccumulatorMaxTestCase] = [
+    AccumulatorMaxTestCase(
+        "negzero_double",
+        docs=[{"v": DOUBLE_NEGATIVE_ZERO}, {"v": DOUBLE_ZERO}],
+        accumulator="$v",
+        expected=DOUBLE_NEGATIVE_ZERO,
+        msg="$max should return first zero (-0.0) when -0.0 and 0.0 tie in $bucketAuto",
+    ),
+    AccumulatorMaxTestCase(
+        "negzero_decimal",
+        docs=[{"v": DECIMAL128_NEGATIVE_ZERO}, {"v": DECIMAL128_ZERO}],
+        accumulator="$v",
+        expected=DECIMAL128_NEGATIVE_ZERO,
+        msg="$max should return first zero (Decimal128 -0) when -0 and 0 tie in $bucketAuto",
+    ),
+]
+
+# Decimal trailing zeros tie-breaking: $group/$bucket return last,
+# $bucketAuto returns first.
+MAX_DECIMAL_TRAILING_GROUP_BUCKET_TESTS: list[AccumulatorMaxTestCase] = [
+    AccumulatorMaxTestCase(
+        "decimal_trailing_zeros",
+        docs=[{"v": Decimal128("1.0")}, {"v": Decimal128("1.00")}],
+        accumulator="$v",
+        expected=Decimal128("1.00"),
+        msg="$max should return last Decimal128 (1.00) when equal in $group/$bucket",
+    ),
+]
+
+MAX_DECIMAL_TRAILING_BUCKET_AUTO_TESTS: list[AccumulatorMaxTestCase] = [
+    AccumulatorMaxTestCase(
+        "decimal_trailing_zeros",
+        docs=[{"v": Decimal128("1.0")}, {"v": Decimal128("1.00")}],
+        accumulator="$v",
+        expected=Decimal128("1.0"),
+        msg="$max should return first Decimal128 (1.0) when equal in $bucketAuto",
+    ),
+]
+
+# Combine all $group/$bucket stage-specific success tests
+MAX_GROUP_BUCKET_TESTS = (
+    MAX_BSON_ORDER_GROUP_BUCKET_TESTS
+    + MAX_CODE_GROUP_BUCKET_TESTS
+    + MAX_NAN_GROUP_BUCKET_TESTS
+    + MAX_NEGZERO_GROUP_BUCKET_TESTS
+    + MAX_DECIMAL_TRAILING_GROUP_BUCKET_TESTS
+    + MAX_TIE_BREAKING_GROUP_BUCKET_TESTS
+    + MAX_NUMERIC_EQUIV_GROUP_BUCKET_TESTS
+)
+
+# Combine all $bucketAuto stage-specific success tests
+MAX_BUCKET_AUTO_TESTS = (
+    MAX_BSON_ORDER_BUCKET_AUTO_TESTS
+    + MAX_CODE_BUCKET_AUTO_TESTS
+    + MAX_NAN_BUCKET_AUTO_TESTS
+    + MAX_NEGZERO_BUCKET_AUTO_TESTS
+    + MAX_DECIMAL_TRAILING_BUCKET_AUTO_TESTS
+    + MAX_TIE_BREAKING_BUCKET_AUTO_TESTS
+    + MAX_NUMERIC_EQUIV_BUCKET_AUTO_TESTS
+)
+
+
 # ===========================================================================
 # Test Functions
 # ===========================================================================
@@ -1522,7 +1769,34 @@ def test_accumulator_max(collection, test_case: AccumulatorMaxTestCase, stage: s
     result = _execute_accumulator(collection, test_case, stage)
     assertSuccess(
         result,
-        [{"_id": None, "result": test_case.expected}],
+        [{"result": test_case.expected}],
+        msg=test_case.msg,
+    )
+
+
+@pytest.mark.parametrize("stage", ["group", "bucket"])
+@pytest.mark.parametrize("test_case", pytest_params(MAX_GROUP_BUCKET_TESTS))
+def test_accumulator_max_group_bucket(
+    collection, test_case: AccumulatorMaxTestCase, stage: str
+):
+    """Test $max cases where $group/$bucket behavior differs from $bucketAuto."""
+    result = _execute_accumulator(collection, test_case, stage)
+    assertSuccess(
+        result,
+        [{"result": test_case.expected}],
+        msg=test_case.msg,
+    )
+
+
+@pytest.mark.parametrize("test_case", pytest_params(MAX_BUCKET_AUTO_TESTS))
+def test_accumulator_max_bucket_auto(
+    collection, test_case: AccumulatorMaxTestCase
+):
+    """Test $max cases where $bucketAuto behavior differs from $group/$bucket."""
+    result = _execute_accumulator(collection, test_case, "bucketAuto")
+    assertSuccess(
+        result,
+        [{"result": test_case.expected}],
         msg=test_case.msg,
     )
 
@@ -1534,6 +1808,25 @@ def test_accumulator_max_expression_errors(
 ):
     """Test $max expression error propagation across all three stages."""
     result = _execute_accumulator(collection, test_case, stage)
+    assertFailureCode(result, test_case.error_code, msg=test_case.msg)
+
+
+@pytest.mark.parametrize("stage", ["group", "bucket"])
+@pytest.mark.parametrize("test_case", pytest_params(MAX_EXPRESSION_ERROR_GROUP_BUCKET_TESTS))
+def test_accumulator_max_expression_errors_group_bucket(
+    collection, test_case: AccumulatorMaxTestCase, stage: str
+):
+    """Test $max expression errors that have different codes in $bucketAuto."""
+    result = _execute_accumulator(collection, test_case, stage)
+    assertFailureCode(result, test_case.error_code, msg=test_case.msg)
+
+
+@pytest.mark.parametrize("test_case", pytest_params(MAX_EXPRESSION_ERROR_BUCKET_AUTO_TESTS))
+def test_accumulator_max_expression_errors_bucket_auto(
+    collection, test_case: AccumulatorMaxTestCase
+):
+    """Test $max expression errors in $bucketAuto with stage-specific error codes."""
+    result = _execute_accumulator(collection, test_case, "bucketAuto")
     assertFailureCode(result, test_case.error_code, msg=test_case.msg)
 
 
