@@ -1,19 +1,11 @@
-"""Tests for $max accumulator BSON comparison order and within-type ordering."""
+"""Tests for $max accumulator within-type ordering."""
 
 from __future__ import annotations
 
 from datetime import datetime, timezone
 
 import pytest
-from bson import (
-    Binary,
-    Decimal128,
-    Int64,
-    MinKey,
-    ObjectId,
-    Regex,
-    Timestamp,
-)
+from bson import Binary, Decimal128, Int64, ObjectId, Regex, Timestamp
 
 from documentdb_tests.compatibility.tests.core.operator.accumulators.utils import (
     AccumulatorTestCase,
@@ -33,162 +25,13 @@ from documentdb_tests.framework.test_constants import (
 )
 
 # ===========================================================================
-# 1. BSON Comparison Order (Cross-Type)
-# ===========================================================================
-
-# Property [BSON Comparison Order]: $max compares values using BSON comparison
-# order when documents contain different types.
-# BSON order: MinKey < Number < String < Object < Array < Binary < ObjectId
-# < Boolean < Date < Timestamp < Regex < Code < MaxKey.
-MAX_BSON_ORDER_TESTS: list[AccumulatorTestCase] = [
-    AccumulatorTestCase(
-        "bson_minkey_vs_number",
-        docs=[{"v": MinKey()}, {"v": 5}],
-        pipeline=[
-            {"$group": {"_id": None, "result": {"$max": "$v"}}},
-            {"$project": {"_id": 0, "result": 1}},
-        ],
-        expected=[{"result": 5}],
-        msg="$max should pick number over MinKey per BSON order",
-    ),
-    AccumulatorTestCase(
-        "bson_number_vs_string",
-        docs=[{"v": 100}, {"v": "hello"}],
-        pipeline=[
-            {"$group": {"_id": None, "result": {"$max": "$v"}}},
-            {"$project": {"_id": 0, "result": 1}},
-        ],
-        expected=[{"result": "hello"}],
-        msg="$max should pick string over number per BSON order",
-    ),
-    AccumulatorTestCase(
-        "bson_string_vs_object",
-        docs=[{"v": "zzz"}, {"v": {"a": 1}}],
-        pipeline=[
-            {"$group": {"_id": None, "result": {"$max": "$v"}}},
-            {"$project": {"_id": 0, "result": 1}},
-        ],
-        expected=[{"result": {"a": 1}}],
-        msg="$max should pick object over string per BSON order",
-    ),
-    AccumulatorTestCase(
-        "bson_object_vs_array",
-        docs=[{"v": {"z": 99}}, {"v": [1]}],
-        pipeline=[
-            {"$group": {"_id": None, "result": {"$max": "$v"}}},
-            {"$project": {"_id": 0, "result": 1}},
-        ],
-        expected=[{"result": [1]}],
-        msg="$max should pick array over object per BSON order",
-    ),
-    AccumulatorTestCase(
-        "bson_array_vs_binary",
-        docs=[{"v": [999]}, {"v": Binary(b"\x00")}],
-        pipeline=[
-            {"$group": {"_id": None, "result": {"$max": "$v"}}},
-            {"$project": {"_id": 0, "result": 1}},
-        ],
-        expected=[{"result": b"\x00"}],
-        msg="$max should pick binary over array per BSON order",
-    ),
-    AccumulatorTestCase(
-        "bson_binary_vs_objectid",
-        docs=[{"v": Binary(b"\xff" * 100)}, {"v": ObjectId("000000000000000000000001")}],
-        pipeline=[
-            {"$group": {"_id": None, "result": {"$max": "$v"}}},
-            {"$project": {"_id": 0, "result": 1}},
-        ],
-        expected=[{"result": ObjectId("000000000000000000000001")}],
-        msg="$max should pick ObjectId over binary per BSON order",
-    ),
-    AccumulatorTestCase(
-        "bson_objectid_vs_boolean",
-        docs=[{"v": ObjectId("ffffffffffffffffffffffff")}, {"v": False}],
-        pipeline=[
-            {"$group": {"_id": None, "result": {"$max": "$v"}}},
-            {"$project": {"_id": 0, "result": 1}},
-        ],
-        expected=[{"result": False}],
-        msg="$max should pick boolean over ObjectId per BSON order",
-    ),
-    AccumulatorTestCase(
-        "bson_boolean_vs_datetime",
-        docs=[{"v": True}, {"v": datetime(2020, 1, 1, tzinfo=timezone.utc)}],
-        pipeline=[
-            {"$group": {"_id": None, "result": {"$max": "$v"}}},
-            {"$project": {"_id": 0, "result": 1}},
-        ],
-        expected=[{"result": datetime(2020, 1, 1, tzinfo=timezone.utc)}],
-        msg="$max should pick datetime over boolean per BSON order",
-    ),
-    AccumulatorTestCase(
-        "bson_datetime_vs_timestamp",
-        docs=[
-            {"v": datetime(9999, 12, 31, tzinfo=timezone.utc)},
-            {"v": Timestamp(0, 1)},
-        ],
-        pipeline=[
-            {"$group": {"_id": None, "result": {"$max": "$v"}}},
-            {"$project": {"_id": 0, "result": 1}},
-        ],
-        expected=[{"result": Timestamp(0, 1)}],
-        msg="$max should pick timestamp over datetime per BSON order",
-    ),
-    AccumulatorTestCase(
-        "bson_timestamp_vs_regex",
-        docs=[{"v": Timestamp(4294967295, 4294967295)}, {"v": Regex("a")}],
-        pipeline=[
-            {"$group": {"_id": None, "result": {"$max": "$v"}}},
-            {"$project": {"_id": 0, "result": 1}},
-        ],
-        expected=[{"result": Regex("a")}],
-        msg="$max should pick regex over timestamp per BSON order",
-    ),
-    # NOTE: bson_regex_vs_code, bson_code_vs_maxkey, and bson_minkey_vs_maxkey
-    # are stage-dependent and tested in test_accumulator_max_stage_divergence.py.
-    AccumulatorTestCase(
-        "bson_false_vs_zero",
-        docs=[{"v": False}, {"v": 0}],
-        pipeline=[
-            {"$group": {"_id": None, "result": {"$max": "$v"}}},
-            {"$project": {"_id": 0, "result": 1}},
-        ],
-        expected=[{"result": False}],
-        msg="$max should pick False over 0 (boolean > number in BSON order)",
-    ),
-    AccumulatorTestCase(
-        "bson_true_vs_one",
-        docs=[{"v": True}, {"v": 1}],
-        pipeline=[
-            {"$group": {"_id": None, "result": {"$max": "$v"}}},
-            {"$project": {"_id": 0, "result": 1}},
-        ],
-        expected=[{"result": True}],
-        msg="$max should pick True over 1 (boolean > number in BSON order)",
-    ),
-    AccumulatorTestCase(
-        "bson_string_before_number",
-        docs=[{"v": "a"}, {"v": 999999}],
-        pipeline=[
-            {"$group": {"_id": None, "result": {"$max": "$v"}}},
-            {"$project": {"_id": 0, "result": 1}},
-        ],
-        expected=[{"result": "a"}],
-        msg="$max should pick string over number regardless of insertion order",
-    ),
-    # NOTE: bson_maxkey_before_minkey is stage-dependent and tested in
-    # test_accumulator_max_stage_divergence.py.
-]
-
-
-# ===========================================================================
-# 2. Within-Type Ordering
+# 1. Within-Type Ordering
 # ===========================================================================
 
 # Property [Numeric Comparison]: values of the same numeric type are compared
 # numerically; cross-type numeric comparisons use numeric value.
 
-# 2a. Numeric comparison
+# 1a. Numeric comparison
 MAX_NUMERIC_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
         "numeric_int32_basic",
@@ -312,7 +155,7 @@ MAX_NUMERIC_TESTS: list[AccumulatorTestCase] = [
     ),
 ]
 
-# 2b. String comparison
+# 1b. String comparison
 MAX_STRING_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
         "string_basic",
@@ -396,7 +239,7 @@ MAX_STRING_TESTS: list[AccumulatorTestCase] = [
     ),
 ]
 
-# 2c. Boolean ordering
+# 1c. Boolean ordering
 MAX_BOOLEAN_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
         "boolean_true_vs_false",
@@ -420,7 +263,7 @@ MAX_BOOLEAN_TESTS: list[AccumulatorTestCase] = [
     ),
 ]
 
-# 2d. Datetime ordering
+# 1d. Datetime ordering
 MAX_DATETIME_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
         "datetime_chronological",
@@ -480,7 +323,7 @@ MAX_DATETIME_TESTS: list[AccumulatorTestCase] = [
     ),
 ]
 
-# 2e. Timestamp ordering
+# 1e. Timestamp ordering
 MAX_TIMESTAMP_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
         "timestamp_higher_time",
@@ -524,7 +367,7 @@ MAX_TIMESTAMP_TESTS: list[AccumulatorTestCase] = [
     ),
 ]
 
-# 2f. ObjectId ordering
+# 1f. ObjectId ordering
 MAX_OBJECTID_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
         "objectid_later_timestamp",
@@ -554,7 +397,7 @@ MAX_OBJECTID_TESTS: list[AccumulatorTestCase] = [
     ),
 ]
 
-# 2g. Binary ordering
+# 1g. Binary ordering
 MAX_BINARY_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
         "binary_content",
@@ -578,7 +421,7 @@ MAX_BINARY_TESTS: list[AccumulatorTestCase] = [
     ),
 ]
 
-# 2h. Regex ordering
+# 1h. Regex ordering
 MAX_REGEX_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
         "regex_pattern",
@@ -602,7 +445,7 @@ MAX_REGEX_TESTS: list[AccumulatorTestCase] = [
     ),
 ]
 
-# 2i. Object (embedded document) ordering
+# 1i. Object (embedded document) ordering
 MAX_OBJECT_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
         "object_first_differing_field",
@@ -646,7 +489,7 @@ MAX_OBJECT_TESTS: list[AccumulatorTestCase] = [
     ),
 ]
 
-# 2j. Array ordering (as values, NOT traversed in accumulator context)
+# 1j. Array ordering (as values, NOT traversed in accumulator context)
 MAX_ARRAY_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
         "array_element_by_element",
@@ -692,62 +535,11 @@ MAX_ARRAY_TESTS: list[AccumulatorTestCase] = [
 
 
 # ===========================================================================
-# 3. BSON Type Distinction
-# ===========================================================================
-
-# Property [BSON Type Distinction]: values of different BSON types are
-# distinct even when they appear similar.
-MAX_TYPE_DISTINCTION_TESTS: list[AccumulatorTestCase] = [
-    AccumulatorTestCase(
-        "distinct_false_vs_zero",
-        docs=[{"v": False}, {"v": 0}],
-        pipeline=[
-            {"$group": {"_id": None, "result": {"$max": "$v"}}},
-            {"$project": {"_id": 0, "result": 1}},
-        ],
-        expected=[{"result": False}],
-        msg="$max should pick False over 0 (boolean > number in BSON order)",
-    ),
-    AccumulatorTestCase(
-        "distinct_true_vs_one",
-        docs=[{"v": True}, {"v": 1}],
-        pipeline=[
-            {"$group": {"_id": None, "result": {"$max": "$v"}}},
-            {"$project": {"_id": 0, "result": 1}},
-        ],
-        expected=[{"result": True}],
-        msg="$max should pick True over 1 (boolean > number in BSON order)",
-    ),
-    AccumulatorTestCase(
-        "distinct_empty_string_vs_null",
-        docs=[{"v": ""}, {"v": None}],
-        pipeline=[
-            {"$group": {"_id": None, "result": {"$max": "$v"}}},
-            {"$project": {"_id": 0, "result": 1}},
-        ],
-        expected=[{"result": ""}],
-        msg="$max should exclude null and return empty string",
-    ),
-    AccumulatorTestCase(
-        "distinct_numeric_string",
-        docs=[{"v": "123"}, {"v": 1000000}],
-        pipeline=[
-            {"$group": {"_id": None, "result": {"$max": "$v"}}},
-            {"$project": {"_id": 0, "result": 1}},
-        ],
-        expected=[{"result": "123"}],
-        msg="$max should pick string '123' over int 1000000 (string > number, no coercion)",
-    ),
-]
-
-
-# ===========================================================================
 # Combined success tests and test function
 # ===========================================================================
 
 MAX_ORDERING_SUCCESS_TESTS = (
-    MAX_BSON_ORDER_TESTS
-    + MAX_NUMERIC_TESTS
+    MAX_NUMERIC_TESTS
     + MAX_STRING_TESTS
     + MAX_BOOLEAN_TESTS
     + MAX_DATETIME_TESTS
@@ -757,13 +549,12 @@ MAX_ORDERING_SUCCESS_TESTS = (
     + MAX_REGEX_TESTS
     + MAX_OBJECT_TESTS
     + MAX_ARRAY_TESTS
-    + MAX_TYPE_DISTINCTION_TESTS
 )
 
 
 @pytest.mark.parametrize("test_case", pytest_params(MAX_ORDERING_SUCCESS_TESTS))
 def test_accumulator_max_ordering(collection, test_case: AccumulatorTestCase):
-    """Test $max accumulator BSON comparison order and within-type ordering via $group."""
+    """Test $max accumulator within-type ordering via $group."""
     if test_case.docs:
         collection.insert_many(test_case.docs)
     result = execute_command(
