@@ -9,6 +9,7 @@ import pytest
 
 from documentdb_tests.compatibility.tests.core.operator.stages.out.utils.out_test_helpers import (
     OutTestCase,
+    target_name,
 )
 from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_case import (
     populate_collection,
@@ -26,56 +27,48 @@ OUT_DATABASE_NAME_ACCEPTANCE_TESTS: list[OutTestCase] = [
     OutTestCase(
         "db_control_character",
         docs=[{"_id": 1}],
-        target_coll="target",
         target_db="\x01",
         msg="$out should accept a control character as a database name",
     ),
     OutTestCase(
         "db_unicode_no_break_space",
         docs=[{"_id": 1}],
-        target_coll="target",
         target_db="\u00a0",
         msg="$out should accept Unicode no-break space as a database name",
     ),
     OutTestCase(
         "db_zero_width_space",
         docs=[{"_id": 1}],
-        target_coll="target",
         target_db="\u200b",
         msg="$out should accept zero-width space as a database name",
     ),
     OutTestCase(
         "db_emoji",
         docs=[{"_id": 1}],
-        target_coll="target",
         target_db="\U0001f389",
         msg="$out should accept emoji as a database name",
     ),
     OutTestCase(
         "db_cjk_characters",
         docs=[{"_id": 1}],
-        target_coll="target",
         target_db="\u4e2d\u6587",
         msg="$out should accept CJK characters as a database name",
     ),
     OutTestCase(
         "db_punctuation",
         docs=[{"_id": 1}],
-        target_coll="target",
         target_db="a!@#b",
         msg="$out should accept punctuation in a database name",
     ),
     OutTestCase(
         "db_single_character",
         docs=[{"_id": 1}],
-        target_coll="target",
         target_db="a",
         msg="$out should accept a single-character database name",
     ),
     OutTestCase(
         "db_digits_only",
         docs=[{"_id": 1}],
-        target_coll="target",
         target_db="123",
         msg="$out should accept a digits-only database name",
     ),
@@ -88,7 +81,7 @@ def test_out_database_name_acceptance(collection, test_case: OutTestCase):
     """Test $out accepts various character classes as database names."""
     populate_collection(collection, test_case)
     db_name = test_case.target_db  # type: ignore[arg-type]
-    target_coll_name = test_case.resolve_target_coll(collection)
+    target_coll_name = target_name(collection, test_case)
     client = collection.database.client
     client.drop_database(db_name)
     try:
@@ -134,25 +127,22 @@ OUT_FIND_AFTER_OUT_TESTS: list[OutTestCase] = [
     OutTestCase(
         "new_collection_created",
         docs=[{"_id": 1, "value": 10}, {"_id": 2, "value": 20}],
-        target_coll="creation_new_target",
         expected=[{"_id": 1, "value": 10}, {"_id": 2, "value": 20}],
         msg="$out should create a new collection when the target does not exist",
     ),
     OutTestCase(
         "empty_pipeline_empties_existing_collection",
         docs=[],
-        target_coll="creation_emptied_target",
-        setup=lambda c: c.database[f"{c.name}_creation_emptied_target"].insert_one(
-            {"_id": 99, "old": True}
-        ),
+        setup=lambda c: c.database[
+            f"{c.name}_empty_pipeline_empties_existing_collection"
+        ].insert_one({"_id": 99, "old": True}),
         expected=[],
         msg="$out with no documents should empty an existing collection",
     ),
     OutTestCase(
         "replacement_atomic",
         docs=[{"_id": 10, "new": True}, {"_id": 20, "new": True}],
-        target_coll="replacement_atomic_target",
-        setup=lambda c: c.database[f"{c.name}_replacement_atomic_target"].insert_many(
+        setup=lambda c: c.database[f"{c.name}_replacement_atomic"].insert_many(
             [{"_id": 1, "old": True}, {"_id": 2, "old": True}]
         ),
         expected=[{"_id": 10, "new": True}, {"_id": 20, "new": True}],
@@ -161,12 +151,11 @@ OUT_FIND_AFTER_OUT_TESTS: list[OutTestCase] = [
     OutTestCase(
         "failure_rollback_docs",
         docs=[{"_id": 10, "x": 1}, {"_id": 20, "x": 1}],
-        target_coll="replacement_fail_target",
         setup=lambda c: (
-            c.database[f"{c.name}_replacement_fail_target"].insert_many(
+            c.database[f"{c.name}_failure_rollback_docs"].insert_many(
                 [{"_id": 1, "x": 1}, {"_id": 2, "x": 2}]
             ),
-            c.database[f"{c.name}_replacement_fail_target"].create_index("x", unique=True),
+            c.database[f"{c.name}_failure_rollback_docs"].create_index("x", unique=True),
         ),
         expected=[{"_id": 1, "x": 1}, {"_id": 2, "x": 2}],
         msg="$out failure should leave pre-existing documents unchanged",
@@ -186,7 +175,7 @@ def test_out_find_after_out(collection, test_case: OutTestCase):
         collection,
         {"aggregate": collection.name, "pipeline": [out_stage], "cursor": {}},
     )
-    target_coll_name = test_case.resolve_target_coll(collection)
+    target_coll_name = target_name(collection, test_case)
     result = execute_command(
         collection,
         {"find": target_coll_name, "filter": {}, "sort": {"_id": 1}},
@@ -295,10 +284,9 @@ OUT_INDEX_AFTER_OUT_TESTS: list[OutTestCase] = [
     OutTestCase(
         "replacement_preserves_indexes",
         docs=[{"_id": 10, "x": 100}, {"_id": 20, "x": 200}],
-        target_coll="replacement_idx_target",
         setup=lambda c: (
-            c.database[f"{c.name}_replacement_idx_target"].insert_one({"_id": 1, "x": 1}),
-            c.database[f"{c.name}_replacement_idx_target"].create_index(
+            c.database[f"{c.name}_replacement_preserves_indexes"].insert_one({"_id": 1, "x": 1}),
+            c.database[f"{c.name}_replacement_preserves_indexes"].create_index(
                 "x", name="x_idx", unique=True
             ),
         ),
@@ -311,12 +299,11 @@ OUT_INDEX_AFTER_OUT_TESTS: list[OutTestCase] = [
     OutTestCase(
         "failure_rollback_indexes",
         docs=[{"_id": 10, "x": 1}, {"_id": 20, "x": 1}],
-        target_coll="replacement_fail_target",
         setup=lambda c: (
-            c.database[f"{c.name}_replacement_fail_target"].insert_many(
+            c.database[f"{c.name}_failure_rollback_indexes"].insert_many(
                 [{"_id": 1, "x": 1}, {"_id": 2, "x": 2}]
             ),
-            c.database[f"{c.name}_replacement_fail_target"].create_index("x", unique=True),
+            c.database[f"{c.name}_failure_rollback_indexes"].create_index("x", unique=True),
         ),
         expected=[
             {"v": 2, "key": {"_id": 1}, "name": "_id_"},
@@ -339,7 +326,7 @@ def test_out_index_after_out(collection, test_case: OutTestCase):
         collection,
         {"aggregate": collection.name, "pipeline": [out_stage], "cursor": {}},
     )
-    target_coll_name = test_case.resolve_target_coll(collection)
+    target_coll_name = target_name(collection, test_case)
     result = execute_command(
         collection,
         {"listIndexes": target_coll_name},

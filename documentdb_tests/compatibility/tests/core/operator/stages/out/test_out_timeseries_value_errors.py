@@ -51,7 +51,6 @@ OUT_BUCKET_PARAM_RANGE_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "bucket_zero",
         docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "v": 1}],
-        target_coll="bucket_err_zero",
         out_spec={
             "timeseries": {
                 "timeField": "ts",
@@ -65,7 +64,6 @@ OUT_BUCKET_PARAM_RANGE_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "bucket_negative",
         docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "v": 1}],
-        target_coll="bucket_err_neg",
         out_spec={
             "timeseries": {
                 "timeField": "ts",
@@ -79,7 +77,6 @@ OUT_BUCKET_PARAM_RANGE_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "bucket_above_max",
         docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "v": 1}],
-        target_coll="bucket_err_above",
         out_spec={
             "timeseries": {
                 "timeField": "ts",
@@ -93,7 +90,6 @@ OUT_BUCKET_PARAM_RANGE_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "bucket_float_truncates_to_zero",
         docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "v": 1}],
-        target_coll="bucket_err_f_zero",
         out_spec={
             "timeseries": {
                 "timeField": "ts",
@@ -107,7 +103,6 @@ OUT_BUCKET_PARAM_RANGE_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "bucket_float_negative_truncation",
         docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "v": 1}],
-        target_coll="bucket_err_f_neg",
         out_spec={
             "timeseries": {
                 "timeField": "ts",
@@ -121,7 +116,6 @@ OUT_BUCKET_PARAM_RANGE_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "bucket_float_nan",
         docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "v": 1}],
-        target_coll="bucket_err_f_nan",
         out_spec={
             "timeseries": {
                 "timeField": "ts",
@@ -135,7 +129,6 @@ OUT_BUCKET_PARAM_RANGE_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "bucket_float_neg_zero",
         docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "v": 1}],
-        target_coll="bucket_err_f_nz",
         out_spec={
             "timeseries": {
                 "timeField": "ts",
@@ -149,7 +142,6 @@ OUT_BUCKET_PARAM_RANGE_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "bucket_float_inf",
         docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "v": 1}],
-        target_coll="bucket_err_f_inf",
         out_spec={
             "timeseries": {
                 "timeField": "ts",
@@ -163,7 +155,6 @@ OUT_BUCKET_PARAM_RANGE_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "bucket_float_neg_inf",
         docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "v": 1}],
-        target_coll="bucket_err_f_ninf",
         out_spec={
             "timeseries": {
                 "timeField": "ts",
@@ -177,7 +168,6 @@ OUT_BUCKET_PARAM_RANGE_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "bucket_float_subnormal",
         docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "v": 1}],
-        target_coll="bucket_err_f_sub",
         out_spec={
             "timeseries": {
                 "timeField": "ts",
@@ -191,7 +181,6 @@ OUT_BUCKET_PARAM_RANGE_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "bucket_decimal128_neg_rounds",
         docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "v": 1}],
-        target_coll="bucket_err_d_neg",
         out_spec={
             "timeseries": {
                 "timeField": "ts",
@@ -205,7 +194,6 @@ OUT_BUCKET_PARAM_RANGE_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "bucket_decimal128_half_to_zero",
         docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "v": 1}],
-        target_coll="bucket_err_d_half",
         out_spec={
             "timeseries": {
                 "timeField": "ts",
@@ -219,7 +207,6 @@ OUT_BUCKET_PARAM_RANGE_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "bucket_decimal128_nan",
         docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "v": 1}],
-        target_coll="bucket_err_d_nan",
         out_spec={
             "timeseries": {
                 "timeField": "ts",
@@ -233,7 +220,6 @@ OUT_BUCKET_PARAM_RANGE_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "bucket_decimal128_inf",
         docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "v": 1}],
-        target_coll="bucket_err_d_inf",
         out_spec={
             "timeseries": {
                 "timeField": "ts",
@@ -247,7 +233,6 @@ OUT_BUCKET_PARAM_RANGE_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "bucket_decimal128_neg_inf",
         docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "v": 1}],
-        target_coll="bucket_err_d_ninf",
         out_spec={
             "timeseries": {
                 "timeField": "ts",
@@ -261,7 +246,6 @@ OUT_BUCKET_PARAM_RANGE_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "bucket_decimal128_neg_zero",
         docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "v": 1}],
-        target_coll="bucket_err_d_nz",
         out_spec={
             "timeseries": {
                 "timeField": "ts",
@@ -275,7 +259,6 @@ OUT_BUCKET_PARAM_RANGE_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "bucket_int64_above_int32_max",
         docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "v": 1}],
-        target_coll="bucket_err_i64_hi",
         out_spec={
             "timeseries": {
                 "timeField": "ts",
@@ -289,7 +272,6 @@ OUT_BUCKET_PARAM_RANGE_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "bucket_int64_int32_min",
         docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "v": 1}],
-        target_coll="bucket_err_i64_lo",
         out_spec={
             "timeseries": {
                 "timeField": "ts",
@@ -303,7 +285,6 @@ OUT_BUCKET_PARAM_RANGE_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "bucket_int64_below_int32_min",
         docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "v": 1}],
-        target_coll="bucket_err_i64_uf",
         out_spec={
             "timeseries": {
                 "timeField": "ts",
@@ -317,7 +298,6 @@ OUT_BUCKET_PARAM_RANGE_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "bucket_float_max_safe_int",
         docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "v": 1}],
-        target_coll="bucket_err_f_msi",
         out_spec={
             "timeseries": {
                 "timeField": "ts",
@@ -331,7 +311,6 @@ OUT_BUCKET_PARAM_RANGE_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "bucket_float_dbl_max",
         docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "v": 1}],
-        target_coll="bucket_err_dblmax",
         out_spec={
             "timeseries": {
                 "timeField": "ts",
@@ -345,7 +324,6 @@ OUT_BUCKET_PARAM_RANGE_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "bucket_decimal128_large",
         docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "v": 1}],
-        target_coll="bucket_err_d_lg",
         out_spec={
             "timeseries": {
                 "timeField": "ts",
@@ -359,7 +337,6 @@ OUT_BUCKET_PARAM_RANGE_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "bucket_int32_max",
         docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "v": 1}],
-        target_coll="bucket_err_i32max",
         out_spec={
             "timeseries": {
                 "timeField": "ts",
@@ -373,7 +350,6 @@ OUT_BUCKET_PARAM_RANGE_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "bucket_int32_min",
         docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "v": 1}],
-        target_coll="bucket_err_i32min",
         out_spec={
             "timeseries": {
                 "timeField": "ts",
@@ -617,7 +593,6 @@ OUT_TIMESERIES_DOCUMENT_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "ts_doc_non_date_time_field",
         docs=[{"_id": 1, "ts": "not_a_date", "v": 1}],
-        target_coll="ts_doc_err_nondate",
         out_spec={"timeseries": {"timeField": "ts"}},
         msg=(
             "$out should fail when writing a document with a non-date"
@@ -628,7 +603,6 @@ OUT_TIMESERIES_DOCUMENT_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "ts_doc_missing_time_field",
         docs=[{"_id": 1, "v": 1}],
-        target_coll="ts_doc_err_missing",
         out_spec={"timeseries": {"timeField": "ts"}},
         msg=(
             "$out should fail when writing a document missing the"

@@ -6,6 +6,7 @@ import pytest
 
 from documentdb_tests.compatibility.tests.core.operator.stages.out.utils.out_test_helpers import (
     OutTestCase,
+    target_name,
 )
 from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_case import (
     populate_collection,
@@ -30,7 +31,6 @@ OUT_PIPELINE_INTEGRATION_TESTS: list[OutTestCase] = [
         pipeline=[
             {"$match": {"status": "active"}},
         ],
-        target_coll="integration_out",
         expected=[
             {"_id": 1, "status": "active", "val": 10},
             {"_id": 3, "status": "active", "val": 30},
@@ -47,7 +47,6 @@ OUT_PIPELINE_INTEGRATION_TESTS: list[OutTestCase] = [
         pipeline=[
             {"$match": {"val": {"$gte": 15}}},
         ],
-        target_coll="integration_out",
         expected=[
             {"_id": 2, "val": 15},
             {"_id": 3, "val": 25},
@@ -63,7 +62,6 @@ OUT_PIPELINE_INTEGRATION_TESTS: list[OutTestCase] = [
         pipeline=[
             {"$match": {"val": {"$gt": 100}}},
         ],
-        target_coll="integration_out",
         expected=[],
         msg="$out should create an empty collection when $match filters all documents",
     ),
@@ -76,7 +74,6 @@ OUT_PIPELINE_INTEGRATION_TESTS: list[OutTestCase] = [
         pipeline=[
             {"$project": {"a": 1, "b": 1}},
         ],
-        target_coll="integration_out",
         expected=[
             {"_id": 1, "a": 1, "b": 2},
             {"_id": 2, "a": 4, "b": 5},
@@ -92,7 +89,6 @@ OUT_PIPELINE_INTEGRATION_TESTS: list[OutTestCase] = [
         pipeline=[
             {"$project": {"doubled": {"$multiply": ["$x", 2]}}},
         ],
-        target_coll="integration_out",
         expected=[
             {"_id": 1, "doubled": 20},
             {"_id": 2, "doubled": 40},
@@ -109,7 +105,6 @@ OUT_PIPELINE_INTEGRATION_TESTS: list[OutTestCase] = [
         pipeline=[
             {"$group": {"_id": "$cat", "total": {"$sum": "$val"}}},
         ],
-        target_coll="integration_out",
         expected=[
             {"_id": "a", "total": 30},
             {"_id": "b", "total": 30},
@@ -126,7 +121,6 @@ OUT_PIPELINE_INTEGRATION_TESTS: list[OutTestCase] = [
         pipeline=[
             {"$group": {"_id": "$cat", "n": {"$sum": 1}}},
         ],
-        target_coll="integration_out",
         expected=[
             {"_id": "x", "n": 2},
             {"_id": "y", "n": 1},
@@ -146,7 +140,6 @@ OUT_PIPELINE_INTEGRATION_TESTS: list[OutTestCase] = [
             {"$sort": {"val": -1}},
             {"$limit": 3},
         ],
-        target_coll="integration_out",
         expected=[
             {"_id": 1, "val": 50},
             {"_id": 3, "val": 40},
@@ -168,7 +161,6 @@ OUT_PIPELINE_INTEGRATION_TESTS: list[OutTestCase] = [
             {"$skip": 1},
             {"$limit": 2},
         ],
-        target_coll="integration_out",
         expected=[
             {"_id": 2, "val": 20},
             {"_id": 3, "val": 30},
@@ -186,7 +178,6 @@ OUT_PIPELINE_INTEGRATION_TESTS: list[OutTestCase] = [
             {"$unwind": "$tags"},
             {"$group": {"_id": "$tags", "count": {"$sum": 1}}},
         ],
-        target_coll="integration_out",
         expected=[
             {"_id": "a", "count": 2},
             {"_id": "b", "count": 2},
@@ -203,7 +194,6 @@ OUT_PIPELINE_INTEGRATION_TESTS: list[OutTestCase] = [
         pipeline=[
             {"$addFields": {"total": {"$multiply": ["$price", "$qty"]}}},
         ],
-        target_coll="integration_out",
         expected=[
             {"_id": 1, "price": 100, "qty": 3, "total": 300},
             {"_id": 2, "price": 200, "qty": 1, "total": 200},
@@ -220,7 +210,6 @@ OUT_PIPELINE_INTEGRATION_TESTS: list[OutTestCase] = [
             {"$replaceRoot": {"newRoot": "$inner"}},
             {"$addFields": {"_id": "$a"}},
         ],
-        target_coll="integration_out",
         expected=[
             {"_id": 10, "a": 10, "b": 20},
             {"_id": 30, "a": 30, "b": 40},
@@ -245,7 +234,6 @@ OUT_PIPELINE_INTEGRATION_TESTS: list[OutTestCase] = [
                 }
             },
         ],
-        target_coll="integration_out",
         expected=[
             {"_id": 1, "level": 1, "data": "public"},
             {"_id": 3, "level": 2, "data": "internal"},
@@ -266,7 +254,6 @@ OUT_PIPELINE_INTEGRATION_TESTS: list[OutTestCase] = [
             {"$group": {"_id": "$dept", "avg_salary": {"$avg": "$salary"}}},
             {"$sort": {"avg_salary": -1}},
         ],
-        target_coll="integration_out",
         expected=[
             {"_id": "eng", "avg_salary": 125.0},
             {"_id": "hr", "avg_salary": 90.0},
@@ -286,7 +273,6 @@ OUT_PIPELINE_INTEGRATION_TESTS: list[OutTestCase] = [
             {"$addFields": {"revenue": {"$multiply": ["$price", "$qty"]}}},
             {"$match": {"revenue": {"$gte": 200}}},
         ],
-        target_coll="integration_out",
         expected=[
             {"_id": 1, "price": 50, "qty": 4, "revenue": 200},
             {"_id": 2, "price": 30, "qty": 10, "revenue": 300},
@@ -304,7 +290,7 @@ def test_out_pipeline_integration(collection, test_case: OutTestCase):
     if test_case.setup:
         test_case.setup(collection)
     db = collection.database
-    target = test_case.resolve_target_coll(collection)
+    target = target_name(collection, test_case)
     pipeline = list(test_case.pipeline) + [test_case.build_out_stage(collection)]
     execute_command(
         collection,

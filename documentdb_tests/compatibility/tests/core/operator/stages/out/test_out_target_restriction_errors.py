@@ -8,6 +8,7 @@ import pytest
 
 from documentdb_tests.compatibility.tests.core.operator.stages.out.utils.out_test_helpers import (
     OutTestCase,
+    target_name,
 )
 from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_case import (
     populate_collection,
@@ -39,12 +40,9 @@ OUT_TARGET_RESTRICTION_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "capped_target",
         docs=[{"_id": 1, "value": 10}],
-        target_coll="capped_out_target",
         setup=lambda c: (
-            c.database.drop_collection(f"{c.name}_capped_out_target"),
-            c.database.create_collection(
-                f"{c.name}_capped_out_target", capped=True, size=1_048_576
-            ),
+            c.database.drop_collection(f"{c.name}_capped_target"),
+            c.database.create_collection(f"{c.name}_capped_target", capped=True, size=1_048_576),
         ),
         msg="$out should reject writing to a capped collection",
         error_code=OUT_CAPPED_COLLECTION_ERROR,
@@ -52,11 +50,10 @@ OUT_TARGET_RESTRICTION_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "view_target",
         docs=[{"_id": 1, "value": 10}],
-        target_coll="view_out_target",
         setup=lambda c: (
-            c.database.drop_collection(f"{c.name}_view_out_target"),
+            c.database.drop_collection(f"{c.name}_view_target"),
             c.database.command(
-                {"create": f"{c.name}_view_out_target", "viewOn": c.name, "pipeline": []}
+                {"create": f"{c.name}_view_target", "viewOn": c.name, "pipeline": []}
             ),
         ),
         msg="$out should reject writing to a view",
@@ -65,12 +62,11 @@ OUT_TARGET_RESTRICTION_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "view_ts_target",
         docs=[{"_id": 1, "value": 10}],
-        target_coll="view_ts_out_target",
         out_spec={"timeseries": {"timeField": "ts"}},
         setup=lambda c: (
-            c.database.drop_collection(f"{c.name}_view_ts_out_target"),
+            c.database.drop_collection(f"{c.name}_view_ts_target"),
             c.database.command(
-                {"create": f"{c.name}_view_ts_out_target", "viewOn": c.name, "pipeline": []}
+                {"create": f"{c.name}_view_ts_target", "viewOn": c.name, "pipeline": []}
             ),
         ),
         msg=(
@@ -90,11 +86,10 @@ OUT_TIMESERIES_EXISTING_COLLECTION_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "ts_to_regular",
         docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "v": 1}],
-        target_coll="ts_to_regular_target",
         out_spec={"timeseries": {"timeField": "ts"}},
         setup=lambda c: (
-            c.database.drop_collection(f"{c.name}_ts_to_regular_target"),
-            c.database.create_collection(f"{c.name}_ts_to_regular_target"),
+            c.database.drop_collection(f"{c.name}_ts_to_regular"),
+            c.database.create_collection(f"{c.name}_ts_to_regular"),
         ),
         msg=(
             "$out with timeseries options to an existing regular collection"
@@ -105,12 +100,14 @@ OUT_TIMESERIES_EXISTING_COLLECTION_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "ts_mismatch_different_time_field",
         docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "v": 1}],
-        target_coll="ts_mismatch_target",
         out_spec={"timeseries": {"timeField": "other"}},
         setup=lambda c: (
-            c.database.drop_collection(f"{c.name}_ts_mismatch_target"),
+            c.database.drop_collection(f"{c.name}_ts_mismatch_different_time_field"),
             c.database.command(
-                {"create": f"{c.name}_ts_mismatch_target", "timeseries": {"timeField": "ts"}}
+                {
+                    "create": f"{c.name}_ts_mismatch_different_time_field",
+                    "timeseries": {"timeField": "ts"},
+                }
             ),
         ),
         msg=(
@@ -122,12 +119,14 @@ OUT_TIMESERIES_EXISTING_COLLECTION_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "ts_mismatch_meta_field_present_vs_absent",
         docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "v": 1}],
-        target_coll="ts_mismatch_target",
         out_spec={"timeseries": {"timeField": "ts", "metaField": "m"}},
         setup=lambda c: (
-            c.database.drop_collection(f"{c.name}_ts_mismatch_target"),
+            c.database.drop_collection(f"{c.name}_ts_mismatch_meta_field_present_vs_absent"),
             c.database.command(
-                {"create": f"{c.name}_ts_mismatch_target", "timeseries": {"timeField": "ts"}}
+                {
+                    "create": f"{c.name}_ts_mismatch_meta_field_present_vs_absent",
+                    "timeseries": {"timeField": "ts"},
+                }
             ),
         ),
         msg=(
@@ -139,13 +138,12 @@ OUT_TIMESERIES_EXISTING_COLLECTION_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "ts_mismatch_different_meta_field",
         docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "v": 1}],
-        target_coll="ts_mismatch_target",
         out_spec={"timeseries": {"timeField": "ts", "metaField": "other"}},
         setup=lambda c: (
-            c.database.drop_collection(f"{c.name}_ts_mismatch_target"),
+            c.database.drop_collection(f"{c.name}_ts_mismatch_different_meta_field"),
             c.database.command(
                 {
-                    "create": f"{c.name}_ts_mismatch_target",
+                    "create": f"{c.name}_ts_mismatch_different_meta_field",
                     "timeseries": {"timeField": "ts", "metaField": "m"},
                 }
             ),
@@ -159,13 +157,12 @@ OUT_TIMESERIES_EXISTING_COLLECTION_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "ts_mismatch_different_granularity",
         docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "v": 1}],
-        target_coll="ts_mismatch_target",
         out_spec={"timeseries": {"timeField": "ts", "granularity": "hours"}},
         setup=lambda c: (
-            c.database.drop_collection(f"{c.name}_ts_mismatch_target"),
+            c.database.drop_collection(f"{c.name}_ts_mismatch_different_granularity"),
             c.database.command(
                 {
-                    "create": f"{c.name}_ts_mismatch_target",
+                    "create": f"{c.name}_ts_mismatch_different_granularity",
                     "timeseries": {"timeField": "ts", "granularity": "seconds"},
                 }
             ),
@@ -179,13 +176,12 @@ OUT_TIMESERIES_EXISTING_COLLECTION_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "ts_mismatch_granularity_vs_bucket_options",
         docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "v": 1}],
-        target_coll="ts_mismatch_target",
         out_spec={"timeseries": {"timeField": "ts", "granularity": "hours"}},
         setup=lambda c: (
-            c.database.drop_collection(f"{c.name}_ts_mismatch_target"),
+            c.database.drop_collection(f"{c.name}_ts_mismatch_granularity_vs_bucket_options"),
             c.database.command(
                 {
-                    "create": f"{c.name}_ts_mismatch_target",
+                    "create": f"{c.name}_ts_mismatch_granularity_vs_bucket_options",
                     "timeseries": {
                         "timeField": "ts",
                         "bucketMaxSpanSeconds": 100,
@@ -203,7 +199,6 @@ OUT_TIMESERIES_EXISTING_COLLECTION_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "ts_mismatch_different_bucket_values",
         docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "v": 1}],
-        target_coll="ts_mismatch_target",
         out_spec={
             "timeseries": {
                 "timeField": "ts",
@@ -212,10 +207,10 @@ OUT_TIMESERIES_EXISTING_COLLECTION_ERROR_TESTS: list[OutTestCase] = [
             }
         },
         setup=lambda c: (
-            c.database.drop_collection(f"{c.name}_ts_mismatch_target"),
+            c.database.drop_collection(f"{c.name}_ts_mismatch_different_bucket_values"),
             c.database.command(
                 {
-                    "create": f"{c.name}_ts_mismatch_target",
+                    "create": f"{c.name}_ts_mismatch_different_bucket_values",
                     "timeseries": {
                         "timeField": "ts",
                         "bucketMaxSpanSeconds": 100,
@@ -240,12 +235,11 @@ OUT_INDEX_CONSTRAINT_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "idx_unique",
         docs=[{"_id": 1, "x": 1}, {"_id": 2, "x": 1}],
-        target_coll="idx_unique_target",
         setup=lambda c: (
-            c.database[f"{c.name}_idx_unique_target"].insert_many(
+            c.database[f"{c.name}_idx_unique"].insert_many(
                 [{"_id": 90, "x": 90}, {"_id": 91, "x": 91}]
             ),
-            c.database[f"{c.name}_idx_unique_target"].create_index("x", unique=True),
+            c.database[f"{c.name}_idx_unique"].create_index("x", unique=True),
         ),
         msg="$out should produce a duplicate key error on unique index violation",
         error_code=DUPLICATE_KEY_ERROR,
@@ -253,12 +247,9 @@ OUT_INDEX_CONSTRAINT_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "idx_compound",
         docs=[{"_id": 1, "a": 1, "b": 2}, {"_id": 2, "a": 1, "b": 2}],
-        target_coll="idx_compound_target",
         setup=lambda c: (
-            c.database[f"{c.name}_idx_compound_target"].insert_one({"_id": 99, "a": 99, "b": 99}),
-            c.database[f"{c.name}_idx_compound_target"].create_index(
-                [("a", 1), ("b", 1)], unique=True
-            ),
+            c.database[f"{c.name}_idx_compound"].insert_one({"_id": 99, "a": 99, "b": 99}),
+            c.database[f"{c.name}_idx_compound"].create_index([("a", 1), ("b", 1)], unique=True),
         ),
         msg="$out should produce a duplicate key error on compound unique index violation",
         error_code=DUPLICATE_KEY_ERROR,
@@ -266,7 +257,6 @@ OUT_INDEX_CONSTRAINT_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "idx_dup_id",
         docs=[{"_id": 1, "x": 1}, {"_id": 2, "x": 2}],
-        target_coll="idx_dup_id_target",
         pipeline=[
             {"$unset": "_id"},
             {"$addFields": {"_id": "same"}},
@@ -282,7 +272,6 @@ OUT_READ_CONCERN_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "rc_linearizable",
         docs=[{"_id": 1, "value": 10}],
-        target_coll="rc_linearizable_target",
         msg="$out should reject linearizable read concern",
         error_code=INVALID_OPTIONS_ERROR,
     ),
@@ -335,7 +324,6 @@ OUT_VIEW_DEFINITION_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "view_def_out",
         docs=[{"_id": 1, "value": 10}],
-        target_coll="view_def_target",
         error_code=OPTION_NOT_SUPPORTED_ON_VIEW_ERROR,
         msg="$out in a view definition should produce an invalid view pipeline error",
     ),
@@ -367,12 +355,11 @@ OUT_SCHEMA_VALIDATION_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "schema_val_err",
         docs=[{"_id": 1, "value": "not_a_number"}],
-        target_coll="schema_val_error_target",
         setup=lambda c: (
-            c.database.drop_collection(f"{c.name}_schema_val_error_target"),
+            c.database.drop_collection(f"{c.name}_schema_val_err"),
             c.database.command(
                 {
-                    "create": f"{c.name}_schema_val_error_target",
+                    "create": f"{c.name}_schema_val_err",
                     "validator": {
                         "$jsonSchema": {
                             "bsonType": "object",
@@ -383,7 +370,7 @@ OUT_SCHEMA_VALIDATION_ERROR_TESTS: list[OutTestCase] = [
                     "validationAction": "error",
                 }
             ),
-            c.database[f"{c.name}_schema_val_error_target"].insert_one({"_id": 99, "value": 42}),
+            c.database[f"{c.name}_schema_val_err"].insert_one({"_id": 99, "value": 42}),
         ),
         error_code=DOCUMENT_VALIDATION_FAILURE_ERROR,
         expected=[{"_id": 99, "value": 42}],
@@ -419,7 +406,7 @@ def test_out_schema_validation_error_unchanged(collection, test_case: OutTestCas
         collection,
         {"aggregate": collection.name, "pipeline": pipeline, "cursor": {}},
     )
-    target = test_case.resolve_target_coll(collection)
+    target = target_name(collection, test_case)
     result = execute_command(
         collection,
         {"find": target, "filter": {}, "projection": {"_id": 1, "value": 1}},
@@ -433,7 +420,6 @@ OUT_TRANSACTION_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "transaction_out",
         docs=[{"_id": 1, "value": 10}],
-        target_coll="txn_target",
         error_code=ILLEGAL_OPERATION_ERROR,
         msg="$out inside a transaction should produce an error",
     ),

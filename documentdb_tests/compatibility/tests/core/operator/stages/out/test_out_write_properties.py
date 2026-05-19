@@ -20,6 +20,7 @@ from bson import (
 
 from documentdb_tests.compatibility.tests.core.operator.stages.out.utils.out_test_helpers import (
     OutTestCase,
+    target_name,
 )
 from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_case import (
     populate_collection,
@@ -37,7 +38,6 @@ OUT_AUTO_GENERATED_ID_TESTS: list[OutTestCase] = [
     OutTestCase(
         "auto_id",
         docs=[{"_id": 1, "value": 10}, {"_id": 2, "value": 20}],
-        target_coll="write_auto_id_target",
         pipeline=[{"$unset": "_id"}],
         expected=2,
         msg="$out should auto-generate ObjectId _id when _id is removed",
@@ -50,7 +50,7 @@ OUT_AUTO_GENERATED_ID_TESTS: list[OutTestCase] = [
 def test_out_auto_generated_id(collection, test_case: OutTestCase):
     """Test $out auto-generates ObjectId _id when _id is removed."""
     populate_collection(collection, test_case)
-    target = test_case.resolve_target_coll(collection)
+    target = target_name(collection, test_case)
     pipeline = test_case.pipeline + [{"$out": target}]
     execute_command(
         collection,
@@ -77,7 +77,6 @@ OUT_EMPTY_CURSOR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "empty_cursor",
         docs=[{"_id": 1, "value": 10}],
-        target_coll="write_cursor_target",
         expected=[],
         msg="$out aggregation cursor should return an empty result list",
     ),
@@ -103,7 +102,6 @@ OUT_EXPLAIN_NO_WRITE_TESTS: list[OutTestCase] = [
     OutTestCase(
         "explain_no_write",
         docs=[{"_id": 1, "value": 10}],
-        target_coll="write_explain_target",
         expected=[],
         msg="explain with $out should not create the target collection",
     ),
@@ -115,7 +113,7 @@ OUT_EXPLAIN_NO_WRITE_TESTS: list[OutTestCase] = [
 def test_out_explain_no_write(collection, test_case: OutTestCase):
     """Test explain with $out does not create or modify the target collection."""
     populate_collection(collection, test_case)
-    target = test_case.resolve_target_coll(collection)
+    target = target_name(collection, test_case)
     out_stage = test_case.build_out_stage(collection)
     execute_command(
         collection,
@@ -137,8 +135,7 @@ OUT_EXPLAIN_NO_MODIFY_TESTS: list[OutTestCase] = [
     OutTestCase(
         "explain_no_modify",
         docs=[{"_id": 10, "new": True}],
-        target_coll="write_explain_existing_target",
-        setup=lambda c: c.database[f"{c.name}_write_explain_existing_target"].insert_many(
+        setup=lambda c: c.database[f"{c.name}_explain_no_modify"].insert_many(
             [{"_id": 1, "old": True}, {"_id": 2, "old": True}]
         ),
         expected=[{"_id": 1, "old": True}, {"_id": 2, "old": True}],
@@ -154,7 +151,7 @@ def test_out_explain_no_modify(collection, test_case: OutTestCase):
     populate_collection(collection, test_case)
     if test_case.setup:
         test_case.setup(collection)
-    target = test_case.resolve_target_coll(collection)
+    target = target_name(collection, test_case)
     out_stage = test_case.build_out_stage(collection)
     execute_command(
         collection,
@@ -178,7 +175,6 @@ OUT_IDEMPOTENT_TESTS: list[OutTestCase] = [
     OutTestCase(
         "idempotent",
         docs=[{"_id": 1, "value": 10}, {"_id": 2, "value": 20}],
-        target_coll="write_idempotent_target",
         expected=[{"_id": 1, "value": 10}, {"_id": 2, "value": 20}],
         msg="$out should produce the same result when run twice to the same target",
     ),
@@ -190,7 +186,7 @@ OUT_IDEMPOTENT_TESTS: list[OutTestCase] = [
 def test_out_idempotent(collection, test_case: OutTestCase):
     """Test $out is idempotent when run twice to the same target."""
     populate_collection(collection, test_case)
-    target = test_case.resolve_target_coll(collection)
+    target = target_name(collection, test_case)
     out_stage = test_case.build_out_stage(collection)
     execute_command(
         collection,
@@ -234,7 +230,6 @@ OUT_BSON_ROUND_TRIP_TESTS: list[OutTestCase] = [
                 "code_val": Code("function() {}"),
             }
         ],
-        target_coll="write_bson_target",
         msg="all BSON types should round-trip through $out without modification",
     ),
 ]
@@ -245,7 +240,7 @@ OUT_BSON_ROUND_TRIP_TESTS: list[OutTestCase] = [
 def test_out_bson_round_trip(collection, test_case: OutTestCase):
     """Test all BSON types round-trip through $out without modification."""
     populate_collection(collection, test_case)
-    target = test_case.resolve_target_coll(collection)
+    target = target_name(collection, test_case)
     out_stage = test_case.build_out_stage(collection)
     execute_command(
         collection,
@@ -272,7 +267,6 @@ OUT_LARGE_DOCUMENT_TESTS: list[OutTestCase] = [
     OutTestCase(
         "large_doc",
         docs=[{"_id": 1, "data": "x" * (15 * 1_024 * 1_024)}],
-        target_coll="write_large_target",
         expected=[{"_id": 1}],
         msg="$out should successfully write a 15 MB document",
     ),
@@ -284,7 +278,7 @@ OUT_LARGE_DOCUMENT_TESTS: list[OutTestCase] = [
 def test_out_large_document(collection, test_case: OutTestCase):
     """Test $out writes documents up to 15 MB successfully."""
     populate_collection(collection, test_case)
-    target = test_case.resolve_target_coll(collection)
+    target = target_name(collection, test_case)
     out_stage = test_case.build_out_stage(collection)
     execute_command(
         collection,

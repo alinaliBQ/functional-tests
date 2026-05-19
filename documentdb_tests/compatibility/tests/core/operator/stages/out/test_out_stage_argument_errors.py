@@ -45,7 +45,6 @@ OUT_NULL_MISSING_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "null_db_missing",
         docs=[{"_id": 1}],
-        target_coll="target",
         pipeline=[{"$out": {"db": None, "coll": "target"}}],
         msg="$out should treat null db as missing, not as a type error",
         error_code=MISSING_FIELD_ERROR,
@@ -53,7 +52,6 @@ OUT_NULL_MISSING_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "null_coll_missing",
         docs=[{"_id": 1}],
-        target_coll="target",
         pipeline=[{"$out": {"db": "test", "coll": None}}],
         msg="$out should treat null coll as missing, not as a type error",
         error_code=MISSING_FIELD_ERROR,
@@ -61,7 +59,6 @@ OUT_NULL_MISSING_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "null_time_field_missing",
         docs=[{"_id": 1}],
-        target_coll="target",
         pipeline=[{"$out": {"db": "test", "coll": "target", "timeseries": {"timeField": None}}}],
         msg="$out should treat null timeField as missing, not as a type error",
         error_code=MISSING_FIELD_ERROR,
@@ -69,7 +66,6 @@ OUT_NULL_MISSING_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "null_bucket_max_with_valid_rounding",
         docs=[{"_id": 1}],
-        target_coll="target",
         pipeline=[
             {
                 "$out": {
@@ -92,7 +88,6 @@ OUT_NULL_MISSING_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "null_bucket_rounding_with_valid_max",
         docs=[{"_id": 1}],
-        target_coll="target",
         pipeline=[
             {
                 "$out": {

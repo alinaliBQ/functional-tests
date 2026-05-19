@@ -9,6 +9,7 @@ import pytest
 
 from documentdb_tests.compatibility.tests.core.operator.stages.out.utils.out_test_helpers import (
     OutTestCase,
+    target_name,
 )
 from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_case import (
     populate_collection,
@@ -28,7 +29,6 @@ OUT_SYNTAX_FORMS_TESTS: list[OutTestCase] = [
     OutTestCase(
         "string_form_same_database",
         docs=[{"_id": 1, "value": 10}, {"_id": 2, "value": 20}],
-        target_coll="syntax_string_target",
         out_spec=None,
         expected_type="collection",
         expected_options={},
@@ -37,7 +37,6 @@ OUT_SYNTAX_FORMS_TESTS: list[OutTestCase] = [
     OutTestCase(
         "document_form_db_and_coll",
         docs=[{"_id": 1, "value": 10}, {"_id": 2, "value": 20}],
-        target_coll="syntax_doc_target",
         out_spec={},
         expected_type="collection",
         expected_options={},
@@ -46,7 +45,6 @@ OUT_SYNTAX_FORMS_TESTS: list[OutTestCase] = [
     OutTestCase(
         "document_form_with_timeseries",
         docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "value": 10}],
-        target_coll="syntax_ts_target",
         out_spec={"timeseries": {"timeField": "ts"}},
         expected_type="timeseries",
         expected_options={
@@ -67,7 +65,6 @@ OUT_NULL_SUCCESS_TESTS: list[OutTestCase] = [
     OutTestCase(
         "null_timeseries_regular_collection",
         docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "value": 10}],
-        target_coll="target_ts_null",
         out_spec={"timeseries": None},
         expected_type="collection",
         expected_options={},
@@ -76,7 +73,6 @@ OUT_NULL_SUCCESS_TESTS: list[OutTestCase] = [
     OutTestCase(
         "null_meta_field_omitted",
         docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "value": 10}],
-        target_coll="target_meta_null",
         out_spec={"timeseries": {"timeField": "ts", "metaField": None}},
         expected_type="timeseries",
         expected_options={
@@ -91,7 +87,6 @@ OUT_NULL_SUCCESS_TESTS: list[OutTestCase] = [
     OutTestCase(
         "null_granularity_defaults_to_seconds",
         docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "value": 10}],
-        target_coll="target_gran_null",
         out_spec={"timeseries": {"timeField": "ts", "granularity": None}},
         expected_type="timeseries",
         expected_options={
@@ -106,7 +101,6 @@ OUT_NULL_SUCCESS_TESTS: list[OutTestCase] = [
     OutTestCase(
         "null_bucket_params_defaults_to_granularity",
         docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "value": 10}],
-        target_coll="target_bucket_null",
         out_spec={
             "timeseries": {
                 "timeField": "ts",
@@ -240,7 +234,7 @@ OUT_ACCEPTANCE_TESTS = (
 def test_out_acceptance(collection, test_case: OutTestCase):
     """Test $out writes results and creates the correct collection type."""
     populate_collection(collection, test_case)
-    target = test_case.resolve_target_coll(collection)
+    target = target_name(collection, test_case)
     out_stage = test_case.build_out_stage(collection)
     execute_command(
         collection,
@@ -268,7 +262,6 @@ OUT_VIEW_SOURCE_SUCCESS_TESTS: list[OutTestCase] = [
     OutTestCase(
         "view_source_out",
         docs=[{"_id": 1, "value": 10}],
-        target_coll="view_source_out_target",
         setup=lambda c: (
             c.database.drop_collection(f"{c.name}_good_view_for_out"),
             c.database.command(
@@ -294,7 +287,7 @@ def test_out_from_view_source_succeeds(collection, test_case: OutTestCase):
         test_case.setup(collection)
     db = collection.database
     view_name = f"{collection.name}_good_view_for_out"
-    target = test_case.resolve_target_coll(collection)
+    target = target_name(collection, test_case)
     execute_command(
         db[view_name],
         {
@@ -317,35 +310,30 @@ OUT_AGGREGATION_OPTION_SUCCESS_TESTS: list[OutTestCase] = [
     OutTestCase(
         "agg_opts_collation",
         docs=[{"_id": 1, "value": 10}],
-        target_coll="agg_opts_target",
         out_spec={"collation": {"locale": "en", "strength": 2}},
         msg="$out should succeed with aggregation option collation",
     ),
     OutTestCase(
         "agg_opts_hint",
         docs=[{"_id": 1, "value": 10}],
-        target_coll="agg_opts_target",
         out_spec={"hint": "_id_"},
         msg="$out should succeed with aggregation option hint",
     ),
     OutTestCase(
         "agg_opts_max_time_ms",
         docs=[{"_id": 1, "value": 10}],
-        target_coll="agg_opts_target",
         out_spec={"maxTimeMS": 60_000},
         msg="$out should succeed with aggregation option maxTimeMS",
     ),
     OutTestCase(
         "agg_opts_allow_disk_use",
         docs=[{"_id": 1, "value": 10}],
-        target_coll="agg_opts_target",
         out_spec={"allowDiskUse": True},
         msg="$out should succeed with aggregation option allowDiskUse",
     ),
     OutTestCase(
         "agg_opts_bypass_doc_validation",
         docs=[{"_id": 1, "value": 10}],
-        target_coll="agg_opts_target",
         out_spec={"bypassDocumentValidation": True},
         msg="$out should succeed with aggregation option bypassDocumentValidation",
     ),
@@ -357,7 +345,7 @@ OUT_AGGREGATION_OPTION_SUCCESS_TESTS: list[OutTestCase] = [
 def test_out_aggregation_options(collection, test_case: OutTestCase):
     """Test $out succeeds with standard aggregation options."""
     populate_collection(collection, test_case)
-    target = test_case.resolve_target_coll(collection)
+    target = target_name(collection, test_case)
     result = execute_command(
         collection,
         {
@@ -380,21 +368,18 @@ OUT_READ_CONCERN_ACCEPTANCE_TESTS: list[OutTestCase] = [
     OutTestCase(
         "rc_majority",
         docs=[{"_id": 1, "value": 10}],
-        target_coll="rc_majority_target",
         out_spec={"readConcern": "majority"},
         msg="$out should succeed with readConcern level 'majority'",
     ),
     OutTestCase(
         "rc_local",
         docs=[{"_id": 1, "value": 10}],
-        target_coll="rc_local_target",
         out_spec={"readConcern": "local"},
         msg="$out should succeed with readConcern level 'local'",
     ),
     OutTestCase(
         "rc_available",
         docs=[{"_id": 1, "value": 10}],
-        target_coll="rc_available_target",
         out_spec={"readConcern": "available"},
         msg="$out should succeed with readConcern level 'available'",
     ),
@@ -406,7 +391,7 @@ OUT_READ_CONCERN_ACCEPTANCE_TESTS: list[OutTestCase] = [
 def test_out_read_concern_acceptance(collection, test_case: OutTestCase):
     """Test $out succeeds with non-linearizable read concern levels."""
     populate_collection(collection, test_case)
-    target = test_case.resolve_target_coll(collection)
+    target = target_name(collection, test_case)
     result = execute_command(
         collection,
         {
@@ -430,13 +415,12 @@ OUT_SCHEMA_VALIDATION_SUCCESS_TESTS: list[OutTestCase] = [
     OutTestCase(
         "schema_val_warn",
         docs=[{"_id": 1, "value": "not_a_number"}],
-        target_coll="schema_val_warn_target",
         out_spec={"bypassDocumentValidation": False},
         setup=lambda c: (
-            c.database.drop_collection(f"{c.name}_schema_val_warn_target"),
+            c.database.drop_collection(f"{c.name}_schema_val_warn"),
             c.database.command(
                 {
-                    "create": f"{c.name}_schema_val_warn_target",
+                    "create": f"{c.name}_schema_val_warn",
                     "validator": {
                         "$jsonSchema": {
                             "bsonType": "object",
@@ -454,13 +438,12 @@ OUT_SCHEMA_VALIDATION_SUCCESS_TESTS: list[OutTestCase] = [
     OutTestCase(
         "schema_val_bypass",
         docs=[{"_id": 1, "value": "not_a_number"}],
-        target_coll="schema_val_bypass_target",
         out_spec={"bypassDocumentValidation": True},
         setup=lambda c: (
-            c.database.drop_collection(f"{c.name}_schema_val_bypass_target"),
+            c.database.drop_collection(f"{c.name}_schema_val_bypass"),
             c.database.command(
                 {
-                    "create": f"{c.name}_schema_val_bypass_target",
+                    "create": f"{c.name}_schema_val_bypass",
                     "validator": {
                         "$jsonSchema": {
                             "bsonType": "object",
@@ -485,7 +468,7 @@ def test_out_schema_validation_success(collection, test_case: OutTestCase):
     populate_collection(collection, test_case)
     if test_case.setup:
         test_case.setup(collection)
-    target = test_case.resolve_target_coll(collection)
+    target = target_name(collection, test_case)
     cmd: dict[str, Any] = {
         "aggregate": collection.name,
         "pipeline": [{"$out": target}],
@@ -508,7 +491,6 @@ OUT_INDEX_NONEXISTENT_TARGET_NOT_CREATED_TESTS: list[OutTestCase] = [
     OutTestCase(
         "idx_nonexist_not_created",
         docs=[{"_id": 1, "x": 1}, {"_id": 2, "x": 2}],
-        target_coll="idx_nonexist_target",
         expected=[],
         msg="$out should not create the target collection when a unique index violation occurs",
     ),
@@ -520,7 +502,7 @@ OUT_INDEX_NONEXISTENT_TARGET_NOT_CREATED_TESTS: list[OutTestCase] = [
 def test_out_unique_violation_nonexistent_target_not_created(collection, test_case: OutTestCase):
     """Test $out does not create the target when a unique index violation occurs."""
     populate_collection(collection, test_case)
-    target = test_case.resolve_target_coll(collection)
+    target = target_name(collection, test_case)
     collection.database.drop_collection(target)
     pipeline = [
         {"$unset": "_id"},

@@ -10,6 +10,7 @@ from bson import Decimal128, Int64
 
 from documentdb_tests.compatibility.tests.core.operator.stages.out.utils.out_test_helpers import (
     OutTestCase,
+    target_name,
 )
 from documentdb_tests.compatibility.tests.core.operator.stages.utils.stage_test_case import (
     populate_collection,
@@ -33,7 +34,6 @@ OUT_TIMESERIES_CREATION_TESTS: list[OutTestCase] = [
     OutTestCase(
         "ts_meta_field_is_id",
         docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "value": 10}],
-        target_coll="ts_creation_meta_id",
         out_spec={"timeseries": {"timeField": "ts", "metaField": "_id"}},
         expected_type="timeseries",
         expected_options={
@@ -49,7 +49,6 @@ OUT_TIMESERIES_CREATION_TESTS: list[OutTestCase] = [
     OutTestCase(
         "ts_meta_field_same_as_time_field",
         docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "value": 10}],
-        target_coll="ts_creation_meta_same",
         out_spec={"timeseries": {"timeField": "ts", "metaField": "ts"}},
         expected_type="timeseries",
         expected_options={
@@ -71,7 +70,6 @@ OUT_BUCKET_PARAM_TYPE_ACCEPTANCE_TESTS: list[OutTestCase] = [
     OutTestCase(
         "bucket_int32",
         docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "v": 1}],
-        target_coll="bucket_int32",
         out_spec={
             "timeseries": {
                 "timeField": "ts",
@@ -92,7 +90,6 @@ OUT_BUCKET_PARAM_TYPE_ACCEPTANCE_TESTS: list[OutTestCase] = [
     OutTestCase(
         "bucket_int64",
         docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "v": 1}],
-        target_coll="bucket_int64",
         out_spec={
             "timeseries": {
                 "timeField": "ts",
@@ -113,7 +110,6 @@ OUT_BUCKET_PARAM_TYPE_ACCEPTANCE_TESTS: list[OutTestCase] = [
     OutTestCase(
         "bucket_float",
         docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "v": 1}],
-        target_coll="bucket_float",
         out_spec={
             "timeseries": {
                 "timeField": "ts",
@@ -134,7 +130,6 @@ OUT_BUCKET_PARAM_TYPE_ACCEPTANCE_TESTS: list[OutTestCase] = [
     OutTestCase(
         "bucket_decimal128",
         docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "v": 1}],
-        target_coll="bucket_decimal128",
         out_spec={
             "timeseries": {
                 "timeField": "ts",
@@ -155,7 +150,6 @@ OUT_BUCKET_PARAM_TYPE_ACCEPTANCE_TESTS: list[OutTestCase] = [
     OutTestCase(
         "bucket_cross_int32_int64",
         docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "v": 1}],
-        target_coll="bucket_cross_i32_i64",
         out_spec={
             "timeseries": {
                 "timeField": "ts",
@@ -176,7 +170,6 @@ OUT_BUCKET_PARAM_TYPE_ACCEPTANCE_TESTS: list[OutTestCase] = [
     OutTestCase(
         "bucket_cross_float_decimal128",
         docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "v": 1}],
-        target_coll="bucket_cross_f_d128",
         out_spec={
             "timeseries": {
                 "timeField": "ts",
@@ -197,7 +190,6 @@ OUT_BUCKET_PARAM_TYPE_ACCEPTANCE_TESTS: list[OutTestCase] = [
     OutTestCase(
         "bucket_float_truncation_success",
         docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "v": 1}],
-        target_coll="bucket_float_trunc",
         out_spec={
             "timeseries": {
                 "timeField": "ts",
@@ -218,7 +210,6 @@ OUT_BUCKET_PARAM_TYPE_ACCEPTANCE_TESTS: list[OutTestCase] = [
     OutTestCase(
         "bucket_decimal128_bankers_rounding",
         docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "v": 1}],
-        target_coll="bucket_dec_bankers",
         out_spec={
             "timeseries": {
                 "timeField": "ts",
@@ -239,7 +230,6 @@ OUT_BUCKET_PARAM_TYPE_ACCEPTANCE_TESTS: list[OutTestCase] = [
     OutTestCase(
         "bucket_decimal128_bankers_round_down",
         docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "v": 1}],
-        target_coll="bucket_dec_bank_dn",
         out_spec={
             "timeseries": {
                 "timeField": "ts",
@@ -260,7 +250,6 @@ OUT_BUCKET_PARAM_TYPE_ACCEPTANCE_TESTS: list[OutTestCase] = [
     OutTestCase(
         "bucket_cross_coerced_equality",
         docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "v": 1}],
-        target_coll="bucket_cross_coerce",
         out_spec={
             "timeseries": {
                 "timeField": "ts",
@@ -284,7 +273,6 @@ OUT_BUCKET_PARAM_TYPE_ACCEPTANCE_TESTS: list[OutTestCase] = [
     OutTestCase(
         "bucket_range_min",
         docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "v": 1}],
-        target_coll="bucket_range_min",
         out_spec={
             "timeseries": {
                 "timeField": "ts",
@@ -305,7 +293,6 @@ OUT_BUCKET_PARAM_TYPE_ACCEPTANCE_TESTS: list[OutTestCase] = [
     OutTestCase(
         "bucket_range_max",
         docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "v": 1}],
-        target_coll="bucket_range_max",
         out_spec={
             "timeseries": {
                 "timeField": "ts",
@@ -332,7 +319,6 @@ OUT_TIMESERIES_GRANULARITY_TESTS: list[OutTestCase] = [
     OutTestCase(
         "granularity_seconds",
         docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "v": 1}],
-        target_coll="ts_gran_seconds",
         out_spec={"timeseries": {"timeField": "ts", "granularity": "seconds"}},
         expected_type="timeseries",
         expected_options={
@@ -347,7 +333,6 @@ OUT_TIMESERIES_GRANULARITY_TESTS: list[OutTestCase] = [
     OutTestCase(
         "granularity_minutes",
         docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "v": 1}],
-        target_coll="ts_gran_minutes",
         out_spec={"timeseries": {"timeField": "ts", "granularity": "minutes"}},
         expected_type="timeseries",
         expected_options={
@@ -362,7 +347,6 @@ OUT_TIMESERIES_GRANULARITY_TESTS: list[OutTestCase] = [
     OutTestCase(
         "granularity_hours",
         docs=[{"_id": 1, "ts": datetime(2024, 1, 1), "v": 1}],
-        target_coll="ts_gran_hours",
         out_spec={"timeseries": {"timeField": "ts", "granularity": "hours"}},
         expected_type="timeseries",
         expected_options={
@@ -395,11 +379,11 @@ def test_out_timeseries(collection, test_case: OutTestCase):
     )
     result = execute_command(
         collection,
-        {"listCollections": 1, "filter": {"name": test_case.resolve_target_coll(collection)}},
+        {"listCollections": 1, "filter": {"name": target_name(collection, test_case)}},
     )
     raw_doc = cast(dict, result)["cursor"]["firstBatch"][0]
     expected_info: dict[str, Any] = {
-        "name": test_case.resolve_target_coll(collection),
+        "name": target_name(collection, test_case),
         "type": test_case.expected_type,
         "options": test_case.expected_options,
         "info": raw_doc["info"],
@@ -416,17 +400,7 @@ OUT_TIMESERIES_CROSS_DB_TESTS: list[OutTestCase] = [
     OutTestCase(
         "ts_cross_db",
         docs=[{"_id": 1, "ts": datetime(2024, 7, 1), "value": 70}],
-        target_coll="ts_cross_target",
         target_db="out_ts_cross_db_target",
-        pipeline=[
-            {
-                "$out": {
-                    "db": "out_ts_cross_db_target",
-                    "coll": "ts_cross_target",
-                    "timeseries": {"timeField": "ts"},
-                }
-            }
-        ],
         expected=[{"ts": datetime(2024, 7, 1, tzinfo=timezone.utc), "value": 70}],
         msg="$out should create a time series collection in a different database",
     ),
@@ -450,9 +424,9 @@ def test_out_timeseries_cross_db(collection, test_case: OutTestCase):
             },
         )
         result = execute_command(
-            client[test_case.target_db][test_case.resolve_target_coll(collection)],
+            client[test_case.target_db][target_name(collection, test_case)],
             {
-                "find": test_case.resolve_target_coll(collection),
+                "find": target_name(collection, test_case),
                 "filter": {},
                 "projection": {"_id": 0},
             },
@@ -470,7 +444,6 @@ OUT_TIMESERIES_DATETIME_ACCEPTANCE_TESTS: list[OutTestCase] = [
     OutTestCase(
         "ts_datetime_epoch",
         docs=[{"_id": 1, "ts": datetime(1970, 1, 1), "v": 1}],
-        target_coll="ts_dt_epoch",
         out_spec={"timeseries": {"timeField": "ts"}},
         expected=[{"ts": datetime(1970, 1, 1, tzinfo=timezone.utc), "v": 1}],
         msg="$out timeseries should accept Unix epoch as timeField value",
@@ -478,7 +451,6 @@ OUT_TIMESERIES_DATETIME_ACCEPTANCE_TESTS: list[OutTestCase] = [
     OutTestCase(
         "ts_datetime_pre_epoch",
         docs=[{"_id": 1, "ts": datetime(1960, 6, 15), "v": 2}],
-        target_coll="ts_dt_pre_epoch",
         out_spec={"timeseries": {"timeField": "ts"}},
         expected=[{"ts": datetime(1960, 6, 15, tzinfo=timezone.utc), "v": 2}],
         msg="$out timeseries should accept pre-epoch dates as timeField value",
@@ -486,7 +458,6 @@ OUT_TIMESERIES_DATETIME_ACCEPTANCE_TESTS: list[OutTestCase] = [
     OutTestCase(
         "ts_datetime_far_future",
         docs=[{"_id": 1, "ts": datetime(9999, 12, 31, 23, 59, 59), "v": 3}],
-        target_coll="ts_dt_far_future",
         out_spec={"timeseries": {"timeField": "ts"}},
         expected=[{"ts": datetime(9999, 12, 31, 23, 59, 59, tzinfo=timezone.utc), "v": 3}],
         msg="$out timeseries should accept far future dates as timeField value",
@@ -494,7 +465,6 @@ OUT_TIMESERIES_DATETIME_ACCEPTANCE_TESTS: list[OutTestCase] = [
     OutTestCase(
         "ts_datetime_minimum",
         docs=[{"_id": 1, "ts": datetime(1, 1, 1), "v": 4}],
-        target_coll="ts_dt_minimum",
         out_spec={"timeseries": {"timeField": "ts"}},
         expected=[{"ts": datetime(1, 1, 1, tzinfo=timezone.utc), "v": 4}],
         msg="$out timeseries should accept minimum datetime (0001-01-01) as timeField value",
@@ -502,7 +472,6 @@ OUT_TIMESERIES_DATETIME_ACCEPTANCE_TESTS: list[OutTestCase] = [
     OutTestCase(
         "ts_datetime_millisecond_precision",
         docs=[{"_id": 1, "ts": datetime(2024, 6, 15, 12, 30, 45, 123_000), "v": 5}],
-        target_coll="ts_dt_millis",
         out_spec={"timeseries": {"timeField": "ts"}},
         expected=[{"ts": datetime(2024, 6, 15, 12, 30, 45, 123_000, tzinfo=timezone.utc), "v": 5}],
         msg="$out timeseries should accept datetimes with millisecond precision as timeField value",
@@ -523,7 +492,7 @@ def test_out_timeseries_datetime_acceptance(collection, test_case: OutTestCase):
     result = execute_command(
         collection,
         {
-            "find": test_case.resolve_target_coll(collection),
+            "find": target_name(collection, test_case),
             "filter": {},
             "projection": {"_id": 0, "ts": 1, "v": 1},
         },
@@ -538,12 +507,14 @@ OUT_TIMESERIES_EXISTING_TESTS: list[OutTestCase] = [
     OutTestCase(
         "ts_existing_matching_options",
         docs=[{"_id": 1, "ts": datetime(2024, 6, 1), "value": 60}],
-        target_coll="ts_existing_target",
         out_spec={"timeseries": {"timeField": "ts"}},
         setup=lambda c: (
-            c.database.drop_collection(f"{c.name}_ts_existing_target"),
+            c.database.drop_collection(f"{c.name}_ts_existing_matching_options"),
             c.database.command(
-                {"create": f"{c.name}_ts_existing_target", "timeseries": {"timeField": "ts"}}
+                {
+                    "create": f"{c.name}_ts_existing_matching_options",
+                    "timeseries": {"timeField": "ts"},
+                }
             ),
         ),
         expected=[{"ts": datetime(2024, 6, 1, tzinfo=timezone.utc), "value": 60}],
@@ -555,11 +526,10 @@ OUT_TIMESERIES_EXISTING_TESTS: list[OutTestCase] = [
     OutTestCase(
         "ts_existing_string_form",
         docs=[{"_id": 1, "ts": datetime(2024, 6, 1), "value": 60}],
-        target_coll="ts_existing_target",
         setup=lambda c: (
-            c.database.drop_collection(f"{c.name}_ts_existing_target"),
+            c.database.drop_collection(f"{c.name}_ts_existing_string_form"),
             c.database.command(
-                {"create": f"{c.name}_ts_existing_target", "timeseries": {"timeField": "ts"}}
+                {"create": f"{c.name}_ts_existing_string_form", "timeseries": {"timeField": "ts"}}
             ),
         ),
         expected=[{"ts": datetime(2024, 6, 1, tzinfo=timezone.utc), "value": 60}],
@@ -571,12 +541,11 @@ OUT_TIMESERIES_EXISTING_TESTS: list[OutTestCase] = [
     OutTestCase(
         "ts_existing_document_form",
         docs=[{"_id": 1, "ts": datetime(2024, 6, 1), "value": 60}],
-        target_coll="ts_existing_target",
         out_spec={},
         setup=lambda c: (
-            c.database.drop_collection(f"{c.name}_ts_existing_target"),
+            c.database.drop_collection(f"{c.name}_ts_existing_document_form"),
             c.database.command(
-                {"create": f"{c.name}_ts_existing_target", "timeseries": {"timeField": "ts"}}
+                {"create": f"{c.name}_ts_existing_document_form", "timeseries": {"timeField": "ts"}}
             ),
         ),
         expected=[{"ts": datetime(2024, 6, 1, tzinfo=timezone.utc), "value": 60}],
@@ -603,7 +572,7 @@ def test_out_timeseries_existing(collection, test_case: OutTestCase):
     result = execute_command(
         collection,
         {
-            "find": test_case.resolve_target_coll(collection),
+            "find": target_name(collection, test_case),
             "filter": {},
             "projection": {"_id": 0, "ts": 1, "value": 1},
         },
