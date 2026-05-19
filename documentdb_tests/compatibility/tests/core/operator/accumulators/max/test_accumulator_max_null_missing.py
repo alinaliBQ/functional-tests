@@ -303,6 +303,32 @@ MAX_EDGE_CASE_TESTS: list[AccumulatorTestCase] = [
         expected=[{"result": [1, 2, 3]}],
         msg="$max should pick array over scalar (array > number in BSON order)",
     ),
+    AccumulatorTestCase(
+        "edge_empty_collection",
+        docs=[],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$max": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[],
+        msg="$max on empty collection should produce no groups (empty result)",
+    ),
+    AccumulatorTestCase(
+        "edge_multi_group_null",
+        docs=[
+            {"g": "A", "v": None},
+            {"g": "A", "v": None},
+            {"g": "B", "v": 5},
+            {"g": "B", "v": 15},
+        ],
+        pipeline=[
+            {"$group": {"_id": "$g", "result": {"$max": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+            {"$sort": {"result": 1}},
+        ],
+        expected=[{"result": None}, {"result": 15}],
+        msg="$max should return null for all-null group and max for group with values",
+    ),
 ]
 
 

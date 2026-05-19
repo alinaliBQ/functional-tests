@@ -25,13 +25,16 @@ from documentdb_tests.framework.test_constants import (
     DECIMAL128_NEGATIVE_INFINITY,
     DECIMAL128_NEGATIVE_NAN,
     DECIMAL128_NEGATIVE_ZERO,
+    DECIMAL128_SMALL_EXPONENT,
     DECIMAL128_ZERO,
     DOUBLE_MAX,
+    DOUBLE_MAX_SAFE_INTEGER,
     DOUBLE_MIN,
     DOUBLE_MIN_NEGATIVE_SUBNORMAL,
     DOUBLE_MIN_SUBNORMAL,
     DOUBLE_NEAR_MAX,
     DOUBLE_NEGATIVE_ZERO,
+    DOUBLE_PRECISION_LOSS,
     DOUBLE_ZERO,
     FLOAT_INFINITY,
     FLOAT_NAN,
@@ -376,6 +379,17 @@ MAX_BOUNDARY_TESTS: list[AccumulatorTestCase] = [
         expected=[{"result": INT64_MAX}],
         msg="$max should pick INT64_MAX over INT64_MAX - 1",
     ),
+    AccumulatorTestCase(
+        "boundary_safe_integer",
+        docs=[{"v": DOUBLE_MAX_SAFE_INTEGER}, {"v": DOUBLE_PRECISION_LOSS}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$max": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": DOUBLE_PRECISION_LOSS}],
+        msg="$max should pick DOUBLE_PRECISION_LOSS over "
+        "DOUBLE_MAX_SAFE_INTEGER at precision boundary",
+    ),
 ]
 
 
@@ -493,6 +507,16 @@ MAX_DECIMAL_PRECISION_TESTS: list[AccumulatorTestCase] = [
         ],
         expected=[{"result": Decimal128("5")}],
         msg="$max should pick finite Decimal128 over Decimal128 NaN",
+    ),
+    AccumulatorTestCase(
+        "decimal_small_exponent",
+        docs=[{"v": DECIMAL128_SMALL_EXPONENT}, {"v": DECIMAL128_ZERO}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$max": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": DECIMAL128_SMALL_EXPONENT}],
+        msg="$max should pick DECIMAL128_SMALL_EXPONENT over zero",
     ),
 ]
 

@@ -14,11 +14,13 @@ from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import (
+    DECIMAL128_INFINITY,
     DECIMAL128_NAN,
     DECIMAL128_NEGATIVE_ZERO,
     DECIMAL128_ZERO,
     DOUBLE_NEGATIVE_ZERO,
     DOUBLE_ZERO,
+    FLOAT_INFINITY,
     FLOAT_NAN,
 )
 
@@ -487,6 +489,106 @@ MAX_TIE_BREAKING_BUCKET_AUTO_TESTS: list[AccumulatorTestCase] = [
 ]
 
 # ===========================================================================
+# 6b. Additional Tie-Breaking Stage Divergence
+# ===========================================================================
+
+# Property [Negative Zero Tie Type Preservation]: -0.0 vs 0.0 are equal;
+# type is always "double" or "decimal" but the specific representation
+# differs by stage ($group: last, $bucketAuto: first).
+MAX_TIE_NEGZERO_GROUP_TESTS: list[AccumulatorTestCase] = [
+    AccumulatorTestCase(
+        "tie_negzero_double_group",
+        docs=[{"v": DOUBLE_NEGATIVE_ZERO}, {"v": DOUBLE_ZERO}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$max": "$v"}}},
+            {"$project": {"_id": 0, "value": "$result", "type": {"$type": "$result"}}},
+        ],
+        expected=[{"value": DOUBLE_ZERO, "type": "double"}],
+        msg="$max should preserve double type for -0.0 vs 0.0 tie in $group (last wins)",
+    ),
+    AccumulatorTestCase(
+        "tie_negzero_decimal_group",
+        docs=[{"v": DECIMAL128_NEGATIVE_ZERO}, {"v": DECIMAL128_ZERO}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$max": "$v"}}},
+            {"$project": {"_id": 0, "value": "$result", "type": {"$type": "$result"}}},
+        ],
+        expected=[{"value": DECIMAL128_ZERO, "type": "decimal"}],
+        msg="$max should preserve decimal type for Decimal128 -0 vs 0 tie in $group (last wins)",
+    ),
+]
+
+MAX_TIE_NEGZERO_BUCKET_AUTO_TESTS: list[AccumulatorTestCase] = [
+    AccumulatorTestCase(
+        "tie_negzero_double_bucket_auto",
+        docs=[{"v": DOUBLE_NEGATIVE_ZERO}, {"v": DOUBLE_ZERO}],
+        pipeline=[
+            {
+                "$bucketAuto": {
+                    "groupBy": {"$literal": 0},
+                    "buckets": 1,
+                    "output": {"result": {"$max": "$v"}},
+                }
+            },
+            {"$project": {"_id": 0, "value": "$result", "type": {"$type": "$result"}}},
+        ],
+        expected=[{"value": DOUBLE_NEGATIVE_ZERO, "type": "double"}],
+        msg="$max should preserve double type for -0.0 vs 0.0 tie in $bucketAuto (first wins)",
+    ),
+    AccumulatorTestCase(
+        "tie_negzero_decimal_bucket_auto",
+        docs=[{"v": DECIMAL128_NEGATIVE_ZERO}, {"v": DECIMAL128_ZERO}],
+        pipeline=[
+            {
+                "$bucketAuto": {
+                    "groupBy": {"$literal": 0},
+                    "buckets": 1,
+                    "output": {"result": {"$max": "$v"}},
+                }
+            },
+            {"$project": {"_id": 0, "value": "$result", "type": {"$type": "$result"}}},
+        ],
+        expected=[{"value": DECIMAL128_NEGATIVE_ZERO, "type": "decimal"}],
+        msg="$max should preserve decimal type for Decimal128 "
+        "-0 vs 0 tie in $bucketAuto (first wins)",
+    ),
+]
+
+# Property [Cross-Type Infinity Tie]: float(inf) and Decimal128("Infinity")
+# are numerically equal; tie-breaking differs by stage.
+MAX_TIE_CROSS_INF_GROUP_TESTS: list[AccumulatorTestCase] = [
+    AccumulatorTestCase(
+        "tie_cross_type_inf_group",
+        docs=[{"v": FLOAT_INFINITY}, {"v": DECIMAL128_INFINITY}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$max": "$v"}}},
+            {"$project": {"_id": 0, "value": "$result", "type": {"$type": "$result"}}},
+        ],
+        expected=[{"value": DECIMAL128_INFINITY, "type": "decimal"}],
+        msg="$max should return last type (Decimal128) for Infinity tie in $group",
+    ),
+]
+
+MAX_TIE_CROSS_INF_BUCKET_AUTO_TESTS: list[AccumulatorTestCase] = [
+    AccumulatorTestCase(
+        "tie_cross_type_inf_bucket_auto",
+        docs=[{"v": FLOAT_INFINITY}, {"v": DECIMAL128_INFINITY}],
+        pipeline=[
+            {
+                "$bucketAuto": {
+                    "groupBy": {"$literal": 0},
+                    "buckets": 1,
+                    "output": {"result": {"$max": "$v"}},
+                }
+            },
+            {"$project": {"_id": 0, "value": "$result", "type": {"$type": "$result"}}},
+        ],
+        expected=[{"value": FLOAT_INFINITY, "type": "double"}],
+        msg="$max should return first type (double) for Infinity tie in $bucketAuto",
+    ),
+]
+
+# ===========================================================================
 # 7. Numeric Equivalence Stage Divergence
 # ===========================================================================
 
@@ -568,6 +670,10 @@ MAX_STAGE_DIVERGENCE_TESTS = (
     + MAX_DECIMAL_TRAILING_BUCKET_AUTO_TESTS
     + MAX_TIE_BREAKING_GROUP_TESTS
     + MAX_TIE_BREAKING_BUCKET_AUTO_TESTS
+    + MAX_TIE_NEGZERO_GROUP_TESTS
+    + MAX_TIE_NEGZERO_BUCKET_AUTO_TESTS
+    + MAX_TIE_CROSS_INF_GROUP_TESTS
+    + MAX_TIE_CROSS_INF_BUCKET_AUTO_TESTS
     + MAX_NUMERIC_EQUIV_GROUP_TESTS
     + MAX_NUMERIC_EQUIV_BUCKET_AUTO_TESTS
 )

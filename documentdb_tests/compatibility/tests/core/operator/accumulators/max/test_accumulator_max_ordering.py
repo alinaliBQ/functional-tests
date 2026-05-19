@@ -374,6 +374,26 @@ MAX_STRING_TESTS: list[AccumulatorTestCase] = [
         expected=[{"result": "a\x00c"}],
         msg="$max should compare strings containing null bytes correctly",
     ),
+    AccumulatorTestCase(
+        "string_unicode_no_normalization",
+        docs=[{"v": "\u00e9"}, {"v": "e\u0301"}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$max": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": "e\u0301"}],
+        msg="$max should distinguish precomposed and decomposed unicode (no normalization)",
+    ),
+    AccumulatorTestCase(
+        "string_4byte_utf8",
+        docs=[{"v": "\U0001f600"}, {"v": "\U0001f601"}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$max": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": "\U0001f601"}],
+        msg="$max should compare 4-byte UTF-8 characters (emoji) by byte value",
+    ),
 ]
 
 # 2c. Boolean ordering
