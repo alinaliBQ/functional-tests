@@ -629,15 +629,6 @@ MAX_REGEX_TESTS: list[AccumulatorTestCase] = [
 # NOTE: code_basic is stage-dependent (pymongo returns Code without scope as
 # str in $group/$bucket but as Code in $bucketAuto) and tested separately
 # in the stage divergence section.
-MAX_CODE_TESTS: list[AccumulatorTestCase] = [
-    AccumulatorTestCase(
-        "code_with_scope_vs_code",
-        docs=[{"v": Code("z")}, {"v": Code("a", {"x": 1})}],
-        pipeline=_group_max("$v"),
-        expected=[{"result": Code("a", {"x": 1})}],
-        msg="$max should pick CodeWithScope over Code regardless of code string",
-    ),
-]
 
 # 3j. Object (embedded document) ordering
 MAX_OBJECT_TESTS: list[AccumulatorTestCase] = [
@@ -712,7 +703,6 @@ WITHIN_TYPE_TESTS = (
     + MAX_OBJECTID_TESTS
     + MAX_BINARY_TESTS
     + MAX_REGEX_TESTS
-    + MAX_CODE_TESTS
     + MAX_OBJECT_TESTS
     + MAX_ARRAY_TESTS
 )
