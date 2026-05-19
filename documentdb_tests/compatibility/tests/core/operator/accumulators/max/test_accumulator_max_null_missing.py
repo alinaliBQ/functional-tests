@@ -329,6 +329,16 @@ MAX_EDGE_CASE_TESTS: list[AccumulatorTestCase] = [
         expected=[{"result": None}, {"result": 15}],
         msg="$max should return null for all-null group and max for group with values",
     ),
+    AccumulatorTestCase(
+        "edge_null_skipped_over_empty_string",
+        docs=[{"v": ""}, {"v": None}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$max": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": ""}],
+        msg="$max should skip null and return empty string",
+    ),
 ]
 
 

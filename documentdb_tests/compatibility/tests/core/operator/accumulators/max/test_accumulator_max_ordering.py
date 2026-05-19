@@ -144,14 +144,14 @@ MAX_NUMERIC_TESTS: list[AccumulatorTestCase] = [
         msg="$max should return the numerically largest across all four numeric types",
     ),
     AccumulatorTestCase(
-        "numeric_ieee754_rounding",
+        "numeric_double_gt_decimal_ieee754",
         docs=[{"v": 3.14}, {"v": Decimal128("3.14")}],
         pipeline=[
             {"$group": {"_id": None, "result": {"$max": "$v"}}},
             {"$project": {"_id": 0, "result": 1}},
         ],
         expected=[{"result": 3.14}],
-        msg="$max should pick double 3.14 over Decimal128 3.14 (IEEE 754 rounding)",
+        msg="$max should pick double 3.14 over Decimal128 3.14 (IEEE 754 representation)",
     ),
 ]
 
@@ -242,7 +242,7 @@ MAX_STRING_TESTS: list[AccumulatorTestCase] = [
 # 1c. Boolean ordering
 MAX_BOOLEAN_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
-        "boolean_true_vs_false",
+        "boolean_true_over_false",
         docs=[{"v": True}, {"v": False}],
         pipeline=[
             {"$group": {"_id": None, "result": {"$max": "$v"}}},
@@ -250,16 +250,6 @@ MAX_BOOLEAN_TESTS: list[AccumulatorTestCase] = [
         ],
         expected=[{"result": True}],
         msg="$max should pick True over False",
-    ),
-    AccumulatorTestCase(
-        "boolean_false_vs_true",
-        docs=[{"v": False}, {"v": True}],
-        pipeline=[
-            {"$group": {"_id": None, "result": {"$max": "$v"}}},
-            {"$project": {"_id": 0, "result": 1}},
-        ],
-        expected=[{"result": True}],
-        msg="$max should pick True over False regardless of insertion order",
     ),
 ]
 

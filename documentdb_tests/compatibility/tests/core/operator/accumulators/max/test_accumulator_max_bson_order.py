@@ -129,39 +129,18 @@ MAX_BSON_ORDER_TESTS: list[AccumulatorTestCase] = [
         expected=[{"result": Regex("a")}],
         msg="$max should pick regex over timestamp per BSON order",
     ),
-    # NOTE: bson_regex_vs_code, bson_code_vs_maxkey, and bson_minkey_vs_maxkey
-    # are stage-dependent and tested in test_accumulator_max_stage_divergence.py.
     AccumulatorTestCase(
-        "bson_false_vs_zero",
-        docs=[{"v": False}, {"v": 0}],
-        pipeline=[
-            {"$group": {"_id": None, "result": {"$max": "$v"}}},
-            {"$project": {"_id": 0, "result": 1}},
-        ],
-        expected=[{"result": False}],
-        msg="$max should pick False over 0 (boolean > number in BSON order)",
-    ),
-    AccumulatorTestCase(
-        "bson_true_vs_one",
-        docs=[{"v": True}, {"v": 1}],
-        pipeline=[
-            {"$group": {"_id": None, "result": {"$max": "$v"}}},
-            {"$project": {"_id": 0, "result": 1}},
-        ],
-        expected=[{"result": True}],
-        msg="$max should pick True over 1 (boolean > number in BSON order)",
-    ),
-    AccumulatorTestCase(
-        "bson_string_before_number",
+        "bson_string_over_number",
         docs=[{"v": "a"}, {"v": 999999}],
         pipeline=[
             {"$group": {"_id": None, "result": {"$max": "$v"}}},
             {"$project": {"_id": 0, "result": 1}},
         ],
         expected=[{"result": "a"}],
-        msg="$max should pick string over number regardless of insertion order",
+        msg="$max should pick string over number per BSON order",
     ),
-    # NOTE: bson_maxkey_before_minkey is stage-dependent and tested in
+    # NOTE: bson_regex_vs_code, bson_code_vs_maxkey, bson_minkey_vs_maxkey,
+    # and bson_maxkey_before_minkey are stage-dependent and tested in
     # test_accumulator_max_stage_divergence.py.
 ]
 
@@ -171,7 +150,7 @@ MAX_BSON_ORDER_TESTS: list[AccumulatorTestCase] = [
 # ===========================================================================
 
 # Property [BSON Type Distinction]: values of different BSON types are
-# distinct even when they appear similar.
+# distinct even when they appear similar (no implicit coercion).
 MAX_TYPE_DISTINCTION_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
         "distinct_false_vs_zero",
@@ -194,16 +173,6 @@ MAX_TYPE_DISTINCTION_TESTS: list[AccumulatorTestCase] = [
         msg="$max should pick True over 1 (boolean > number in BSON order)",
     ),
     AccumulatorTestCase(
-        "distinct_empty_string_vs_null",
-        docs=[{"v": ""}, {"v": None}],
-        pipeline=[
-            {"$group": {"_id": None, "result": {"$max": "$v"}}},
-            {"$project": {"_id": 0, "result": 1}},
-        ],
-        expected=[{"result": ""}],
-        msg="$max should exclude null and return empty string",
-    ),
-    AccumulatorTestCase(
         "distinct_numeric_string",
         docs=[{"v": "123"}, {"v": 1000000}],
         pipeline=[
@@ -211,7 +180,7 @@ MAX_TYPE_DISTINCTION_TESTS: list[AccumulatorTestCase] = [
             {"$project": {"_id": 0, "result": 1}},
         ],
         expected=[{"result": "123"}],
-        msg="$max should pick string '123' over int 1000000 (string > number, no coercion)",
+        msg="$max should pick string '123' over int 1000000 (BSON order, no coercion)",
     ),
 ]
 
