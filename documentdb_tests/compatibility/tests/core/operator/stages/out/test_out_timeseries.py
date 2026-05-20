@@ -412,19 +412,20 @@ OUT_TIMESERIES_CROSS_DB_TESTS: list[OutTestCase] = [
 def test_out_timeseries_cross_db(collection, test_case: OutTestCase):
     """Test $out creates a time series collection in a different database."""
     populate_collection(collection, test_case)
+    db_name = test_case.resolve_target_db()
     client = collection.database.client
-    client.drop_database(test_case.target_db)
+    client.drop_database(db_name)
     try:
         execute_command(
             collection,
             {
                 "aggregate": collection.name,
-                "pipeline": [test_case.build_out_stage(collection)],
+                "pipeline": [test_case.build_out_stage(collection, resolved_db=db_name)],
                 "cursor": {},
             },
         )
         result = execute_command(
-            client[test_case.target_db][target_name(collection, test_case)],
+            client[db_name][target_name(collection, test_case)],
             {
                 "find": target_name(collection, test_case),
                 "filter": {},
@@ -433,7 +434,7 @@ def test_out_timeseries_cross_db(collection, test_case: OutTestCase):
         )
         assertResult(result, expected=test_case.expected, msg=test_case.msg)
     finally:
-        client.drop_database(test_case.target_db)
+        client.drop_database(db_name)
 
 
 # Property [Timeseries DateTime Acceptance]: all datetime boundary values

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import threading
+import uuid
 from typing import cast
 
 import pytest
@@ -76,6 +77,7 @@ OUT_DATABASE_NAME_ACCEPTANCE_TESTS: list[OutTestCase] = [
 
 
 @pytest.mark.aggregate
+@pytest.mark.no_parallel
 @pytest.mark.parametrize("test_case", pytest_params(OUT_DATABASE_NAME_ACCEPTANCE_TESTS))
 def test_out_database_name_acceptance(collection, test_case: OutTestCase):
     """Test $out accepts various character classes as database names."""
@@ -214,7 +216,7 @@ def test_out_database_creation(collection):
     collection.insert_many([{"_id": 1, "value": 10}])
     db = collection.database
     client = db.client
-    cross_db_name = db.name + "_cross"
+    cross_db_name = db.name + "_cross_" + uuid.uuid4().hex[:8]
     target_coll_name = f"{collection.name}_creation_cross_db_target"
     client.drop_database(cross_db_name)
     try:
