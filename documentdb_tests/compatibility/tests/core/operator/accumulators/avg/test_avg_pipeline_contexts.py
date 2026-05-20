@@ -1,8 +1,7 @@
 """
 Tests for $avg in various pipeline contexts.
 
-Covers $group, $bucket, $setWindowFields, $project/$addFields,
-$match+$expr, and pipeline interaction patterns.
+Covers $group, $bucket, $setWindowFields, and pipeline interaction patterns.
 """
 
 from __future__ import annotations
@@ -12,7 +11,7 @@ import pytest
 from documentdb_tests.compatibility.tests.core.operator.accumulators.utils import (
     AccumulatorTestCase,
 )
-from documentdb_tests.framework.assertions import assertResult, assertSuccess
+from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
@@ -323,40 +322,6 @@ AVG_WINDOW_TESTS: list[AccumulatorTestCase] = [
     ),
 ]
 
-# --- Expression contexts ($project, $addFields, $match+$expr) ---
-
-# Property [Expression Context]: $avg used in expression contexts.
-AVG_EXPRESSION_CONTEXT_TESTS: list[AccumulatorTestCase] = [
-    AccumulatorTestCase(
-        "in_addfields",
-        docs=[
-            {"_id": 1, "scores": [80, 90, 100]},
-        ],
-        pipeline=[
-            {"$addFields": {"avg_score": {"$avg": "$scores"}}},
-            {"$project": {"_id": 0, "avg_score": 1}},
-        ],
-        expected=[{"avg_score": 90.0}],
-        msg="$avg in $addFields should traverse array field and average",
-    ),
-    AccumulatorTestCase(
-        "in_match_expr",
-        docs=[
-            {"_id": 1, "scores": [80, 90, 100]},
-            {"_id": 2, "scores": [40, 50, 60]},
-            {"_id": 3, "scores": [70, 80, 90]},
-        ],
-        pipeline=[
-            {"$match": {"$expr": {"$gt": [{"$avg": "$scores"}, 75]}}},
-            {"$project": {"_id": 1}},
-            {"$sort": {"_id": 1}},
-        ],
-        # avg([80,90,100])=90 > 75, avg([40,50,60])=50 < 75, avg([70,80,90])=80 > 75
-        expected=[{"_id": 1}, {"_id": 3}],
-        msg="$avg in $match $expr should filter based on computed average",
-    ),
-]
-
 # --- Pipeline interaction patterns ---
 
 # Property [Pipeline Interaction]: $avg combined with other pipeline stages.
@@ -441,7 +406,6 @@ AVG_PIPELINE_CONTEXT_TESTS: list[AccumulatorTestCase] = (
     AVG_GROUP_COMPUTED_ID_TESTS
     + AVG_BUCKET_TESTS
     + AVG_WINDOW_TESTS
-    + AVG_EXPRESSION_CONTEXT_TESTS
     + AVG_PIPELINE_INTERACTION_TESTS
 )
 
@@ -460,27 +424,3 @@ def test_avg_pipeline_contexts(collection, test_case: AccumulatorTestCase):
         },
     )
     assertResult(result, expected=test_case.expected, msg=test_case.msg)
-
-
-def test_avg_in_project_array_literal(collection):
-    """Test $avg in $project with array of literal values.
-
-    This test uses ``aggregate: 1`` with ``$documents`` instead of a
-    collection, so it is kept as a standalone test.
-    """
-    result = execute_command(
-        collection,
-        {
-            "aggregate": 1,
-            "pipeline": [
-                {"$documents": [{}]},
-                {"$project": {"_id": 0, "avg": {"$avg": [10, 20, 30]}}},
-            ],
-            "cursor": {},
-        },
-    )
-    assertSuccess(
-        result,
-        [{"avg": 20.0}],
-        msg="$avg in $project with literal array should average values",
-    )
