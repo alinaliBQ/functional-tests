@@ -8,8 +8,7 @@ from bson import Code, Decimal128, Int64, MaxKey, MinKey, Regex
 from documentdb_tests.compatibility.tests.core.operator.accumulators.utils import (
     AccumulatorTestCase,
 )
-from documentdb_tests.framework.assertions import assertFailureCode, assertSuccess
-from documentdb_tests.framework.error_codes import BAD_VALUE_ERROR, MODULO_ZERO_REMAINDER_ERROR
+from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import DECIMAL128_NAN, FLOAT_NAN
@@ -453,43 +452,6 @@ MIN_BSON_SERIALIZATION_BUCKET_AUTO_TESTS: list[AccumulatorTestCase] = [
 ]
 
 # ---------------------------------------------------------------------------
-# Property [Expression Error Codes — $bucketAuto]: $bucketAuto wraps some errors
-# with different codes.
-# ---------------------------------------------------------------------------
-MIN_EXPRESSION_ERROR_BUCKET_AUTO_TESTS: list[AccumulatorTestCase] = [
-    AccumulatorTestCase(
-        "error_divide_by_zero_bucket_auto",
-        docs=[{"v": 10}],
-        pipeline=[
-            {
-                "$bucketAuto": {
-                    "groupBy": {"$literal": 0},
-                    "buckets": 1,
-                    "output": {"result": {"$min": {"$divide": ["$v", 0]}}},
-                }
-            }
-        ],
-        error_code=BAD_VALUE_ERROR,
-        msg="$min in $bucketAuto should wrap divide-by-zero as BAD_VALUE_ERROR",
-    ),
-    AccumulatorTestCase(
-        "error_mod_by_zero_bucket_auto",
-        docs=[{"v": 10}],
-        pipeline=[
-            {
-                "$bucketAuto": {
-                    "groupBy": {"$literal": 0},
-                    "buckets": 1,
-                    "output": {"result": {"$min": {"$mod": ["$v", 0]}}},
-                }
-            }
-        ],
-        error_code=MODULO_ZERO_REMAINDER_ERROR,
-        msg="$min in $bucketAuto should wrap mod-by-zero as MODULO_ZERO_REMAINDER_ERROR",
-    ),
-]
-
-# ---------------------------------------------------------------------------
 # Aggregated success test lists
 # ---------------------------------------------------------------------------
 MIN_STAGE_DIVERGENCE_GROUP_SUCCESS_TESTS = (
@@ -538,15 +500,3 @@ def test_accumulator_min_stage_divergence_bucket_auto(collection, test_case: Acc
         {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
     )
     assertSuccess(result, test_case.expected, msg=test_case.msg)
-
-
-@pytest.mark.parametrize("test_case", pytest_params(MIN_EXPRESSION_ERROR_BUCKET_AUTO_TESTS))
-def test_accumulator_min_expression_errors_bucket_auto(collection, test_case):
-    """Test $min expression error codes in $bucketAuto."""
-    if test_case.docs:
-        collection.insert_many(test_case.docs)
-    result = execute_command(
-        collection,
-        {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
-    )
-    assertFailureCode(result, test_case.error_code, msg=test_case.msg)

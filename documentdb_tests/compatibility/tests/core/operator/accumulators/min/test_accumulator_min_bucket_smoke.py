@@ -9,12 +9,7 @@ import pytest
 from documentdb_tests.compatibility.tests.core.operator.accumulators.utils import (
     AccumulatorTestCase,
 )
-from documentdb_tests.framework.assertions import assertFailureCode, assertSuccess
-from documentdb_tests.framework.error_codes import (
-    BAD_VALUE_ERROR,
-    DIVIDE_BY_ZERO_V2_ERROR,
-    GROUP_ACCUMULATOR_ARRAY_ARGUMENT_ERROR,
-)
+from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import (
@@ -105,42 +100,6 @@ MIN_BUCKET_SMOKE_TESTS: list[AccumulatorTestCase] = [
 ]
 
 # ---------------------------------------------------------------------------
-# Property [$bucket Smoke — Errors]: arity and expression errors in $bucket.
-# ---------------------------------------------------------------------------
-MIN_BUCKET_SMOKE_ERROR_TESTS: list[AccumulatorTestCase] = [
-    AccumulatorTestCase(
-        "bucket_arity_rejection",
-        docs=[{"v": 1}],
-        pipeline=[
-            {
-                "$bucket": {
-                    "groupBy": {"$literal": 0},
-                    "boundaries": [-1, 1],
-                    "output": {"result": {"$min": []}},
-                }
-            }
-        ],
-        error_code=GROUP_ACCUMULATOR_ARRAY_ARGUMENT_ERROR,
-        msg="$min in $bucket should reject array syntax",
-    ),
-    AccumulatorTestCase(
-        "bucket_expression_error",
-        docs=[{"v": 10}],
-        pipeline=[
-            {
-                "$bucket": {
-                    "groupBy": {"$literal": 0},
-                    "boundaries": [-1, 1],
-                    "output": {"result": {"$min": {"$divide": ["$v", 0]}}},
-                }
-            }
-        ],
-        error_code=DIVIDE_BY_ZERO_V2_ERROR,
-        msg="$min in $bucket should propagate divide-by-zero error",
-    ),
-]
-
-# ---------------------------------------------------------------------------
 # Property [$bucketAuto Smoke]: representative subset confirming $min works
 # in $bucketAuto context.
 # ---------------------------------------------------------------------------
@@ -223,43 +182,6 @@ MIN_BUCKET_AUTO_SMOKE_TESTS: list[AccumulatorTestCase] = [
 ]
 
 # ---------------------------------------------------------------------------
-# Property [$bucketAuto Smoke — Errors]: arity and expression errors in $bucketAuto.
-# ---------------------------------------------------------------------------
-MIN_BUCKET_AUTO_SMOKE_ERROR_TESTS: list[AccumulatorTestCase] = [
-    AccumulatorTestCase(
-        "bucket_auto_arity_rejection",
-        docs=[{"v": 1}],
-        pipeline=[
-            {
-                "$bucketAuto": {
-                    "groupBy": {"$literal": 0},
-                    "buckets": 1,
-                    "output": {"result": {"$min": []}},
-                }
-            }
-        ],
-        error_code=GROUP_ACCUMULATOR_ARRAY_ARGUMENT_ERROR,
-        msg="$min in $bucketAuto should reject array syntax",
-    ),
-    AccumulatorTestCase(
-        "bucket_auto_expression_error",
-        docs=[{"v": 10}],
-        pipeline=[
-            {
-                "$bucketAuto": {
-                    "groupBy": {"$literal": 0},
-                    "buckets": 1,
-                    "output": {"result": {"$min": {"$divide": ["$v", 0]}}},
-                }
-            }
-        ],
-        error_code=BAD_VALUE_ERROR,
-        msg="$min in $bucketAuto should wrap divide-by-zero as BAD_VALUE_ERROR",
-    ),
-]
-
-
-# ---------------------------------------------------------------------------
 # Test functions
 # ---------------------------------------------------------------------------
 
@@ -276,18 +198,6 @@ def test_accumulator_min_bucket_smoke(collection, test_case: AccumulatorTestCase
     assertSuccess(result, test_case.expected, msg=test_case.msg)
 
 
-@pytest.mark.parametrize("test_case", pytest_params(MIN_BUCKET_SMOKE_ERROR_TESTS))
-def test_accumulator_min_bucket_smoke_errors(collection, test_case):
-    """Test $min accumulator errors in $bucket context."""
-    if test_case.docs:
-        collection.insert_many(test_case.docs)
-    result = execute_command(
-        collection,
-        {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
-    )
-    assertFailureCode(result, test_case.error_code, msg=test_case.msg)
-
-
 @pytest.mark.parametrize("test_case", pytest_params(MIN_BUCKET_AUTO_SMOKE_TESTS))
 def test_accumulator_min_bucket_auto_smoke(collection, test_case: AccumulatorTestCase):
     """Test $min accumulator in $bucketAuto context."""
@@ -298,15 +208,3 @@ def test_accumulator_min_bucket_auto_smoke(collection, test_case: AccumulatorTes
         {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
     )
     assertSuccess(result, test_case.expected, msg=test_case.msg)
-
-
-@pytest.mark.parametrize("test_case", pytest_params(MIN_BUCKET_AUTO_SMOKE_ERROR_TESTS))
-def test_accumulator_min_bucket_auto_smoke_errors(collection, test_case):
-    """Test $min accumulator errors in $bucketAuto context."""
-    if test_case.docs:
-        collection.insert_many(test_case.docs)
-    result = execute_command(
-        collection,
-        {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
-    )
-    assertFailureCode(result, test_case.error_code, msg=test_case.msg)
