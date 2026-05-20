@@ -1,4 +1,4 @@
-"""Tests for $addToSet accumulator ($group)."""
+"""Tests for $addToSet accumulator ($group, $bucket, $bucketAuto, $setWindowFields)."""
 
 from __future__ import annotations
 
@@ -23,6 +23,7 @@ from documentdb_tests.compatibility.tests.core.operator.accumulators.utils impor
 )
 from documentdb_tests.framework.assertions import assertFailureCode, assertSuccess
 from documentdb_tests.framework.error_codes import (
+    BAD_VALUE_ERROR,
     CONVERSION_FAILURE_ERROR,
     DIVIDE_BY_ZERO_V2_ERROR,
     EXPRESSION_OBJECT_MULTIPLE_FIELDS_ERROR,
@@ -1254,7 +1255,7 @@ def test_accumulator_addToSet(collection, test_case: AccumulatorTestCase):
 
 
 @pytest.mark.parametrize("test_case", pytest_params(ADDTOSET_ERROR_TESTS))
-def test_accumulator_addToSet_errors(collection, test_case: AccumulatorTestCase):
+def test_accumulator_addToSet_errors(collection, test_case):
     """Test $addToSet accumulator error cases with $group."""
     if test_case.docs:
         collection.insert_many(test_case.docs)
@@ -1324,3 +1325,385 @@ def test_accumulator_addToSet_return_type(collection, test_case: AccumulatorTest
         {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
     )
     assertSuccess(result, test_case.expected, msg=test_case.msg, ignore_order_in=["value"])
+
+
+# ---------------------------------------------------------------------------
+# $bucket smoke tests
+# ---------------------------------------------------------------------------
+
+# Property [Bucket Smoke]: $addToSet works correctly in $bucket context.
+ADDTOSET_BUCKET_SMOKE_TESTS: list[AccumulatorTestCase] = [
+    AccumulatorTestCase(
+        "bucket_basic",
+        docs=[{"v": 10}, {"v": 20}, {"v": 30}],
+        pipeline=[
+            {
+                "$bucket": {
+                    "groupBy": {"$literal": 0},
+                    "boundaries": [-1, 1],
+                    "output": {"result": {"$addToSet": "$v"}},
+                }
+            }
+        ],
+        expected=[{"_id": -1, "result": [10, 20, 30]}],
+        msg="$addToSet should collect unique values in $bucket context",
+    ),
+    AccumulatorTestCase(
+        "bucket_duplicates",
+        docs=[{"v": 10}, {"v": 20}, {"v": 10}, {"v": 30}, {"v": 20}],
+        pipeline=[
+            {
+                "$bucket": {
+                    "groupBy": {"$literal": 0},
+                    "boundaries": [-1, 1],
+                    "output": {"result": {"$addToSet": "$v"}},
+                }
+            }
+        ],
+        expected=[{"_id": -1, "result": [10, 20, 30]}],
+        msg="$addToSet should deduplicate values in $bucket context",
+    ),
+    AccumulatorTestCase(
+        "bucket_null_among_values",
+        docs=[{"v": None}, {"v": 5}, {"v": 3}],
+        pipeline=[
+            {
+                "$bucket": {
+                    "groupBy": {"$literal": 0},
+                    "boundaries": [-1, 1],
+                    "output": {"result": {"$addToSet": "$v"}},
+                }
+            }
+        ],
+        expected=[{"_id": -1, "result": [None, 5, 3]}],
+        msg="$addToSet should collect null alongside values in $bucket context",
+    ),
+]
+
+# Property [Bucket Arity Rejection]: $addToSet rejects array syntax in $bucket context.
+ADDTOSET_BUCKET_ERROR_TESTS: list[AccumulatorTestCase] = [
+    AccumulatorTestCase(
+        "bucket_arity_empty_array",
+        docs=[{"v": 1}],
+        pipeline=[
+            {
+                "$bucket": {
+                    "groupBy": {"$literal": 0},
+                    "boundaries": [-1, 1],
+                    "output": {"result": {"$addToSet": []}},
+                }
+            }
+        ],
+        error_code=GROUP_ACCUMULATOR_ARRAY_ARGUMENT_ERROR,
+        msg="$addToSet should reject empty array in $bucket context",
+    ),
+    AccumulatorTestCase(
+        "bucket_expression_error",
+        docs=[{"v": 10}],
+        pipeline=[
+            {
+                "$bucket": {
+                    "groupBy": {"$literal": 0},
+                    "boundaries": [-1, 1],
+                    "output": {"result": {"$addToSet": {"$divide": ["$v", 0]}}},
+                }
+            }
+        ],
+        error_code=DIVIDE_BY_ZERO_V2_ERROR,
+        msg="$addToSet should propagate divide-by-zero error in $bucket context",
+    ),
+]
+
+
+@pytest.mark.parametrize("test_case", pytest_params(ADDTOSET_BUCKET_SMOKE_TESTS))
+def test_addToSet_bucket_smoke(collection, test_case: AccumulatorTestCase):
+    """Test $addToSet accumulator in $bucket context."""
+    if test_case.docs:
+        collection.insert_many(test_case.docs)
+    result = execute_command(
+        collection,
+        {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
+    )
+    assertSuccess(result, test_case.expected, msg=test_case.msg, ignore_order_in=["result"])
+
+
+@pytest.mark.parametrize("test_case", pytest_params(ADDTOSET_BUCKET_ERROR_TESTS))
+def test_addToSet_bucket_smoke_errors(collection, test_case):
+    """Test $addToSet error cases in $bucket context."""
+    if test_case.docs:
+        collection.insert_many(test_case.docs)
+    result = execute_command(
+        collection,
+        {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
+    )
+    assertFailureCode(result, test_case.error_code, msg=test_case.msg)
+
+
+# ---------------------------------------------------------------------------
+# $bucketAuto smoke tests
+# ---------------------------------------------------------------------------
+
+# Property [BucketAuto Smoke]: $addToSet works correctly in $bucketAuto context.
+ADDTOSET_BUCKET_AUTO_SMOKE_TESTS: list[AccumulatorTestCase] = [
+    AccumulatorTestCase(
+        "bucketAuto_basic",
+        docs=[{"v": 10}, {"v": 20}, {"v": 30}],
+        pipeline=[
+            {
+                "$bucketAuto": {
+                    "groupBy": {"$literal": 0},
+                    "buckets": 1,
+                    "output": {"result": {"$addToSet": "$v"}},
+                }
+            }
+        ],
+        expected=[{"_id": {"min": 0, "max": 0}, "result": [10, 20, 30]}],
+        msg="$addToSet should collect unique values in $bucketAuto context",
+    ),
+    AccumulatorTestCase(
+        "bucketAuto_duplicates",
+        docs=[{"v": 10}, {"v": 20}, {"v": 10}, {"v": 30}, {"v": 20}],
+        pipeline=[
+            {
+                "$bucketAuto": {
+                    "groupBy": {"$literal": 0},
+                    "buckets": 1,
+                    "output": {"result": {"$addToSet": "$v"}},
+                }
+            }
+        ],
+        expected=[{"_id": {"min": 0, "max": 0}, "result": [10, 20, 30]}],
+        msg="$addToSet should deduplicate values in $bucketAuto context",
+    ),
+    AccumulatorTestCase(
+        "bucketAuto_null_among_values",
+        docs=[{"v": None}, {"v": 5}, {"v": 3}],
+        pipeline=[
+            {
+                "$bucketAuto": {
+                    "groupBy": {"$literal": 0},
+                    "buckets": 1,
+                    "output": {"result": {"$addToSet": "$v"}},
+                }
+            }
+        ],
+        expected=[{"_id": {"min": 0, "max": 0}, "result": [None, 5, 3]}],
+        msg="$addToSet should collect null alongside values in $bucketAuto context",
+    ),
+]
+
+# Property [BucketAuto Arity Rejection]: $addToSet rejects array syntax in $bucketAuto context.
+ADDTOSET_BUCKET_AUTO_ERROR_TESTS: list[AccumulatorTestCase] = [
+    AccumulatorTestCase(
+        "bucketAuto_arity_empty_array",
+        docs=[{"v": 1}],
+        pipeline=[
+            {
+                "$bucketAuto": {
+                    "groupBy": {"$literal": 0},
+                    "buckets": 1,
+                    "output": {"result": {"$addToSet": []}},
+                }
+            }
+        ],
+        error_code=GROUP_ACCUMULATOR_ARRAY_ARGUMENT_ERROR,
+        msg="$addToSet should reject empty array in $bucketAuto context",
+    ),
+    AccumulatorTestCase(
+        "bucketAuto_expression_error",
+        docs=[{"v": 10}],
+        pipeline=[
+            {
+                "$bucketAuto": {
+                    "groupBy": {"$literal": 0},
+                    "buckets": 1,
+                    "output": {"result": {"$addToSet": {"$divide": ["$v", 0]}}},
+                }
+            }
+        ],
+        error_code=BAD_VALUE_ERROR,
+        msg="$addToSet should propagate divide-by-zero error in $bucketAuto context",
+    ),
+]
+
+
+@pytest.mark.parametrize("test_case", pytest_params(ADDTOSET_BUCKET_AUTO_SMOKE_TESTS))
+def test_addToSet_bucketAuto_smoke(collection, test_case: AccumulatorTestCase):
+    """Test $addToSet accumulator in $bucketAuto context."""
+    if test_case.docs:
+        collection.insert_many(test_case.docs)
+    result = execute_command(
+        collection,
+        {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
+    )
+    assertSuccess(result, test_case.expected, msg=test_case.msg, ignore_order_in=["result"])
+
+
+@pytest.mark.parametrize("test_case", pytest_params(ADDTOSET_BUCKET_AUTO_ERROR_TESTS))
+def test_addToSet_bucketAuto_smoke_errors(collection, test_case):
+    """Test $addToSet error cases in $bucketAuto context."""
+    if test_case.docs:
+        collection.insert_many(test_case.docs)
+    result = execute_command(
+        collection,
+        {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
+    )
+    assertFailureCode(result, test_case.error_code, msg=test_case.msg)
+
+
+# ---------------------------------------------------------------------------
+# $setWindowFields smoke tests
+# ---------------------------------------------------------------------------
+
+# Property [SetWindowFields Smoke]: $addToSet works correctly in $setWindowFields context.
+ADDTOSET_SET_WINDOW_FIELDS_SMOKE_TESTS: list[AccumulatorTestCase] = [
+    AccumulatorTestCase(
+        "swf_unbounded",
+        docs=[
+            {"part": "A", "v": 10},
+            {"part": "A", "v": 20},
+            {"part": "A", "v": 10},
+        ],
+        pipeline=[
+            {
+                "$setWindowFields": {
+                    "partitionBy": "$part",
+                    "sortBy": {"v": 1},
+                    "output": {
+                        "result": {
+                            "$addToSet": "$v",
+                            "window": {"documents": ["unbounded", "unbounded"]},
+                        }
+                    },
+                }
+            },
+            {"$project": {"_id": 0, "v": 1, "result": 1}},
+            {"$sort": {"v": 1}},
+            {"$limit": 1},
+        ],
+        expected=[{"v": 10, "result": [10, 20]}],
+        msg="$addToSet should collect unique values across entire partition with unbounded window",
+    ),
+    AccumulatorTestCase(
+        "swf_cumulative",
+        docs=[
+            {"part": "A", "v": 10},
+            {"part": "A", "v": 20},
+            {"part": "A", "v": 10},
+        ],
+        pipeline=[
+            {
+                "$setWindowFields": {
+                    "partitionBy": "$part",
+                    "sortBy": {"_id": 1},
+                    "output": {
+                        "result": {
+                            "$addToSet": "$v",
+                            "window": {"documents": ["unbounded", "current"]},
+                        }
+                    },
+                }
+            },
+            {"$project": {"_id": 0, "v": 1, "result": 1}},
+        ],
+        expected=[
+            {"v": 10, "result": [10]},
+            {"v": 20, "result": [10, 20]},
+            {"v": 10, "result": [10, 20]},
+        ],
+        msg="$addToSet should compute cumulative unique values with [unbounded, current] window",
+    ),
+    AccumulatorTestCase(
+        "swf_partition_by",
+        docs=[
+            {"part": "A", "v": 1},
+            {"part": "A", "v": 2},
+            {"part": "B", "v": 3},
+            {"part": "B", "v": 3},
+        ],
+        pipeline=[
+            {
+                "$setWindowFields": {
+                    "partitionBy": "$part",
+                    "sortBy": {"v": 1},
+                    "output": {
+                        "result": {
+                            "$addToSet": "$v",
+                            "window": {"documents": ["unbounded", "unbounded"]},
+                        }
+                    },
+                }
+            },
+            {"$project": {"_id": 0, "part": 1, "result": 1}},
+            {"$group": {"_id": "$part", "result": {"$first": "$result"}}},
+            {"$sort": {"_id": 1}},
+        ],
+        expected=[{"_id": "A", "result": [1, 2]}, {"_id": "B", "result": [3]}],
+        msg="$addToSet should compute separate unique sets per partition",
+    ),
+    AccumulatorTestCase(
+        "swf_duplicates",
+        docs=[
+            {"part": "A", "v": 5},
+            {"part": "A", "v": 5},
+            {"part": "A", "v": 10},
+            {"part": "A", "v": 10},
+        ],
+        pipeline=[
+            {
+                "$setWindowFields": {
+                    "partitionBy": "$part",
+                    "sortBy": {"v": 1},
+                    "output": {
+                        "result": {
+                            "$addToSet": "$v",
+                            "window": {"documents": ["unbounded", "unbounded"]},
+                        }
+                    },
+                }
+            },
+            {"$project": {"_id": 0, "v": 1, "result": 1}},
+            {"$limit": 1},
+        ],
+        expected=[{"v": 5, "result": [5, 10]}],
+        msg="$addToSet should deduplicate values within window",
+    ),
+    AccumulatorTestCase(
+        "swf_null_values",
+        docs=[
+            {"part": "A", "v": None},
+            {"part": "A", "v": 5},
+            {"part": "A", "v": None},
+        ],
+        pipeline=[
+            {
+                "$setWindowFields": {
+                    "partitionBy": "$part",
+                    "sortBy": {"_id": 1},
+                    "output": {
+                        "result": {
+                            "$addToSet": "$v",
+                            "window": {"documents": ["unbounded", "unbounded"]},
+                        }
+                    },
+                }
+            },
+            {"$project": {"_id": 0, "v": 1, "result": 1}},
+            {"$limit": 1},
+        ],
+        expected=[{"v": None, "result": [None, 5]}],
+        msg="$addToSet should collect null as a value in $setWindowFields window",
+    ),
+]
+
+
+@pytest.mark.parametrize("test_case", pytest_params(ADDTOSET_SET_WINDOW_FIELDS_SMOKE_TESTS))
+def test_addToSet_setWindowFields_smoke(collection, test_case: AccumulatorTestCase):
+    """Test $addToSet accumulator in $setWindowFields context."""
+    if test_case.docs:
+        collection.insert_many(test_case.docs)
+    result = execute_command(
+        collection,
+        {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
+    )
+    assertSuccess(result, test_case.expected, msg=test_case.msg, ignore_order_in=["result"])
