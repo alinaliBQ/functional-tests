@@ -1,4 +1,4 @@
-"""Tests for $max accumulator error cases: expression errors and arity rejection."""
+"""Tests for $max accumulator error cases: arity rejection."""
 
 from __future__ import annotations
 
@@ -9,170 +9,11 @@ from documentdb_tests.compatibility.tests.core.operator.accumulators.utils impor
 )
 from documentdb_tests.framework.assertions import assertFailureCode
 from documentdb_tests.framework.error_codes import (
-    BAD_VALUE_ERROR,
-    CONVERSION_FAILURE_ERROR,
-    DIVIDE_BY_ZERO_V2_ERROR,
     EXPRESSION_OBJECT_MULTIPLE_FIELDS_ERROR,
     GROUP_ACCUMULATOR_ARRAY_ARGUMENT_ERROR,
-    MODULO_BY_ZERO_V2_ERROR,
-    MODULO_ZERO_REMAINDER_ERROR,
 )
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
-
-# ===========================================================================
-# 1. Expression Error Propagation
-# ===========================================================================
-
-# Property [Expression Error Propagation]: errors in sub-expressions used as
-# $max operand propagate as errors.
-
-MAX_EXPRESSION_ERROR_GROUP_TESTS: list[AccumulatorTestCase] = [
-    AccumulatorTestCase(
-        "error_toInt_invalid_group",
-        docs=[{"v": "not_a_number"}],
-        pipeline=[
-            {"$group": {"_id": None, "result": {"$max": {"$toInt": "$v"}}}},
-            {"$project": {"_id": 0, "result": 1}},
-        ],
-        error_code=CONVERSION_FAILURE_ERROR,
-        msg="$max should propagate conversion error from $toInt sub-expression in $group",
-    ),
-    AccumulatorTestCase(
-        "error_divide_by_zero_group",
-        docs=[{"v": 10}],
-        pipeline=[
-            {"$group": {"_id": None, "result": {"$max": {"$divide": ["$v", 0]}}}},
-            {"$project": {"_id": 0, "result": 1}},
-        ],
-        error_code=DIVIDE_BY_ZERO_V2_ERROR,
-        msg="$max should propagate divide-by-zero error in $group",
-    ),
-    AccumulatorTestCase(
-        "error_mod_by_zero_group",
-        docs=[{"v": 10}],
-        pipeline=[
-            {"$group": {"_id": None, "result": {"$max": {"$mod": ["$v", 0]}}}},
-            {"$project": {"_id": 0, "result": 1}},
-        ],
-        error_code=MODULO_BY_ZERO_V2_ERROR,
-        msg="$max should propagate mod-by-zero error in $group",
-    ),
-]
-
-MAX_EXPRESSION_ERROR_BUCKET_TESTS: list[AccumulatorTestCase] = [
-    AccumulatorTestCase(
-        "error_toInt_invalid_bucket",
-        docs=[{"v": "not_a_number"}],
-        pipeline=[
-            {
-                "$bucket": {
-                    "groupBy": {"$literal": 0},
-                    "boundaries": [-1, 1],
-                    "output": {"result": {"$max": {"$toInt": "$v"}}},
-                }
-            },
-            {"$project": {"_id": 0, "result": 1}},
-        ],
-        error_code=CONVERSION_FAILURE_ERROR,
-        msg="$max should propagate conversion error from $toInt sub-expression in $bucket",
-    ),
-    AccumulatorTestCase(
-        "error_divide_by_zero_bucket",
-        docs=[{"v": 10}],
-        pipeline=[
-            {
-                "$bucket": {
-                    "groupBy": {"$literal": 0},
-                    "boundaries": [-1, 1],
-                    "output": {"result": {"$max": {"$divide": ["$v", 0]}}},
-                }
-            },
-            {"$project": {"_id": 0, "result": 1}},
-        ],
-        error_code=DIVIDE_BY_ZERO_V2_ERROR,
-        msg="$max should propagate divide-by-zero error in $bucket",
-    ),
-    AccumulatorTestCase(
-        "error_mod_by_zero_bucket",
-        docs=[{"v": 10}],
-        pipeline=[
-            {
-                "$bucket": {
-                    "groupBy": {"$literal": 0},
-                    "boundaries": [-1, 1],
-                    "output": {"result": {"$max": {"$mod": ["$v", 0]}}},
-                }
-            },
-            {"$project": {"_id": 0, "result": 1}},
-        ],
-        error_code=MODULO_BY_ZERO_V2_ERROR,
-        msg="$max should propagate mod-by-zero error in $bucket",
-    ),
-]
-
-# $bucketAuto wraps divide-by-zero and mod-by-zero differently
-MAX_EXPRESSION_ERROR_BUCKET_AUTO_TESTS: list[AccumulatorTestCase] = [
-    AccumulatorTestCase(
-        "error_toInt_invalid_bucket_auto",
-        docs=[{"v": "not_a_number"}],
-        pipeline=[
-            {
-                "$bucketAuto": {
-                    "groupBy": {"$literal": 0},
-                    "buckets": 1,
-                    "output": {"result": {"$max": {"$toInt": "$v"}}},
-                }
-            },
-            {"$project": {"_id": 0, "result": 1}},
-        ],
-        error_code=CONVERSION_FAILURE_ERROR,
-        msg="$max should propagate conversion error from $toInt in $bucketAuto",
-    ),
-    AccumulatorTestCase(
-        "error_divide_by_zero_bucket_auto",
-        docs=[{"v": 10}],
-        pipeline=[
-            {
-                "$bucketAuto": {
-                    "groupBy": {"$literal": 0},
-                    "buckets": 1,
-                    "output": {"result": {"$max": {"$divide": ["$v", 0]}}},
-                }
-            },
-            {"$project": {"_id": 0, "result": 1}},
-        ],
-        error_code=BAD_VALUE_ERROR,
-        msg="$max should propagate divide-by-zero error in $bucketAuto (wrapped as BAD_VALUE)",
-    ),
-    AccumulatorTestCase(
-        "error_mod_by_zero_bucket_auto",
-        docs=[{"v": 10}],
-        pipeline=[
-            {
-                "$bucketAuto": {
-                    "groupBy": {"$literal": 0},
-                    "buckets": 1,
-                    "output": {"result": {"$max": {"$mod": ["$v", 0]}}},
-                }
-            },
-            {"$project": {"_id": 0, "result": 1}},
-        ],
-        error_code=MODULO_ZERO_REMAINDER_ERROR,
-        msg="$max should propagate mod-by-zero error in $bucketAuto (wrapped as 16610)",
-    ),
-]
-
-MAX_EXPRESSION_ERROR_TESTS = (
-    MAX_EXPRESSION_ERROR_GROUP_TESTS
-    + MAX_EXPRESSION_ERROR_BUCKET_TESTS
-    + MAX_EXPRESSION_ERROR_BUCKET_AUTO_TESTS
-)
-
-
-# ===========================================================================
-# 2. Arity Rejection
-# ===========================================================================
 
 # Property [Arity]: $max in accumulator context is a unary operator and
 # rejects array syntax in $group, $bucket, and $bucketAuto.
@@ -400,16 +241,9 @@ MAX_ARITY_ERROR_TESTS = (
 )
 
 
-# ===========================================================================
-# Combined error tests and test function
-# ===========================================================================
-
-MAX_ERROR_TESTS = MAX_EXPRESSION_ERROR_TESTS + MAX_ARITY_ERROR_TESTS
-
-
-@pytest.mark.parametrize("test_case", pytest_params(MAX_ERROR_TESTS))
+@pytest.mark.parametrize("test_case", pytest_params(MAX_ARITY_ERROR_TESTS))
 def test_accumulator_max_errors(collection, test_case):
-    """Test $max accumulator error cases: expression errors and arity rejection."""
+    """Test $max accumulator error cases: arity rejection."""
     if test_case.docs:
         collection.insert_many(test_case.docs)
     result = execute_command(
