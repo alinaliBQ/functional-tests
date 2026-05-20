@@ -182,25 +182,14 @@ MIN_BUCKET_AUTO_SMOKE_TESTS: list[AccumulatorTestCase] = [
 ]
 
 # ---------------------------------------------------------------------------
-# Test functions
+# Combined smoke tests
 # ---------------------------------------------------------------------------
+MIN_BUCKET_ALL_SMOKE_TESTS = MIN_BUCKET_SMOKE_TESTS + MIN_BUCKET_AUTO_SMOKE_TESTS
 
 
-@pytest.mark.parametrize("test_case", pytest_params(MIN_BUCKET_SMOKE_TESTS))
+@pytest.mark.parametrize("test_case", pytest_params(MIN_BUCKET_ALL_SMOKE_TESTS))
 def test_accumulator_min_bucket_smoke(collection, test_case: AccumulatorTestCase):
-    """Test $min accumulator in $bucket context."""
-    if test_case.docs:
-        collection.insert_many(test_case.docs)
-    result = execute_command(
-        collection,
-        {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
-    )
-    assertSuccess(result, test_case.expected, msg=test_case.msg)
-
-
-@pytest.mark.parametrize("test_case", pytest_params(MIN_BUCKET_AUTO_SMOKE_TESTS))
-def test_accumulator_min_bucket_auto_smoke(collection, test_case: AccumulatorTestCase):
-    """Test $min accumulator in $bucketAuto context."""
+    """Test $min accumulator in $bucket and $bucketAuto contexts."""
     if test_case.docs:
         collection.insert_many(test_case.docs)
     result = execute_command(

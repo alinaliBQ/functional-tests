@@ -204,40 +204,18 @@ MIN_EXPRESSION_ERROR_BUCKET_AUTO_TESTS: list[AccumulatorTestCase] = [
 # ---------------------------------------------------------------------------
 # Combined error tests
 # ---------------------------------------------------------------------------
-MIN_GROUP_ERROR_TESTS = MIN_EXPRESSION_ERROR_GROUP_TESTS + MIN_ARITY_ERROR_TESTS
-
-MIN_ALL_BUCKET_ERROR_TESTS = MIN_BUCKET_ERROR_TESTS + MIN_BUCKET_AUTO_ERROR_TESTS
-
-MIN_ALL_BUCKET_AUTO_EXPRESSION_ERROR_TESTS = MIN_EXPRESSION_ERROR_BUCKET_AUTO_TESTS
-
-
-@pytest.mark.parametrize("test_case", pytest_params(MIN_GROUP_ERROR_TESTS))
-def test_accumulator_min_group_errors(collection, test_case):
-    """Test $min accumulator error cases with $group."""
-    if test_case.docs:
-        collection.insert_many(test_case.docs)
-    result = execute_command(
-        collection,
-        {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
-    )
-    assertFailureCode(result, test_case.error_code, msg=test_case.msg)
+MIN_ERROR_TESTS = (
+    MIN_EXPRESSION_ERROR_GROUP_TESTS
+    + MIN_ARITY_ERROR_TESTS
+    + MIN_BUCKET_ERROR_TESTS
+    + MIN_BUCKET_AUTO_ERROR_TESTS
+    + MIN_EXPRESSION_ERROR_BUCKET_AUTO_TESTS
+)
 
 
-@pytest.mark.parametrize("test_case", pytest_params(MIN_ALL_BUCKET_ERROR_TESTS))
-def test_accumulator_min_bucket_errors(collection, test_case):
-    """Test $min accumulator error cases with $bucket and $bucketAuto."""
-    if test_case.docs:
-        collection.insert_many(test_case.docs)
-    result = execute_command(
-        collection,
-        {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
-    )
-    assertFailureCode(result, test_case.error_code, msg=test_case.msg)
-
-
-@pytest.mark.parametrize("test_case", pytest_params(MIN_ALL_BUCKET_AUTO_EXPRESSION_ERROR_TESTS))
-def test_accumulator_min_expression_errors_bucket_auto(collection, test_case):
-    """Test $min expression error codes in $bucketAuto."""
+@pytest.mark.parametrize("test_case", pytest_params(MIN_ERROR_TESTS))
+def test_accumulator_min_errors(collection, test_case):
+    """Test $min accumulator error cases with $group, $bucket, and $bucketAuto."""
     if test_case.docs:
         collection.insert_many(test_case.docs)
     result = execute_command(

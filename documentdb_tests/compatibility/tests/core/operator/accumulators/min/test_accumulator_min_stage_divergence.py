@@ -454,17 +454,14 @@ MIN_BSON_SERIALIZATION_BUCKET_AUTO_TESTS: list[AccumulatorTestCase] = [
 # ---------------------------------------------------------------------------
 # Aggregated success test lists
 # ---------------------------------------------------------------------------
-MIN_STAGE_DIVERGENCE_GROUP_SUCCESS_TESTS = (
+MIN_STAGE_DIVERGENCE_TESTS = (
     MIN_TIE_BREAKING_GROUP_TESTS
     + MIN_NUMERIC_EQUIV_GROUP_TESTS
     + MIN_NEGZERO_GROUP_TESTS
     + MIN_NAN_TIE_GROUP_TESTS
     + MIN_DECIMAL_TRAILING_GROUP_TESTS
     + MIN_BSON_SERIALIZATION_GROUP_TESTS
-)
-
-MIN_STAGE_DIVERGENCE_BUCKET_AUTO_SUCCESS_TESTS = (
-    MIN_TIE_BREAKING_BUCKET_AUTO_TESTS
+    + MIN_TIE_BREAKING_BUCKET_AUTO_TESTS
     + MIN_NUMERIC_EQUIV_BUCKET_AUTO_TESTS
     + MIN_NEGZERO_BUCKET_AUTO_TESTS
     + MIN_NAN_TIE_BUCKET_AUTO_TESTS
@@ -473,26 +470,9 @@ MIN_STAGE_DIVERGENCE_BUCKET_AUTO_SUCCESS_TESTS = (
 )
 
 
-# ---------------------------------------------------------------------------
-# Test functions
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.parametrize("test_case", pytest_params(MIN_STAGE_DIVERGENCE_GROUP_SUCCESS_TESTS))
-def test_accumulator_min_stage_divergence_group(collection, test_case: AccumulatorTestCase):
-    """Test $min stage-specific behavior in $group."""
-    if test_case.docs:
-        collection.insert_many(test_case.docs)
-    result = execute_command(
-        collection,
-        {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
-    )
-    assertSuccess(result, test_case.expected, msg=test_case.msg)
-
-
-@pytest.mark.parametrize("test_case", pytest_params(MIN_STAGE_DIVERGENCE_BUCKET_AUTO_SUCCESS_TESTS))
-def test_accumulator_min_stage_divergence_bucket_auto(collection, test_case: AccumulatorTestCase):
-    """Test $min stage-specific behavior in $bucketAuto."""
+@pytest.mark.parametrize("test_case", pytest_params(MIN_STAGE_DIVERGENCE_TESTS))
+def test_accumulator_min_stage_divergence(collection, test_case: AccumulatorTestCase):
+    """Test $min stage-specific behavior in $group and $bucketAuto."""
     if test_case.docs:
         collection.insert_many(test_case.docs)
     result = execute_command(
