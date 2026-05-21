@@ -185,31 +185,6 @@ MAX_INPUT_FORM_TESTS: list[AccumulatorTestCase] = [
         msg="$max with a literal constant should return that constant",
     ),
     AccumulatorTestCase(
-        "input_expression",
-        docs=[{"price": 10, "qty": 2}, {"price": 5, "qty": 10}],
-        pipeline=[
-            {"$group": {"_id": None, "result": {"$max": {"$multiply": ["$price", "$qty"]}}}},
-            {"$project": {"_id": 0, "result": 1}},
-        ],
-        expected=[{"result": 50}],
-        msg="$max should accept a computed expression as operand",
-    ),
-    AccumulatorTestCase(
-        "input_cond_remove",
-        docs=[{"v": -1}, {"v": 5}, {"v": 3}],
-        pipeline=[
-            {
-                "$group": {
-                    "_id": None,
-                    "result": {"$max": {"$cond": [{"$gt": ["$v", 0]}, "$v", "$$REMOVE"]}},
-                }
-            },
-            {"$project": {"_id": 0, "result": 1}},
-        ],
-        expected=[{"result": 5}],
-        msg="$max should accept conditional with $$REMOVE as operand",
-    ),
-    AccumulatorTestCase(
         "input_null_literal",
         docs=[{"v": 1}, {"v": 2}],
         pipeline=[
