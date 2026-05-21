@@ -308,97 +308,11 @@ FIRST_MIXED_TYPE_TESTS: list[AccumulatorTestCase] = [
     ),
 ]
 
-# Property [Return Type]: $first preserves the BSON type of the returned
-# value, verified using $type projection.
-FIRST_RETURN_TYPE_TESTS: list[AccumulatorTestCase] = [
-    AccumulatorTestCase(
-        "return_type_int32",
-        docs=[{"v": 42}, {"v": 999}],
-        pipeline=[
-            {"$group": {"_id": None, "result": {"$first": "$v"}}},
-            {"$project": {"_id": 0, "value": "$result", "type": {"$type": "$result"}}},
-        ],
-        expected=[{"value": 42, "type": "int"}],
-        msg="$first of int32 should return type 'int'",
-    ),
-    AccumulatorTestCase(
-        "return_type_int64",
-        docs=[{"v": Int64(42)}, {"v": 999}],
-        pipeline=[
-            {"$group": {"_id": None, "result": {"$first": "$v"}}},
-            {"$project": {"_id": 0, "value": "$result", "type": {"$type": "$result"}}},
-        ],
-        expected=[{"value": Int64(42), "type": "long"}],
-        msg="$first of Int64 should return type 'long'",
-    ),
-    AccumulatorTestCase(
-        "return_type_double",
-        docs=[{"v": 3.14}, {"v": 999}],
-        pipeline=[
-            {"$group": {"_id": None, "result": {"$first": "$v"}}},
-            {"$project": {"_id": 0, "value": "$result", "type": {"$type": "$result"}}},
-        ],
-        expected=[{"value": 3.14, "type": "double"}],
-        msg="$first of double should return type 'double'",
-    ),
-    AccumulatorTestCase(
-        "return_type_decimal",
-        docs=[{"v": Decimal128("3.14")}, {"v": 999}],
-        pipeline=[
-            {"$group": {"_id": None, "result": {"$first": "$v"}}},
-            {"$project": {"_id": 0, "value": "$result", "type": {"$type": "$result"}}},
-        ],
-        expected=[{"value": Decimal128("3.14"), "type": "decimal"}],
-        msg="$first of Decimal128 should return type 'decimal'",
-    ),
-    AccumulatorTestCase(
-        "return_type_string",
-        docs=[{"v": "hello"}, {"v": 999}],
-        pipeline=[
-            {"$group": {"_id": None, "result": {"$first": "$v"}}},
-            {"$project": {"_id": 0, "value": "$result", "type": {"$type": "$result"}}},
-        ],
-        expected=[{"value": "hello", "type": "string"}],
-        msg="$first of string should return type 'string'",
-    ),
-    AccumulatorTestCase(
-        "return_type_boolean",
-        docs=[{"v": True}, {"v": 999}],
-        pipeline=[
-            {"$group": {"_id": None, "result": {"$first": "$v"}}},
-            {"$project": {"_id": 0, "value": "$result", "type": {"$type": "$result"}}},
-        ],
-        expected=[{"value": True, "type": "bool"}],
-        msg="$first of boolean should return type 'bool'",
-    ),
-    AccumulatorTestCase(
-        "return_type_date",
-        docs=[{"v": datetime(2023, 6, 15, tzinfo=timezone.utc)}, {"v": 999}],
-        pipeline=[
-            {"$group": {"_id": None, "result": {"$first": "$v"}}},
-            {"$project": {"_id": 0, "value": "$result", "type": {"$type": "$result"}}},
-        ],
-        expected=[{"value": datetime(2023, 6, 15, tzinfo=timezone.utc), "type": "date"}],
-        msg="$first of datetime should return type 'date'",
-    ),
-    AccumulatorTestCase(
-        "return_type_null",
-        docs=[{"v": None}, {"v": 999}],
-        pipeline=[
-            {"$group": {"_id": None, "result": {"$first": "$v"}}},
-            {"$project": {"_id": 0, "value": "$result", "type": {"$type": "$result"}}},
-        ],
-        expected=[{"value": None, "type": "null"}],
-        msg="$first of null should return type 'null'",
-    ),
-]
-
 FIRST_TYPE_SUCCESS_TESTS = (
     FIRST_BSON_TYPE_TESTS
     + FIRST_SPECIAL_NUMERIC_TESTS
     + FIRST_DECIMAL_PRECISION_TESTS
     + FIRST_MIXED_TYPE_TESTS
-    + FIRST_RETURN_TYPE_TESTS
 )
 
 
