@@ -505,7 +505,7 @@ AVG_GROUP_BOUNDARY_TESTS: list[AccumulatorTestCase] = (
 
 
 @pytest.mark.parametrize("test_case", pytest_params(AVG_GROUP_BOUNDARY_TESTS))
-def test_avg_group_boundaries(collection, test_case: AccumulatorTestCase):
+def test_accumulator_avg_group_boundaries(collection, test_case: AccumulatorTestCase):
     """Test $avg accumulator boundary values in $group context."""
     collection.insert_many(test_case.docs)
     result = execute_command(

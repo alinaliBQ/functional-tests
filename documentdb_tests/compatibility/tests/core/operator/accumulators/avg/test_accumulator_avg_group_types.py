@@ -244,7 +244,7 @@ AVG_GROUP_TYPE_TESTS: list[AccumulatorTestCase] = (
 
 
 @pytest.mark.parametrize("test_case", pytest_params(AVG_GROUP_TYPE_TESTS))
-def test_avg_group_types(collection, test_case: AccumulatorTestCase):
+def test_accumulator_avg_group_types(collection, test_case: AccumulatorTestCase):
     """Test $avg type promotion and return type in $group context."""
     collection.insert_many(test_case.docs)
     result = execute_command(

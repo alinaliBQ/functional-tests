@@ -103,7 +103,7 @@ AVG_NULL_MISSING_TESTS: list[AccumulatorTestCase] = [
 
 
 @pytest.mark.parametrize("test_case", pytest_params(AVG_NULL_MISSING_TESTS))
-def test_avg_null_missing(collection, test_case: AccumulatorTestCase):
+def test_accumulator_avg_null_missing(collection, test_case: AccumulatorTestCase):
     """Test $avg null and missing value handling in $group context."""
     if test_case.docs:
         collection.insert_many(test_case.docs)

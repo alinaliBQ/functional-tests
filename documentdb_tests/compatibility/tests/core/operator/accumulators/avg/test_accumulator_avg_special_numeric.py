@@ -137,7 +137,7 @@ AVG_SPECIAL_NUMERIC_TESTS: list[AccumulatorTestCase] = AVG_NAN_TESTS + AVG_INFIN
 
 
 @pytest.mark.parametrize("test_case", pytest_params(AVG_SPECIAL_NUMERIC_TESTS))
-def test_avg_special_numeric(collection, test_case: AccumulatorTestCase):
+def test_accumulator_avg_special_numeric(collection, test_case: AccumulatorTestCase):
     """Test $avg special numeric value handling in $group context."""
     if test_case.docs:
         collection.insert_many(test_case.docs)

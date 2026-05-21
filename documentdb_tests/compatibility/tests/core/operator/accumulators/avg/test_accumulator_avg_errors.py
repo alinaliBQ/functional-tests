@@ -59,7 +59,7 @@ AVG_ERROR_TESTS: list[AccumulatorTestCase] = AVG_EXPRESSION_ERROR_TESTS
 
 
 @pytest.mark.parametrize("test_case", pytest_params(AVG_ERROR_TESTS))
-def test_avg_errors(collection, test_case: AccumulatorTestCase):
+def test_accumulator_avg_errors(collection, test_case: AccumulatorTestCase):
     """Test $avg accumulator error handling."""
     if test_case.docs:
         collection.insert_many(test_case.docs)

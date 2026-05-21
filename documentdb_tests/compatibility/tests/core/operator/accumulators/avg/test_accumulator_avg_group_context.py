@@ -312,7 +312,7 @@ AVG_GROUP_CONTEXT_TESTS: list[AccumulatorTestCase] = (
 
 
 @pytest.mark.parametrize("test_case", pytest_params(AVG_GROUP_CONTEXT_TESTS))
-def test_avg_group_context(collection, test_case: AccumulatorTestCase):
+def test_accumulator_avg_group_context(collection, test_case: AccumulatorTestCase):
     """Test $avg in $group context with grouping behavior."""
     if test_case.docs:
         collection.insert_many(test_case.docs)

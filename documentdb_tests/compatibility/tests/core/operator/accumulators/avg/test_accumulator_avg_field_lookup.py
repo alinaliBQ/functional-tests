@@ -202,7 +202,7 @@ AVG_FIELD_LOOKUP_TESTS: list[AccumulatorTestCase] = (
 
 
 @pytest.mark.parametrize("test_case", pytest_params(AVG_FIELD_LOOKUP_TESTS))
-def test_avg_field_lookup(collection, test_case: AccumulatorTestCase):
+def test_accumulator_avg_field_lookup(collection, test_case: AccumulatorTestCase):
     """Test $avg field lookup and expression types in $group context."""
     if test_case.docs:
         collection.insert_many(test_case.docs)

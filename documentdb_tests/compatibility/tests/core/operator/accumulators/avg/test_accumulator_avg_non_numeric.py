@@ -240,7 +240,7 @@ AVG_NON_NUMERIC_TESTS: list[AccumulatorTestCase] = [
 
 
 @pytest.mark.parametrize("test_case", pytest_params(AVG_NON_NUMERIC_TESTS))
-def test_avg_non_numeric(collection, test_case: AccumulatorTestCase):
+def test_accumulator_avg_non_numeric(collection, test_case: AccumulatorTestCase):
     """Test $avg non-numeric type handling in $group context."""
     if test_case.docs:
         collection.insert_many(test_case.docs)
