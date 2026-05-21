@@ -115,9 +115,6 @@ MAX_NAN_TESTS: list[AccumulatorTestCase] = [
         expected=[{"result": FLOAT_NEGATIVE_INFINITY}],
         msg="$max should pick -Infinity over float NaN",
     ),
-    # NOTE: nan_float_vs_decimal is stage-dependent ($group/$bucket return
-    # the last NaN type, $bucketAuto returns the first) and tested in
-    # test_accumulator_max_stage_divergence.py.
     AccumulatorTestCase(
         "nan_as_only_nonnull",
         docs=[{"v": None}, {"v": FLOAT_NAN}],
@@ -397,10 +394,9 @@ MAX_BOUNDARY_TESTS: list[AccumulatorTestCase] = [
 # 4. Negative Zero
 # ===========================================================================
 
-# Property [Negative Zero]: -0.0 and +0.0 are numerically equal; tie-breaking
-# by document order differs by stage ($group/$bucket: last wins, $bucketAuto:
-# first wins). The stage-dependent tie tests are in
-# test_accumulator_max_stage_divergence.py.
+# Property [Negative Zero]: -0.0 and +0.0 are numerically equal; $max picks
+# the larger of the two (which are equal), so the result depends on document
+# order tie-breaking.
 MAX_NEGZERO_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
         "negzero_double_vs_positive",
@@ -445,9 +441,6 @@ MAX_DECIMAL_PRECISION_TESTS: list[AccumulatorTestCase] = [
         expected=[{"result": Decimal128("1.234567890123456789012345678901235")}],
         msg="$max should distinguish 34-digit Decimal128 values",
     ),
-    # NOTE: decimal_trailing_zeros is stage-dependent ($group/$bucket return
-    # the last equal value, $bucketAuto returns the first) and tested in
-    # test_accumulator_max_stage_divergence.py.
     AccumulatorTestCase(
         "decimal_large_exponent",
         docs=[{"v": DECIMAL128_LARGE_EXPONENT}, {"v": DECIMAL128_MAX}],

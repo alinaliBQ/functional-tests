@@ -139,9 +139,6 @@ MAX_BSON_ORDER_TESTS: list[AccumulatorTestCase] = [
         expected=[{"result": "a"}],
         msg="$max should pick string over number per BSON order",
     ),
-    # NOTE: bson_regex_vs_code, bson_code_vs_maxkey, bson_minkey_vs_maxkey,
-    # and bson_maxkey_before_minkey are stage-dependent and tested in
-    # test_accumulator_max_stage_divergence.py.
 ]
 
 
