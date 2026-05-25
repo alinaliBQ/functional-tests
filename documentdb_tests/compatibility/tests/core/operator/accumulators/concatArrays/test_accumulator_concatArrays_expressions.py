@@ -72,7 +72,7 @@ CONCATARRAYS_EXPRESSION_TESTS: list[AccumulatorTestCase] = [
 
 
 @pytest.mark.parametrize("test_case", pytest_params(CONCATARRAYS_EXPRESSION_TESTS))
-def test_concatArrays_expressions(collection, test_case: AccumulatorTestCase):
+def test_accumulator_concatArrays_expressions(collection, test_case: AccumulatorTestCase):
     """Test $concatArrays expression argument cases."""
     if test_case.docs:
         collection.insert_many(test_case.docs)

@@ -94,7 +94,7 @@ CONCATARRAYS_ALL_ERROR_TESTS = CONCATARRAYS_ARITY_ERROR_TESTS + CONCATARRAYS_EXP
 
 
 @pytest.mark.parametrize("test_case", pytest_params(CONCATARRAYS_ALL_ERROR_TESTS))
-def test_concatArrays_errors(collection, test_case):
+def test_accumulator_concatArrays_errors(collection, test_case):
     """Test $concatArrays arity and expression error cases."""
     if test_case.docs:
         collection.insert_many(test_case.docs)

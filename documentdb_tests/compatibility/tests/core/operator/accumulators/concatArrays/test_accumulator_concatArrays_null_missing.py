@@ -236,7 +236,7 @@ CONCATARRAYS_ERROR_TESTS = (
 
 
 @pytest.mark.parametrize("test_case", pytest_params(CONCATARRAYS_ERROR_TESTS))
-def test_concatArrays_null_missing_errors(collection, test_case):
+def test_accumulator_concatArrays_null_missing_errors(collection, test_case):
     """Test $concatArrays null, type rejection, and mixed invalid error cases."""
     if test_case.docs:
         collection.insert_many(test_case.docs)
@@ -400,7 +400,7 @@ CONCATARRAYS_MISSING_AND_REMOVE_TESTS = CONCATARRAYS_MISSING_TESTS + CONCATARRAY
 
 
 @pytest.mark.parametrize("test_case", pytest_params(CONCATARRAYS_MISSING_AND_REMOVE_TESTS))
-def test_concatArrays_missing(collection, test_case: AccumulatorTestCase):
+def test_accumulator_concatArrays_missing(collection, test_case: AccumulatorTestCase):
     """Test $concatArrays missing field and $$REMOVE handling."""
     if test_case.docs:
         collection.insert_many(test_case.docs)

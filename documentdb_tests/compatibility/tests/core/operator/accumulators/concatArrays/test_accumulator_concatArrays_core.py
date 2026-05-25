@@ -273,7 +273,7 @@ CONCATARRAYS_SUCCESS_TESTS = (
 
 
 @pytest.mark.parametrize("test_case", pytest_params(CONCATARRAYS_SUCCESS_TESTS))
-def test_concatArrays_core(collection, test_case: AccumulatorTestCase):
+def test_accumulator_concatArrays_core(collection, test_case: AccumulatorTestCase):
     """Test $concatArrays core concatenation cases."""
     if test_case.docs:
         collection.insert_many(test_case.docs)
@@ -285,7 +285,7 @@ def test_concatArrays_core(collection, test_case: AccumulatorTestCase):
 
 
 @pytest.mark.parametrize("test_case", pytest_params(CONCATARRAYS_GROUPING_TESTS))
-def test_concatArrays_grouping(collection, test_case: AccumulatorTestCase):
+def test_accumulator_concatArrays_grouping(collection, test_case: AccumulatorTestCase):
     """Test $concatArrays grouping independence."""
     if test_case.docs:
         collection.insert_many(test_case.docs)
@@ -297,7 +297,7 @@ def test_concatArrays_grouping(collection, test_case: AccumulatorTestCase):
 
 
 # Property [Empty Collection]: empty collection produces no group output.
-def test_concatArrays_empty_collection(collection):
+def test_accumulator_concatArrays_empty_collection(collection):
     """Test $concatArrays on empty collection returns empty result set."""
     result = execute_command(
         collection,
@@ -359,7 +359,7 @@ CONCATARRAYS_RETURN_TYPE_TESTS: list[AccumulatorTestCase] = [
 
 
 @pytest.mark.parametrize("test_case", pytest_params(CONCATARRAYS_RETURN_TYPE_TESTS))
-def test_concatArrays_return_type(collection, test_case: AccumulatorTestCase):
+def test_accumulator_concatArrays_return_type(collection, test_case: AccumulatorTestCase):
     """Test $concatArrays return type verification."""
     if test_case.docs:
         collection.insert_many(test_case.docs)

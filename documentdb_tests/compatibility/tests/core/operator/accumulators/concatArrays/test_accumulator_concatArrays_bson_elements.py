@@ -206,7 +206,7 @@ CONCATARRAYS_BSON_ELEMENT_TESTS: list[AccumulatorTestCase] = [
 
 
 @pytest.mark.parametrize("test_case", pytest_params(CONCATARRAYS_BSON_ELEMENT_TESTS))
-def test_concatArrays_bson_elements(collection, test_case: AccumulatorTestCase):
+def test_accumulator_concatArrays_bson_elements(collection, test_case: AccumulatorTestCase):
     """Test $concatArrays BSON element type preservation."""
     if test_case.docs:
         collection.insert_many(test_case.docs)
