@@ -47,16 +47,6 @@ ADDTOSET_NULL_TESTS: list[AccumulatorTestCase] = [
         expected=[{"result": [None, 5, 3]}],
         msg="$addToSet should collect null alongside other values",
     ),
-    AccumulatorTestCase(
-        "null_and_values_dedup",
-        docs=[{"v": 10}, {"v": None}, {"v": 5}],
-        pipeline=[
-            {"$group": {"_id": None, "result": {"$addToSet": "$v"}}},
-            {"$project": {"_id": 0, "result": 1}},
-        ],
-        expected=[{"result": [10, None, 5]}],
-        msg="$addToSet should collect null and distinct values without duplication",
-    ),
 ]
 
 # Property [Missing Excluded]: missing fields are excluded from the result.

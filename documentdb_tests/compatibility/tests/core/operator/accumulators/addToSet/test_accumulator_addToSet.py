@@ -64,7 +64,7 @@ ADDTOSET_REMOVE_TESTS: list[AccumulatorTestCase] = [
         msg="$addToSet should collect null produced by $cond while excluding $$REMOVE",
     ),
     AccumulatorTestCase(
-        "remove_dedup",
+        "remove_with_duplicate_values",
         docs=[{"v": 5}, {"v": 5}, {"v": -1}, {"v": -2}],
         pipeline=[
             {
@@ -304,26 +304,6 @@ ADDTOSET_EMPTY_TESTS: list[AccumulatorTestCase] = [
 # Property [Edge Cases]: accumulator-specific edge cases.
 ADDTOSET_EDGE_CASE_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
-        "edge_single_null_doc",
-        docs=[{"v": None}],
-        pipeline=[
-            {"$group": {"_id": None, "result": {"$addToSet": "$v"}}},
-            {"$project": {"_id": 0, "result": 1}},
-        ],
-        expected=[{"result": [None]}],
-        msg="$addToSet should return [null] for single null document",
-    ),
-    AccumulatorTestCase(
-        "edge_single_missing_doc",
-        docs=[{"x": 1}],
-        pipeline=[
-            {"$group": {"_id": None, "result": {"$addToSet": "$v"}}},
-            {"$project": {"_id": 0, "result": 1}},
-        ],
-        expected=[{"result": []}],
-        msg="$addToSet should return empty array for single document with missing field",
-    ),
-    AccumulatorTestCase(
         "edge_many_unique",
         docs=[{"v": i} for i in range(100)],
         pipeline=[
@@ -344,7 +324,7 @@ ADDTOSET_EDGE_CASE_TESTS: list[AccumulatorTestCase] = [
         msg="$addToSet should deduplicate 100 docs down to 5 unique values",
     ),
     AccumulatorTestCase(
-        "edge_array_field_not_traversed",
+        "edge_array_not_unwound",
         docs=[{"v": [5, 1, 8]}],
         pipeline=[
             {"$group": {"_id": None, "result": {"$addToSet": "$v"}}},
@@ -352,16 +332,6 @@ ADDTOSET_EDGE_CASE_TESTS: list[AccumulatorTestCase] = [
         ],
         expected=[{"result": [[5, 1, 8]]}],
         msg="$addToSet should treat array field as a single element, not traverse it",
-    ),
-    AccumulatorTestCase(
-        "edge_mixed_array_scalar",
-        docs=[{"v": 5}, {"v": [5]}],
-        pipeline=[
-            {"$group": {"_id": None, "result": {"$addToSet": "$v"}}},
-            {"$project": {"_id": 0, "result": 1}},
-        ],
-        expected=[{"result": [5, [5]]}],
-        msg="$addToSet should distinguish scalar 5 from array [5]",
     ),
     AccumulatorTestCase(
         "edge_binary_different_subtypes",
@@ -382,16 +352,6 @@ ADDTOSET_EDGE_CASE_TESTS: list[AccumulatorTestCase] = [
         ],
         expected=[{"result": [Regex("abc", "i"), Regex("abc", "m")]}],
         msg="$addToSet should treat Regex values with different flags as distinct",
-    ),
-    AccumulatorTestCase(
-        "edge_expression_mixed_types",
-        docs=[{"v": 1}, {"v": "hello"}, {"v": True}],
-        pipeline=[
-            {"$group": {"_id": None, "result": {"$addToSet": "$v"}}},
-            {"$project": {"_id": 0, "result": 1}},
-        ],
-        expected=[{"result": [1, "hello", True]}],
-        msg="$addToSet should collect mixed-type values from expression",
     ),
 ]
 

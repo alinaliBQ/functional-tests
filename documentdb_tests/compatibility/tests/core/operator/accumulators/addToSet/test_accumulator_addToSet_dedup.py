@@ -456,13 +456,16 @@ ADDTOSET_DECIMAL128_PRECISION_TESTS: list[AccumulatorTestCase] = [
     ),
     AccumulatorTestCase(
         "decimal_34_digit_precision",
-        docs=[{"v": Decimal128("1.234567890123456789012345678901234")}],
+        docs=[
+            {"v": Decimal128("1.234567890123456789012345678901234")},
+            {"v": Decimal128("1.234567890123456789012345678901234")},
+        ],
         pipeline=[
             {"$group": {"_id": None, "result": {"$addToSet": "$v"}}},
             {"$project": {"_id": 0, "result": 1}},
         ],
         expected=[{"result": [Decimal128("1.234567890123456789012345678901234")]}],
-        msg="$addToSet should preserve full 34-digit Decimal128 precision",
+        msg="$addToSet should deduplicate and preserve full 34-digit Decimal128 precision",
     ),
     AccumulatorTestCase(
         "decimal_max_min_distinct",
