@@ -22,14 +22,14 @@ CONCATARRAYS_CORE_TESTS: list[AccumulatorTestCase] = [
             {"_id": 3, "v": [5]},
         ],
         pipeline=[{"$group": {"_id": None, "result": {"$concatArrays": "$v"}}}],
-        expected=[1, 2, 3, 4, 5],
+        expected=[{"_id": None, "result": [1, 2, 3, 4, 5]}],
         msg="$concatArrays should concatenate arrays from multiple documents in order",
     ),
     AccumulatorTestCase(
         "core_single_doc",
         docs=[{"_id": 1, "v": [1, 2, 3]}],
         pipeline=[{"$group": {"_id": None, "result": {"$concatArrays": "$v"}}}],
-        expected=[1, 2, 3],
+        expected=[{"_id": None, "result": [1, 2, 3]}],
         msg="$concatArrays should return the array unchanged for a single document",
     ),
     AccumulatorTestCase(
@@ -42,7 +42,7 @@ CONCATARRAYS_CORE_TESTS: list[AccumulatorTestCase] = [
             {"$sort": {"_id": 1}},
             {"$group": {"_id": None, "result": {"$concatArrays": "$v"}}},
         ],
-        expected=[3, 1, 2, 4],
+        expected=[{"_id": None, "result": [3, 1, 2, 4]}],
         msg="$concatArrays should preserve element order within and across documents",
     ),
 ]
@@ -60,7 +60,7 @@ CONCATARRAYS_DUPLICATE_TESTS: list[AccumulatorTestCase] = [
             {"$sort": {"_id": 1}},
             {"$group": {"_id": None, "result": {"$concatArrays": "$v"}}},
         ],
-        expected=[1, 2, 2, 3],
+        expected=[{"_id": None, "result": [1, 2, 2, 3]}],
         msg="$concatArrays should preserve duplicate elements across documents",
     ),
     AccumulatorTestCase(
@@ -73,7 +73,7 @@ CONCATARRAYS_DUPLICATE_TESTS: list[AccumulatorTestCase] = [
             {"$sort": {"_id": 1}},
             {"$group": {"_id": None, "result": {"$concatArrays": "$v"}}},
         ],
-        expected=[1, 1, 1, 1],
+        expected=[{"_id": None, "result": [1, 1, 1, 1]}],
         msg="$concatArrays should preserve all duplicates within and across documents",
     ),
     AccumulatorTestCase(
@@ -86,7 +86,7 @@ CONCATARRAYS_DUPLICATE_TESTS: list[AccumulatorTestCase] = [
             {"$sort": {"_id": 1}},
             {"$group": {"_id": None, "result": {"$concatArrays": "$v"}}},
         ],
-        expected=[1, 2, 1, 2],
+        expected=[{"_id": None, "result": [1, 2, 1, 2]}],
         msg="$concatArrays should concatenate identical arrays without deduplication",
     ),
     AccumulatorTestCase(
@@ -99,7 +99,7 @@ CONCATARRAYS_DUPLICATE_TESTS: list[AccumulatorTestCase] = [
             {"$sort": {"_id": 1}},
             {"$group": {"_id": None, "result": {"$concatArrays": "$v"}}},
         ],
-        expected=["a", "a", "a", "b"],
+        expected=[{"_id": None, "result": ["a", "a", "a", "b"]}],
         msg="$concatArrays should preserve string duplicates across documents",
     ),
 ]
@@ -111,14 +111,14 @@ CONCATARRAYS_EMPTY_TESTS: list[AccumulatorTestCase] = [
         "empty_all_empty_arrays",
         docs=[{"_id": 1, "v": []}, {"_id": 2, "v": []}],
         pipeline=[{"$group": {"_id": None, "result": {"$concatArrays": "$v"}}}],
-        expected=[],
+        expected=[{"_id": None, "result": []}],
         msg="$concatArrays should return empty array when all inputs are empty arrays",
     ),
     AccumulatorTestCase(
         "empty_single_empty_array",
         docs=[{"_id": 1, "v": []}],
         pipeline=[{"$group": {"_id": None, "result": {"$concatArrays": "$v"}}}],
-        expected=[],
+        expected=[{"_id": None, "result": []}],
         msg="$concatArrays should return empty array for a single empty array input",
     ),
     AccumulatorTestCase(
@@ -132,7 +132,7 @@ CONCATARRAYS_EMPTY_TESTS: list[AccumulatorTestCase] = [
             {"$sort": {"_id": 1}},
             {"$group": {"_id": None, "result": {"$concatArrays": "$v"}}},
         ],
-        expected=[1, 2],
+        expected=[{"_id": None, "result": [1, 2]}],
         msg="$concatArrays should skip empty arrays and concatenate non-empty ones",
     ),
     AccumulatorTestCase(
@@ -145,7 +145,7 @@ CONCATARRAYS_EMPTY_TESTS: list[AccumulatorTestCase] = [
             {"$sort": {"_id": 1}},
             {"$group": {"_id": None, "result": {"$concatArrays": "$v"}}},
         ],
-        expected=[3, 4],
+        expected=[{"_id": None, "result": [3, 4]}],
         msg="$concatArrays should handle empty array before non-empty array",
     ),
     AccumulatorTestCase(
@@ -158,7 +158,7 @@ CONCATARRAYS_EMPTY_TESTS: list[AccumulatorTestCase] = [
             {"$sort": {"_id": 1}},
             {"$group": {"_id": None, "result": {"$concatArrays": "$v"}}},
         ],
-        expected=[1, 2],
+        expected=[{"_id": None, "result": [1, 2]}],
         msg="$concatArrays should handle empty array after non-empty array",
     ),
 ]
@@ -176,7 +176,7 @@ CONCATARRAYS_NESTED_TESTS: list[AccumulatorTestCase] = [
             {"$sort": {"_id": 1}},
             {"$group": {"_id": None, "result": {"$concatArrays": "$v"}}},
         ],
-        expected=[[1, 2], [3, 4]],
+        expected=[{"_id": None, "result": [[1, 2], [3, 4]]}],
         msg="$concatArrays should treat nested arrays as atomic elements",
     ),
     AccumulatorTestCase(
@@ -189,7 +189,7 @@ CONCATARRAYS_NESTED_TESTS: list[AccumulatorTestCase] = [
             {"$sort": {"_id": 1}},
             {"$group": {"_id": None, "result": {"$concatArrays": "$v"}}},
         ],
-        expected=[1, [2], [3], 4],
+        expected=[{"_id": None, "result": [1, [2], [3], 4]}],
         msg="$concatArrays should preserve mixed-depth nesting",
     ),
     AccumulatorTestCase(
@@ -202,7 +202,7 @@ CONCATARRAYS_NESTED_TESTS: list[AccumulatorTestCase] = [
             {"$sort": {"_id": 1}},
             {"$group": {"_id": None, "result": {"$concatArrays": "$v"}}},
         ],
-        expected=[[[1]], [[2]]],
+        expected=[{"_id": None, "result": [[[1]], [[2]]]}],
         msg="$concatArrays should preserve deeply nested arrays as atomic elements",
     ),
 ]
@@ -281,11 +281,7 @@ def test_concatArrays_core(collection, test_case: AccumulatorTestCase):
         collection,
         {"aggregate": collection.name, "pipeline": test_case.pipeline or [], "cursor": {}},
     )
-    assertSuccess(
-        result,
-        [{"_id": None, "result": test_case.expected}],
-        msg=test_case.msg,
-    )
+    assertSuccess(result, test_case.expected, msg=test_case.msg)
 
 
 @pytest.mark.parametrize("test_case", pytest_params(CONCATARRAYS_GROUPING_TESTS))
@@ -326,7 +322,7 @@ CONCATARRAYS_RETURN_TYPE_TESTS: list[AccumulatorTestCase] = [
             {"$group": {"_id": None, "result": {"$concatArrays": "$v"}}},
             {"$project": {"_id": 0, "type": {"$type": "$result"}}},
         ],
-        expected={"type": "array"},
+        expected=[{"type": "array"}],
         msg="$concatArrays should return array type for numeric element arrays",
     ),
     AccumulatorTestCase(
@@ -336,7 +332,7 @@ CONCATARRAYS_RETURN_TYPE_TESTS: list[AccumulatorTestCase] = [
             {"$group": {"_id": None, "result": {"$concatArrays": "$v"}}},
             {"$project": {"_id": 0, "type": {"$type": "$result"}}},
         ],
-        expected={"type": "array"},
+        expected=[{"type": "array"}],
         msg="$concatArrays should return array type for string element arrays",
     ),
     AccumulatorTestCase(
@@ -346,7 +342,7 @@ CONCATARRAYS_RETURN_TYPE_TESTS: list[AccumulatorTestCase] = [
             {"$group": {"_id": None, "result": {"$concatArrays": "$v"}}},
             {"$project": {"_id": 0, "type": {"$type": "$result"}}},
         ],
-        expected={"type": "array"},
+        expected=[{"type": "array"}],
         msg="$concatArrays should return array type for empty array inputs",
     ),
     AccumulatorTestCase(
@@ -356,7 +352,7 @@ CONCATARRAYS_RETURN_TYPE_TESTS: list[AccumulatorTestCase] = [
             {"$group": {"_id": None, "result": {"$concatArrays": "$v"}}},
             {"$project": {"_id": 0, "type": {"$type": "$result"}}},
         ],
-        expected={"type": "array"},
+        expected=[{"type": "array"}],
         msg="$concatArrays should return array type even when all inputs are missing",
     ),
 ]
@@ -371,8 +367,4 @@ def test_concatArrays_return_type(collection, test_case: AccumulatorTestCase):
         collection,
         {"aggregate": collection.name, "pipeline": test_case.pipeline or [], "cursor": {}},
     )
-    assertSuccess(
-        result,
-        [test_case.expected],
-        msg=test_case.msg,
-    )
+    assertSuccess(result, test_case.expected, msg=test_case.msg)

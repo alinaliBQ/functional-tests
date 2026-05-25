@@ -24,7 +24,7 @@ CONCATARRAYS_EXPRESSION_TESTS: list[AccumulatorTestCase] = [
             {"$sort": {"_id": 1}},
             {"$group": {"_id": None, "result": {"$concatArrays": "$items"}}},
         ],
-        expected=[1, 2, 3],
+        expected=[{"_id": None, "result": [1, 2, 3]}],
         msg="$concatArrays should accept a simple field path expression",
     ),
     AccumulatorTestCase(
@@ -37,7 +37,7 @@ CONCATARRAYS_EXPRESSION_TESTS: list[AccumulatorTestCase] = [
             {"$sort": {"_id": 1}},
             {"$group": {"_id": None, "result": {"$concatArrays": "$a.items"}}},
         ],
-        expected=[10, 20, 30],
+        expected=[{"_id": None, "result": [10, 20, 30]}],
         msg="$concatArrays should accept a nested field path expression",
     ),
     AccumulatorTestCase(
@@ -46,7 +46,7 @@ CONCATARRAYS_EXPRESSION_TESTS: list[AccumulatorTestCase] = [
         pipeline=[
             {"$group": {"_id": None, "result": {"$concatArrays": {"$literal": [1, 2]}}}},
         ],
-        expected=[1, 2, 1, 2, 1, 2],
+        expected=[{"_id": None, "result": [1, 2, 1, 2, 1, 2]}],
         msg="$concatArrays should repeat a literal array constant for each document",
     ),
     AccumulatorTestCase(
@@ -65,7 +65,7 @@ CONCATARRAYS_EXPRESSION_TESTS: list[AccumulatorTestCase] = [
                 }
             },
         ],
-        expected=[1, 2, 5],
+        expected=[{"_id": None, "result": [1, 2, 5]}],
         msg="$concatArrays should accept computed $cond expression returning arrays",
     ),
 ]
@@ -80,8 +80,4 @@ def test_concatArrays_expressions(collection, test_case: AccumulatorTestCase):
         collection,
         {"aggregate": collection.name, "pipeline": test_case.pipeline or [], "cursor": {}},
     )
-    assertSuccess(
-        result,
-        [{"_id": None, "result": test_case.expected}],
-        msg=test_case.msg,
-    )
+    assertSuccess(result, test_case.expected, msg=test_case.msg)

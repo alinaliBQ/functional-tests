@@ -27,7 +27,7 @@ CONCATARRAYS_BSON_ELEMENT_TESTS: list[AccumulatorTestCase] = [
             {"$sort": {"_id": 1}},
             {"$group": {"_id": None, "result": {"$concatArrays": "$v"}}},
         ],
-        expected=[1, 2, 3],
+        expected=[{"_id": None, "result": [1, 2, 3]}],
         msg="$concatArrays should preserve int32 elements",
     ),
     AccumulatorTestCase(
@@ -40,7 +40,7 @@ CONCATARRAYS_BSON_ELEMENT_TESTS: list[AccumulatorTestCase] = [
             {"$sort": {"_id": 1}},
             {"$group": {"_id": None, "result": {"$concatArrays": "$v"}}},
         ],
-        expected=[Int64(100), Int64(200)],
+        expected=[{"_id": None, "result": [Int64(100), Int64(200)]}],
         msg="$concatArrays should preserve Int64 elements",
     ),
     AccumulatorTestCase(
@@ -53,7 +53,7 @@ CONCATARRAYS_BSON_ELEMENT_TESTS: list[AccumulatorTestCase] = [
             {"$sort": {"_id": 1}},
             {"$group": {"_id": None, "result": {"$concatArrays": "$v"}}},
         ],
-        expected=[1.5, 2.5],
+        expected=[{"_id": None, "result": [1.5, 2.5]}],
         msg="$concatArrays should preserve double elements",
     ),
     AccumulatorTestCase(
@@ -66,7 +66,7 @@ CONCATARRAYS_BSON_ELEMENT_TESTS: list[AccumulatorTestCase] = [
             {"$sort": {"_id": 1}},
             {"$group": {"_id": None, "result": {"$concatArrays": "$v"}}},
         ],
-        expected=[Decimal128("1.1"), Decimal128("2.2")],
+        expected=[{"_id": None, "result": [Decimal128("1.1"), Decimal128("2.2")]}],
         msg="$concatArrays should preserve Decimal128 elements",
     ),
     AccumulatorTestCase(
@@ -79,7 +79,7 @@ CONCATARRAYS_BSON_ELEMENT_TESTS: list[AccumulatorTestCase] = [
             {"$sort": {"_id": 1}},
             {"$group": {"_id": None, "result": {"$concatArrays": "$v"}}},
         ],
-        expected=["hello", "world"],
+        expected=[{"_id": None, "result": ["hello", "world"]}],
         msg="$concatArrays should preserve string elements",
     ),
     AccumulatorTestCase(
@@ -92,7 +92,7 @@ CONCATARRAYS_BSON_ELEMENT_TESTS: list[AccumulatorTestCase] = [
             {"$sort": {"_id": 1}},
             {"$group": {"_id": None, "result": {"$concatArrays": "$v"}}},
         ],
-        expected=[True, False],
+        expected=[{"_id": None, "result": [True, False]}],
         msg="$concatArrays should preserve boolean elements",
     ),
     AccumulatorTestCase(
@@ -106,8 +106,13 @@ CONCATARRAYS_BSON_ELEMENT_TESTS: list[AccumulatorTestCase] = [
             {"$group": {"_id": None, "result": {"$concatArrays": "$v"}}},
         ],
         expected=[
-            datetime(2023, 1, 1, tzinfo=timezone.utc),
-            datetime(2024, 6, 15, tzinfo=timezone.utc),
+            {
+                "_id": None,
+                "result": [
+                    datetime(2023, 1, 1, tzinfo=timezone.utc),
+                    datetime(2024, 6, 15, tzinfo=timezone.utc),
+                ],
+            }
         ],
         msg="$concatArrays should preserve datetime elements",
     ),
@@ -122,8 +127,13 @@ CONCATARRAYS_BSON_ELEMENT_TESTS: list[AccumulatorTestCase] = [
             {"$group": {"_id": None, "result": {"$concatArrays": "$v"}}},
         ],
         expected=[
-            ObjectId("000000000000000000000001"),
-            ObjectId("000000000000000000000002"),
+            {
+                "_id": None,
+                "result": [
+                    ObjectId("000000000000000000000001"),
+                    ObjectId("000000000000000000000002"),
+                ],
+            }
         ],
         msg="$concatArrays should preserve ObjectId elements",
     ),
@@ -137,7 +147,7 @@ CONCATARRAYS_BSON_ELEMENT_TESTS: list[AccumulatorTestCase] = [
             {"$sort": {"_id": 1}},
             {"$group": {"_id": None, "result": {"$concatArrays": "$v"}}},
         ],
-        expected=[{"a": 1}, {"b": 2}],
+        expected=[{"_id": None, "result": [{"a": 1}, {"b": 2}]}],
         msg="$concatArrays should preserve embedded document elements",
     ),
     AccumulatorTestCase(
@@ -150,7 +160,7 @@ CONCATARRAYS_BSON_ELEMENT_TESTS: list[AccumulatorTestCase] = [
             {"$sort": {"_id": 1}},
             {"$group": {"_id": None, "result": {"$concatArrays": "$v"}}},
         ],
-        expected=[None, None],
+        expected=[{"_id": None, "result": [None, None]}],
         msg="$concatArrays should preserve null as array element (not error)",
     ),
     AccumulatorTestCase(
@@ -163,7 +173,7 @@ CONCATARRAYS_BSON_ELEMENT_TESTS: list[AccumulatorTestCase] = [
             {"$sort": {"_id": 1}},
             {"$group": {"_id": None, "result": {"$concatArrays": "$v"}}},
         ],
-        expected=[b"\x01", b"\x02"],
+        expected=[{"_id": None, "result": [b"\x01", b"\x02"]}],
         msg="$concatArrays should preserve Binary elements",
     ),
     AccumulatorTestCase(
@@ -176,7 +186,7 @@ CONCATARRAYS_BSON_ELEMENT_TESTS: list[AccumulatorTestCase] = [
             {"$sort": {"_id": 1}},
             {"$group": {"_id": None, "result": {"$concatArrays": "$v"}}},
         ],
-        expected=[Regex("abc", "i"), Regex("def", "")],
+        expected=[{"_id": None, "result": [Regex("abc", "i"), Regex("def", "")]}],
         msg="$concatArrays should preserve Regex elements",
     ),
     AccumulatorTestCase(
@@ -189,7 +199,7 @@ CONCATARRAYS_BSON_ELEMENT_TESTS: list[AccumulatorTestCase] = [
             {"$sort": {"_id": 1}},
             {"$group": {"_id": None, "result": {"$concatArrays": "$v"}}},
         ],
-        expected=[1, "hello", True, None, 3.14],
+        expected=[{"_id": None, "result": [1, "hello", True, None, 3.14]}],
         msg="$concatArrays should preserve mixed BSON types in order",
     ),
 ]
@@ -204,8 +214,4 @@ def test_concatArrays_bson_elements(collection, test_case: AccumulatorTestCase):
         collection,
         {"aggregate": collection.name, "pipeline": test_case.pipeline or [], "cursor": {}},
     )
-    assertSuccess(
-        result,
-        [{"_id": None, "result": test_case.expected}],
-        msg=test_case.msg,
-    )
+    assertSuccess(result, test_case.expected, msg=test_case.msg)

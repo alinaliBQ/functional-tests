@@ -120,6 +120,13 @@ CONCATARRAYS_TYPE_REJECTION_TESTS: list[AccumulatorTestCase] = [
         msg="$concatArrays should reject embedded document field value",
     ),
     AccumulatorTestCase(
+        "type_reject_empty_object",
+        docs=[{"_id": 1, "v": {}}],
+        pipeline=[{"$group": {"_id": None, "result": {"$concatArrays": "$v"}}}],
+        error_code=TYPE_MISMATCH_ERROR,
+        msg="$concatArrays should reject empty document field value",
+    ),
+    AccumulatorTestCase(
         "type_reject_objectid",
         docs=[{"_id": 1, "v": ObjectId()}],
         pipeline=[{"$group": {"_id": None, "result": {"$concatArrays": "$v"}}}],
@@ -247,14 +254,14 @@ CONCATARRAYS_MISSING_TESTS: list[AccumulatorTestCase] = [
         "missing_all",
         docs=[{"_id": 1, "x": 1}, {"_id": 2, "x": 2}],
         pipeline=[{"$group": {"_id": None, "result": {"$concatArrays": "$v"}}}],
-        expected=[],
+        expected=[{"_id": None, "result": []}],
         msg="$concatArrays should return empty array when all fields are missing",
     ),
     AccumulatorTestCase(
         "missing_single",
         docs=[{"_id": 1, "x": 1}],
         pipeline=[{"$group": {"_id": None, "result": {"$concatArrays": "$v"}}}],
-        expected=[],
+        expected=[{"_id": None, "result": []}],
         msg="$concatArrays should return empty array when the single document has missing field",
     ),
     AccumulatorTestCase(
@@ -268,7 +275,7 @@ CONCATARRAYS_MISSING_TESTS: list[AccumulatorTestCase] = [
             {"$sort": {"_id": 1}},
             {"$group": {"_id": None, "result": {"$concatArrays": "$v"}}},
         ],
-        expected=[3, 4, 5],
+        expected=[{"_id": None, "result": [3, 4, 5]}],
         msg="$concatArrays should exclude missing fields and concatenate remaining arrays",
     ),
     AccumulatorTestCase(
@@ -282,7 +289,7 @@ CONCATARRAYS_MISSING_TESTS: list[AccumulatorTestCase] = [
             {"$sort": {"_id": 1}},
             {"$group": {"_id": None, "result": {"$concatArrays": "$v"}}},
         ],
-        expected=[1, 2],
+        expected=[{"_id": None, "result": [1, 2]}],
         msg="$concatArrays should skip missing field in middle and concatenate surrounding arrays",
     ),
     AccumulatorTestCase(
@@ -295,7 +302,7 @@ CONCATARRAYS_MISSING_TESTS: list[AccumulatorTestCase] = [
             {"$sort": {"_id": 1}},
             {"$group": {"_id": None, "result": {"$concatArrays": "$v"}}},
         ],
-        expected=[10, 20],
+        expected=[{"_id": None, "result": [10, 20]}],
         msg="$concatArrays should handle first document having missing field",
     ),
     AccumulatorTestCase(
@@ -308,7 +315,7 @@ CONCATARRAYS_MISSING_TESTS: list[AccumulatorTestCase] = [
             {"$sort": {"_id": 1}},
             {"$group": {"_id": None, "result": {"$concatArrays": "$v"}}},
         ],
-        expected=[10, 20],
+        expected=[{"_id": None, "result": [10, 20]}],
         msg="$concatArrays should handle last document having missing field",
     ),
     AccumulatorTestCase(
@@ -323,7 +330,7 @@ CONCATARRAYS_MISSING_TESTS: list[AccumulatorTestCase] = [
             {"$sort": {"_id": 1}},
             {"$group": {"_id": None, "result": {"$concatArrays": "$v"}}},
         ],
-        expected=[42],
+        expected=[{"_id": None, "result": [42]}],
         msg="$concatArrays should return the single array when most documents have missing field",
     ),
 ]
@@ -342,7 +349,7 @@ CONCATARRAYS_REMOVE_TESTS: list[AccumulatorTestCase] = [
                 }
             }
         ],
-        expected=[],
+        expected=[{"_id": None, "result": []}],
         msg="$concatArrays should return empty array when all inputs are $$REMOVE",
     ),
     AccumulatorTestCase(
@@ -363,7 +370,7 @@ CONCATARRAYS_REMOVE_TESTS: list[AccumulatorTestCase] = [
                 }
             },
         ],
-        expected=[3, 4],
+        expected=[{"_id": None, "result": [3, 4]}],
         msg="$concatArrays should exclude $$REMOVE and concatenate remaining arrays",
     ),
     AccumulatorTestCase(
@@ -384,7 +391,7 @@ CONCATARRAYS_REMOVE_TESTS: list[AccumulatorTestCase] = [
                 }
             },
         ],
-        expected=[1, 2, 1, 2],
+        expected=[{"_id": None, "result": [1, 2, 1, 2]}],
         msg="$concatArrays should preserve duplicates when using $$REMOVE conditionally",
     ),
 ]
@@ -401,8 +408,4 @@ def test_concatArrays_missing(collection, test_case: AccumulatorTestCase):
         collection,
         {"aggregate": collection.name, "pipeline": test_case.pipeline or [], "cursor": {}},
     )
-    assertSuccess(
-        result,
-        [{"_id": None, "result": test_case.expected}],
-        msg=test_case.msg,
-    )
+    assertSuccess(result, test_case.expected, msg=test_case.msg)
