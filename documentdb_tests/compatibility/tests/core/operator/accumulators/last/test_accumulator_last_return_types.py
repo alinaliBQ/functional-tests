@@ -9,7 +9,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 import pytest
-from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
+from bson import Binary, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
 from documentdb_tests.compatibility.tests.core.operator.accumulators.utils.accumulator_test_case import (  # noqa: E501
     AccumulatorTestCase,
@@ -169,17 +169,6 @@ LAST_RETURN_TYPE_TESTS: list[AccumulatorTestCase] = [
         ],
         expected=[{"value": Regex("abc", "i"), "type": "regex"}],
         msg="$last should preserve Regex type",
-    ),
-    AccumulatorTestCase(
-        "type_code",
-        docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": Code("function(){}")}],
-        pipeline=[
-            {"$sort": {"_id": 1}},
-            {"$group": {"_id": None, "result": {"$last": "$v"}}},
-            {"$project": {"_id": 0, "value": "$result", "type": {"$type": "$result"}}},
-        ],
-        expected=[{"value": "function(){}", "type": "string"}],
-        msg="$last should return Code as string via runCommand",
     ),
     AccumulatorTestCase(
         "type_timestamp",

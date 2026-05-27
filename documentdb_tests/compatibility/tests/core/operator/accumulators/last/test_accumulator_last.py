@@ -1,12 +1,22 @@
 """Tests for $last accumulator: null/missing, sort order, special numerics, boundaries,
-arrays, expressions, mixed types."""
+arrays, expressions, BSON constants, mixed types."""
 
 from __future__ import annotations
 
 import math
+from datetime import datetime, timezone
 
 import pytest
-from bson import Decimal128
+from bson import (
+    Binary,
+    Decimal128,
+    Int64,
+    MaxKey,
+    MinKey,
+    ObjectId,
+    Regex,
+    Timestamp,
+)
 
 from documentdb_tests.compatibility.tests.core.operator.accumulators.utils.accumulator_test_case import (  # noqa: E501
     AccumulatorTestCase,
@@ -589,6 +599,302 @@ LAST_MIXED_TYPE_TESTS: list[AccumulatorTestCase] = [
     ),
 ]
 
+# ---------------------------------------------------------------------------
+# Property [BSON Constant Arguments]: $last accepts BSON constants as the
+# accumulator argument. The constant is returned for every document, so
+# the "last" value is that constant.
+# ---------------------------------------------------------------------------
+LAST_BSON_CONSTANT_TESTS: list[AccumulatorTestCase] = [
+    AccumulatorTestCase(
+        "const_true",
+        docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": 2}],
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": True}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": True}],
+        msg="$last with boolean True constant should return True",
+    ),
+    AccumulatorTestCase(
+        "const_false",
+        docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": 2}],
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": False}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": False}],
+        msg="$last with boolean False constant should return False",
+    ),
+    AccumulatorTestCase(
+        "const_int64",
+        docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": 2}],
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": Int64(42)}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": Int64(42)}],
+        msg="$last with Int64 constant should return that Int64 value",
+    ),
+    AccumulatorTestCase(
+        "const_double",
+        docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": 2}],
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": 3.14}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": 3.14}],
+        msg="$last with double constant should return that double value",
+    ),
+    AccumulatorTestCase(
+        "const_decimal128",
+        docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": 2}],
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": Decimal128("3.14")}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": Decimal128("3.14")}],
+        msg="$last with Decimal128 constant should return that Decimal128 value",
+    ),
+    AccumulatorTestCase(
+        "const_string",
+        docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": 2}],
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "hello"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": "hello"}],
+        msg="$last with string constant (no $) should return that string",
+    ),
+    AccumulatorTestCase(
+        "const_binary",
+        docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": 2}],
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": Binary(b"\x01\x02")}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": b"\x01\x02"}],
+        msg="$last with Binary constant should return that Binary value",
+    ),
+    AccumulatorTestCase(
+        "const_objectid",
+        docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": 2}],
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {
+                "$group": {
+                    "_id": None,
+                    "result": {"$last": ObjectId("000000000000000000000000")},
+                }
+            },
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": ObjectId("000000000000000000000000")}],
+        msg="$last with ObjectId constant should return that ObjectId",
+    ),
+    AccumulatorTestCase(
+        "const_datetime",
+        docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": 2}],
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {
+                "$group": {
+                    "_id": None,
+                    "result": {"$last": datetime(2020, 1, 1, tzinfo=timezone.utc)},
+                }
+            },
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": datetime(2020, 1, 1, tzinfo=timezone.utc)}],
+        msg="$last with datetime constant should return that datetime",
+    ),
+    AccumulatorTestCase(
+        "const_timestamp",
+        docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": 2}],
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": Timestamp(1, 1)}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": Timestamp(1, 1)}],
+        msg="$last with Timestamp constant should return that Timestamp",
+    ),
+    AccumulatorTestCase(
+        "const_regex",
+        docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": 2}],
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": Regex("abc", "i")}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": Regex("abc", "i")}],
+        msg="$last with Regex constant should return that Regex",
+    ),
+    AccumulatorTestCase(
+        "const_null",
+        docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": 2}],
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": None}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": None}],
+        msg="$last with null constant should return null",
+    ),
+    AccumulatorTestCase(
+        "const_minkey",
+        docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": 2}],
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": MinKey()}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": {"": MinKey()}}],
+        msg="$last with MinKey constant should return MinKey wrapped in document",
+    ),
+    AccumulatorTestCase(
+        "const_maxkey",
+        docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": 2}],
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": MaxKey()}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": {"": MaxKey()}}],
+        msg="$last with MaxKey constant should return MaxKey wrapped in document",
+    ),
+]
+
+# ---------------------------------------------------------------------------
+# Property [Expression Types]: $last accepts various expression types as
+# its operand and evaluates them per document before picking the last.
+# ---------------------------------------------------------------------------
+LAST_EXPRESSION_TYPE_TESTS: list[AccumulatorTestCase] = [
+    AccumulatorTestCase(
+        "expr_type_operator_single",
+        docs=[{"_id": 0, "v": -10}, {"_id": 1, "v": 20}, {"_id": 2, "v": -5}],
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": {"$abs": "$v"}}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": 5}],
+        msg="$last should accept single-input expression operator",
+    ),
+    AccumulatorTestCase(
+        "expr_type_operator_multi_arg",
+        docs=[
+            {"_id": 0, "v": -10, "w": 3},
+            {"_id": 1, "v": 20, "w": 7},
+            {"_id": 2, "v": -5, "w": 1},
+        ],
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {
+                "$group": {
+                    "_id": None,
+                    "result": {"$last": {"$add": ["$v", "$w"]}},
+                }
+            },
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": -4}],
+        msg="$last should accept a multi-arg expression operator",
+    ),
+    AccumulatorTestCase(
+        "expr_type_nested",
+        docs=[{"_id": 0, "v": -10}, {"_id": 1, "v": 20}, {"_id": 2, "v": -5}],
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {
+                "$group": {
+                    "_id": None,
+                    "result": {"$last": {"$add": [1, {"$abs": "$v"}]}},
+                }
+            },
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": 6}],
+        msg="$last should accept nested expression operators",
+    ),
+    AccumulatorTestCase(
+        "expr_type_sysvar_remove",
+        docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": 2}],
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": "$$REMOVE"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": None}],
+        msg="$last with $$REMOVE should treat value as missing and return null",
+    ),
+    AccumulatorTestCase(
+        "expr_type_object_expression",
+        docs=[{"_id": 0, "v": 10}, {"_id": 1, "v": 20}, {"_id": 2, "v": 5}],
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$last": {"a": "$v"}}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": {"a": 5}}],
+        msg="$last should accept an object expression",
+    ),
+    AccumulatorTestCase(
+        "expr_type_object_with_operator",
+        docs=[{"_id": 0, "v": -10}, {"_id": 1, "v": 20}, {"_id": 2, "v": -5}],
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {
+                "$group": {
+                    "_id": None,
+                    "result": {"$last": {"a": {"$abs": "$v"}}},
+                }
+            },
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": {"a": 5}}],
+        msg="$last should accept an object expression containing an operator",
+    ),
+    AccumulatorTestCase(
+        "expr_type_let",
+        docs=[{"_id": 0, "v": 10}, {"_id": 1, "v": 20}, {"_id": 2, "v": 5}],
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {
+                "$group": {
+                    "_id": None,
+                    "result": {"$last": {"$let": {"vars": {"x": "$v"}, "in": "$$x"}}},
+                }
+            },
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": 5}],
+        msg="$last should accept a $let expression as its operand",
+    ),
+]
+
+# ---------------------------------------------------------------------------
+# Property [Empty-Group Behavior]: $last on empty collection produces no groups.
+# ---------------------------------------------------------------------------
+LAST_EMPTY_GROUP_TESTS: list[AccumulatorTestCase] = [
+    AccumulatorTestCase(
+        "empty_collection",
+        docs=[],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$last": "$v"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[],
+        msg="$last on empty collection should produce no groups (empty result)",
+    ),
+]
+
 LAST_SUCCESS_TESTS = (
     LAST_NULL_MISSING_TESTS
     + LAST_SORT_ORDER_TESTS
@@ -597,6 +903,9 @@ LAST_SUCCESS_TESTS = (
     + LAST_ARRAY_TESTS
     + LAST_EXPRESSION_TESTS
     + LAST_MIXED_TYPE_TESTS
+    + LAST_BSON_CONSTANT_TESTS
+    + LAST_EXPRESSION_TYPE_TESTS
+    + LAST_EMPTY_GROUP_TESTS
 )
 
 

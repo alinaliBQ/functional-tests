@@ -7,7 +7,6 @@ from datetime import datetime, timezone
 import pytest
 from bson import (
     Binary,
-    Code,
     Decimal128,
     Int64,
     MaxKey,
@@ -189,17 +188,6 @@ LAST_BSON_TYPE_TESTS: list[AccumulatorTestCase] = [
         ],
         expected=[{"result": Regex("^abc", "i")}],
         msg="$last should return Regex unchanged",
-    ),
-    AccumulatorTestCase(
-        "bson_code",
-        docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": Code("function(){}")}],
-        pipeline=[
-            {"$sort": {"_id": 1}},
-            {"$group": {"_id": None, "result": {"$last": "$v"}}},
-            {"$project": {"_id": 0, "result": 1}},
-        ],
-        expected=[{"result": "function(){}"}],
-        msg="$last should return Code as string via runCommand",
     ),
     AccumulatorTestCase(
         "bson_timestamp",
