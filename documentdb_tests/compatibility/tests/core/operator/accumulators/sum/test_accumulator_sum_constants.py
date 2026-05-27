@@ -187,6 +187,55 @@ SUM_EXPRESSION_ARGS_TESTS: list[AccumulatorTestCase] = [
         expected=15,
         msg="$sum should accept nested $sum (array summation) as its expression",
     ),
+    AccumulatorTestCase(
+        "expr_args_single_input_operator",
+        docs=[{"v": -10}, {"v": 20}, {"v": -5}],
+        pipeline=[{"$group": {"_id": None, "result": {"$sum": {"$abs": "$v"}}}}],
+        expected=35,
+        msg="$sum should accept a single-input expression operator",
+    ),
+    AccumulatorTestCase(
+        "expr_args_nested_expression",
+        docs=[{"v": -10}, {"v": 20}, {"v": -5}],
+        pipeline=[
+            {
+                "$group": {
+                    "_id": None,
+                    "result": {"$sum": {"$add": [1, {"$abs": "$v"}]}},
+                }
+            }
+        ],
+        expected=38,
+        msg="$sum should accept nested expression operators",
+    ),
+    AccumulatorTestCase(
+        "expr_args_sysvar_remove",
+        docs=[{"v": 1}, {"v": 2}],
+        pipeline=[{"$group": {"_id": None, "result": {"$sum": "$$REMOVE"}}}],
+        expected=0,
+        msg="$sum with $$REMOVE should treat all values as missing and return 0",
+    ),
+    AccumulatorTestCase(
+        "expr_args_object_expression",
+        docs=[{"v": 10}, {"v": 20}, {"v": 5}],
+        pipeline=[{"$group": {"_id": None, "result": {"$sum": {"a": "$v"}}}}],
+        expected=0,
+        msg="$sum should return 0 for object expression (non-numeric result)",
+    ),
+    AccumulatorTestCase(
+        "expr_args_let_expression",
+        docs=[{"v": 10}, {"v": 20}, {"v": 5}],
+        pipeline=[
+            {
+                "$group": {
+                    "_id": None,
+                    "result": {"$sum": {"$let": {"vars": {"x": "$v"}, "in": "$$x"}}},
+                }
+            }
+        ],
+        expected=35,
+        msg="$sum should accept a $let expression as its operand",
+    ),
 ]
 
 SUM_CONSTANT_AND_EXPRESSION_TESTS = SUM_CONSTANT_EXPRESSION_TESTS + SUM_EXPRESSION_ARGS_TESTS

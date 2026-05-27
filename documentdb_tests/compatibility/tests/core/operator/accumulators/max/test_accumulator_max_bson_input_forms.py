@@ -212,6 +212,86 @@ MAX_INPUT_FORM_TESTS: list[AccumulatorTestCase] = [
         expected=[{"result": {"": MaxKey()}}],
         msg="$max with MaxKey constant should return MaxKey wrapped in document",
     ),
+    AccumulatorTestCase(
+        "input_expression_operator",
+        docs=[{"v": -10}, {"v": 20}, {"v": -5}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$max": {"$abs": "$v"}}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": 20}],
+        msg="$max should accept an expression operator as its operand",
+    ),
+    AccumulatorTestCase(
+        "input_expression_multi_arg",
+        docs=[{"v": 10, "w": 3}, {"v": 20, "w": 7}, {"v": 5, "w": 1}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$max": {"$add": ["$v", "$w"]}}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": 27}],
+        msg="$max should accept a multi-arg expression operator",
+    ),
+    AccumulatorTestCase(
+        "input_expression_nested",
+        docs=[{"v": -10}, {"v": 20}, {"v": -5}],
+        pipeline=[
+            {
+                "$group": {
+                    "_id": None,
+                    "result": {"$max": {"$add": [1, {"$abs": "$v"}]}},
+                }
+            },
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": 21}],
+        msg="$max should accept nested expression operators",
+    ),
+    AccumulatorTestCase(
+        "input_sysvar_remove",
+        docs=[{"v": 1}, {"v": 2}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$max": "$$REMOVE"}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": None}],
+        msg="$max with $$REMOVE should treat all values as missing and return null",
+    ),
+    AccumulatorTestCase(
+        "input_object_expression",
+        docs=[{"v": 10}, {"v": 20}, {"v": 5}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$max": {"a": "$v"}}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": {"a": 20}}],
+        msg="$max should accept an object expression and compare resulting objects",
+    ),
+    AccumulatorTestCase(
+        "input_object_expression_with_operator",
+        docs=[{"v": -10}, {"v": 20}, {"v": -5}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$max": {"a": {"$abs": "$v"}}}}},
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": {"a": 20}}],
+        msg="$max should accept an object expression containing an operator",
+    ),
+    AccumulatorTestCase(
+        "input_let_expression",
+        docs=[{"v": 10}, {"v": 20}, {"v": 5}],
+        pipeline=[
+            {
+                "$group": {
+                    "_id": None,
+                    "result": {"$max": {"$let": {"vars": {"x": "$v"}, "in": "$$x"}}},
+                }
+            },
+            {"$project": {"_id": 0, "result": 1}},
+        ],
+        expected=[{"result": 20}],
+        msg="$max should accept a $let expression as its operand",
+    ),
 ]
 
 
