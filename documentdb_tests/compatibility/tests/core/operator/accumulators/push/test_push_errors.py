@@ -89,6 +89,26 @@ PUSH_EXPRESSION_ERROR_TESTS: list[AccumulatorTestCase] = [
         error_code=DIVIDE_BY_ZERO_V2_ERROR,
         msg="$push should propagate $divide by zero error",
     ),
+    AccumulatorTestCase(
+        "expr_error_divide_by_zero_field_path",
+        docs=[{"_id": 0, "v": 0}],
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$push": {"$divide": [1, "$v"]}}}},
+        ],
+        error_code=DIVIDE_BY_ZERO_V2_ERROR,
+        msg="$push should propagate $divide by zero when divisor comes from field path",
+    ),
+    AccumulatorTestCase(
+        "expr_error_divide_by_zero_later_doc",
+        docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": 0}],
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {"$group": {"_id": None, "result": {"$push": {"$divide": [1, "$v"]}}}},
+        ],
+        error_code=DIVIDE_BY_ZERO_V2_ERROR,
+        msg="$push should propagate error even when failing doc is not the first",
+    ),
 ]
 
 PUSH_ERROR_TESTS = (
