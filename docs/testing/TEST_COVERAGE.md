@@ -419,7 +419,7 @@ For each invalid_type in [string, object, array, ...]:
 
 ### 18. Accumulator Coverage
 
-**Rule**: Each accumulator must be tested for its expression error propagation, empty-group result, order dependence, and sibling-accumulator interactions. Tests live under
+  **Rule**: Each accumulator must be tested for its expression error propagation, empty-group result, order dependence, and sibling-accumulator interactions. Tests live under
   `tests/core/operator/accumulators/$accumulator/`. Sibling-accumulator interactions live in `tests/core/operator/accumulators/test_accumulators_$op_integration.py`.
 
   The expression-form of dual-form operators (`$max`, `$min`, `$sum`, `$avg`, `$first`, `$last`, etc.) is tested separately under `tests/core/operator/expressions/accumulator/$op/` and is out of scope for the
