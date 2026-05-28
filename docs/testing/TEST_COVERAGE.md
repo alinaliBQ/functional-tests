@@ -12,6 +12,16 @@
   - `$lookup` sub-pipeline: verify stages are accepted/rejected, don't test the stage's full behavior inside the sub-pipeline.
 - **No engine-specific implementation details** — Don't test exact nesting limits (20 levels), pipeline stage limits (1000), or internal storage details (wiredTiger). These belong in engine-specific test suites, not compatibility tests.
 - **Tests belong in the feature's folder** — `$abs` type validation goes in `expressions/arithmetic/abs/`, not in `stages/project/`. Testing `$abs` inside `$project` is a `$project` context test (one simple case), not an `$abs` test.
+- **No deprecated / removed features** — Do not write tests for the following deprecated or removed MongoDB features:
+  - **BSON `Code` type** (`bson.Code`) — deprecated BSON type; do not use `Code` constants or `Code`-valued fields in any test.
+  - **`mapReduce` command** — removed in MongoDB 8.0.
+  - **`reIndex` command** — removed in MongoDB 6.0.
+  - **JavaScript `function` in queries** — server-side JavaScript execution is deprecated.
+  - **`$accumulator` operator** — custom JavaScript accumulator; depends on deprecated server-side JS.
+  - **`$where` operator** — server-side JavaScript query operator; deprecated.
+  - **`currentOp` command** — administrative/diagnostic command; not in scope for compatibility tests.
+  - **`filemd5` command** — GridFS internal command; deprecated in MongoDB 6.0.
+  - **`collStats` command** — deprecated in MongoDB 6.2 in favor of the `$collStats` aggregation stage.
 
 ---
 
@@ -452,6 +462,29 @@ For each invalid_type in [string, object, array, ...]:
  **Out of Scope**:
   - **BSON comparison ordering** (used by `$max`/`$min`/`$top`/`$bottom`) — `bson_types/test_bson_types_ordering.py`; per-accumulator coverage limited to a small wiring sample.
   - **JavaScript Code type** — the BSON `Code` type is deprecated; accumulator tests should not include `Code` constant or `Code`-valued field tests.
+
+---
+
+### 19. Foundational Spec Behaviors — Test Once
+
+  **Rule**: Foundational spec behaviors (BSON type ordering, collation rules, GeoJSON parsing, etc.) are tested comprehensively in their dedicated directory and assumed consistent
+  elsewhere. Consumers test only that they correctly delegate to the foundational behavior, not the foundational behavior itself.
+
+  **Rationale**: We are compatibility tests, not comprehensive functional tests. Re-verifying foundational behavior across every consumer multiplies cases without adding signal — if the foundational behavior diverges, it shows
+  in the foundational test, not in 50 downstream tests.
+
+  **Examples**:
+  - BSON type ordering → `tests/core/bson_types/`. Operators that use it (e.g. `$max`, `$gt`, `$sort`) get 1-2 wiring cases, not the full type-pair matrix.
+  - Collation comparison → `tests/core/collation/`. Commands that accept `collation` test syntactic acceptance only. Sub-fields testing and semantic behavior is in 'tests/core/collation/'.
+  - GeoJSON parsing and validation → `geospatial/specifiers/geometry/`. Geo operators that accept GeoJSON — test that the operator wires to the GeoJSON parser, not GeoJSON syntax tests.
+  - Wire-protocol namespace validation → TBD. Commands that take a namespace as their first field — single representative case, not the full character matrix.
+  - Field path validation  → Issue #118.
+
+  **Test naming convention**: wiring tests typically use the suffix `_bson_wiring.py` or `_<feature>_wiring.py`. Compare to `tests/core/operator/expressions/comparisons/gt/test_gt_bson_wiring.py` for the right
+  shape — small, representative, explicitly named.
+
+  **Carve-outs**: Per Rule 2's exception, parameters whose behavior genuinely varies per command (readConcern, writeConcern) are still tested exhaustively per command. The "test once" rule applies to behaviors that
+   should be uniform across consumers.
 
 ---
 
