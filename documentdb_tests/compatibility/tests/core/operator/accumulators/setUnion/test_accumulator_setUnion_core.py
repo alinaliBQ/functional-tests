@@ -91,7 +91,7 @@ SETUNION_CORE_TESTS: list[AccumulatorTestCase] = [
 # for set union.
 SETUNION_EMPTY_ARRAY_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
-        "empty_all_docs",
+        "empty_array_all_docs",
         docs=[{"v": []}, {"v": []}, {"v": []}],
         pipeline=[
             {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
@@ -144,7 +144,7 @@ SETUNION_NESTED_ARRAY_TESTS: list[AccumulatorTestCase] = [
         msg="$setUnion should deduplicate identical nested arrays",
     ),
     AccumulatorTestCase(
-        "nested_order_matters",
+        "nested_element_order_distinct",
         docs=[{"v": [[1, 2]]}, {"v": [[2, 1]]}],
         pipeline=[
             {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
@@ -240,16 +240,6 @@ SETUNION_MULTIPLE_GROUP_TESTS: list[AccumulatorTestCase] = [
 # Property [Grouping Key Variations]: $setUnion works with different _id
 # grouping expressions.
 SETUNION_GROUPING_KEY_TESTS: list[AccumulatorTestCase] = [
-    AccumulatorTestCase(
-        "grouping_null_id",
-        docs=[{"v": [1, 2]}, {"v": [2, 3]}],
-        pipeline=[
-            {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
-            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
-        ],
-        expected=[{"result": [1, 2, 3]}],
-        msg="$setUnion should work with _id: null grouping all documents",
-    ),
     AccumulatorTestCase(
         "grouping_field_value",
         docs=[

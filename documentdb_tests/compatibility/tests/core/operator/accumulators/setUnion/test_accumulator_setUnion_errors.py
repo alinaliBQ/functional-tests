@@ -131,13 +131,6 @@ SETUNION_TYPE_ERROR_TESTS: list[AccumulatorTestCase] = [
         error_code=TYPE_MISMATCH_ERROR,
         msg="$setUnion should reject MaxKey field value",
     ),
-    AccumulatorTestCase(
-        "type_error_null",
-        docs=[{"v": None}],
-        pipeline=[{"$group": {"_id": None, "result": {"$setUnion": "$v"}}}],
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="$setUnion should reject null field value",
-    ),
 ]
 
 # Property [Mixed Array and Non-Array Error]: when a group contains a mix of

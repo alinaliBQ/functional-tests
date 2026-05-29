@@ -39,7 +39,7 @@ SETUNION_MISSING_FIELD_TESTS: list[AccumulatorTestCase] = [
         msg="$setUnion should ignore missing fields and union only array values",
     ),
     AccumulatorTestCase(
-        "missing_three_of_five",
+        "missing_minority_docs",
         docs=[
             {"v": [1, 2]},
             {"x": 1},
@@ -55,7 +55,7 @@ SETUNION_MISSING_FIELD_TESTS: list[AccumulatorTestCase] = [
         msg="$setUnion should skip missing docs and union the 3 arrays",
     ),
     AccumulatorTestCase(
-        "missing_four_of_five",
+        "missing_majority_docs",
         docs=[
             {"x": 1},
             {"x": 2},
