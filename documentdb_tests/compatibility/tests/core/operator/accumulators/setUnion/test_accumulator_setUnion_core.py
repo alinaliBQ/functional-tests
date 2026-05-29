@@ -1,4 +1,5 @@
-"""Tests for $setUnion accumulator: core accumulation, grouping, and identity behavior."""
+"""Tests for $setUnion accumulator: core accumulation, grouping, identity,
+and empty-group behavior."""
 
 from __future__ import annotations
 
@@ -324,6 +325,41 @@ SETUNION_LARGE_GROUP_TESTS: list[AccumulatorTestCase] = [
     ),
 ]
 
+# Property [Empty-Group Behavior]: when $group with _id: null runs against an
+# empty collection (or all documents are filtered out), no group is produced
+# and the result is an empty cursor.
+SETUNION_EMPTY_GROUP_TESTS: list[AccumulatorTestCase] = [
+    AccumulatorTestCase(
+        "empty_group_empty_collection",
+        docs=None,
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
+        ],
+        expected=[],
+        msg="$setUnion with _id: null on empty collection should produce no output",
+    ),
+    AccumulatorTestCase(
+        "empty_group_all_filtered_out",
+        docs=[{"v": [1, 2]}, {"v": [3, 4]}],
+        pipeline=[
+            {"$match": {"v": {"$exists": False}}},
+            {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
+        ],
+        expected=[],
+        msg="$setUnion with _id: null after filtering all docs should produce no output",
+    ),
+    AccumulatorTestCase(
+        "empty_group_match_impossible",
+        docs=[{"v": [1, 2], "cat": "A"}, {"v": [3, 4], "cat": "B"}],
+        pipeline=[
+            {"$match": {"cat": "Z"}},
+            {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
+        ],
+        expected=[],
+        msg="$setUnion with _id: null after $match with no matches should produce no output",
+    ),
+]
+
 SETUNION_CORE_SUCCESS_TESTS = (
     SETUNION_CORE_TESTS
     + SETUNION_EMPTY_ARRAY_TESTS
@@ -331,6 +367,7 @@ SETUNION_CORE_SUCCESS_TESTS = (
     + SETUNION_MULTIPLE_GROUP_TESTS
     + SETUNION_GROUPING_KEY_TESTS
     + SETUNION_LARGE_GROUP_TESTS
+    + SETUNION_EMPTY_GROUP_TESTS
 )
 
 

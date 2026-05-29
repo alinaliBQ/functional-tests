@@ -1,4 +1,5 @@
-"""Tests for $setUnion accumulator: type validation errors, arity rejection, and mixed types."""
+"""Tests for $setUnion accumulator: type errors, null field errors, arity
+rejection, mixed types, and expression error propagation."""
 
 from __future__ import annotations
 
@@ -12,8 +13,11 @@ from documentdb_tests.compatibility.tests.core.operator.accumulators.utils.accum
 )
 from documentdb_tests.framework.assertions import assertFailureCode
 from documentdb_tests.framework.error_codes import (
+    CONVERSION_FAILURE_ERROR,
+    DIVIDE_BY_ZERO_V2_ERROR,
     EXPRESSION_OBJECT_MULTIPLE_FIELDS_ERROR,
     GROUP_ACCUMULATOR_ARRAY_ARGUMENT_ERROR,
+    MODULO_BY_ZERO_V2_ERROR,
     TYPE_MISMATCH_ERROR,
 )
 from documentdb_tests.framework.executor import execute_command
@@ -202,8 +206,143 @@ SETUNION_ARITY_ERROR_TESTS: list[AccumulatorTestCase] = [
     ),
 ]
 
+# Property [Null Field Error]: null field values cause TYPE_MISMATCH_ERROR in
+# accumulator context.
+SETUNION_NULL_FIELD_ERROR_TESTS: list[AccumulatorTestCase] = [
+    AccumulatorTestCase(
+        "null_field_single_doc",
+        docs=[{"v": None}],
+        pipeline=[{"$group": {"_id": None, "result": {"$setUnion": "$v"}}}],
+        error_code=TYPE_MISMATCH_ERROR,
+        msg="$setUnion should reject null field value with TYPE_MISMATCH_ERROR",
+    ),
+    AccumulatorTestCase(
+        "null_field_all_docs",
+        docs=[{"v": None}, {"v": None}],
+        pipeline=[{"$group": {"_id": None, "result": {"$setUnion": "$v"}}}],
+        error_code=TYPE_MISMATCH_ERROR,
+        msg="$setUnion should reject when all documents have null field",
+    ),
+    AccumulatorTestCase(
+        "null_field_mixed_with_array",
+        docs=[{"v": [1, 2]}, {"v": None}],
+        pipeline=[{"$group": {"_id": None, "result": {"$setUnion": "$v"}}}],
+        error_code=TYPE_MISMATCH_ERROR,
+        msg="$setUnion should reject when any document has null field among arrays",
+    ),
+    AccumulatorTestCase(
+        "null_field_before_array",
+        docs=[{"v": None}, {"v": [1, 2]}],
+        pipeline=[{"$group": {"_id": None, "result": {"$setUnion": "$v"}}}],
+        error_code=TYPE_MISMATCH_ERROR,
+        msg="$setUnion should reject null field regardless of document order",
+    ),
+]
+
+# Property [Expression Error Propagation]: errors from sub-expressions propagate
+# through $setUnion without being caught or suppressed.
+SETUNION_EXPRESSION_ERROR_TESTS: list[AccumulatorTestCase] = [
+    AccumulatorTestCase(
+        "error_prop_toint_non_convertible",
+        docs=[{"v": "hello"}],
+        pipeline=[
+            {
+                "$group": {
+                    "_id": None,
+                    "result": {
+                        "$setUnion": {
+                            "$let": {
+                                "vars": {"x": {"$toInt": "$v"}},
+                                "in": ["$$x"],
+                            }
+                        }
+                    },
+                }
+            },
+        ],
+        error_code=CONVERSION_FAILURE_ERROR,
+        msg="$setUnion should propagate $toInt conversion error for non-convertible value",
+    ),
+    AccumulatorTestCase(
+        "error_prop_divide_by_zero",
+        docs=[{"v": 10}],
+        pipeline=[
+            {
+                "$group": {
+                    "_id": None,
+                    "result": {
+                        "$setUnion": {
+                            "$let": {
+                                "vars": {"x": {"$divide": ["$v", 0]}},
+                                "in": ["$$x"],
+                            }
+                        }
+                    },
+                }
+            },
+        ],
+        error_code=DIVIDE_BY_ZERO_V2_ERROR,
+        msg="$setUnion should propagate $divide by zero error",
+    ),
+    AccumulatorTestCase(
+        "error_prop_divide_by_zero_field_path",
+        docs=[{"_id": 0, "v": 0}],
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {
+                "$group": {
+                    "_id": None,
+                    "result": {"$setUnion": {"$let": {"vars": {}, "in": [{"$divide": [1, "$v"]}]}}},
+                }
+            },
+        ],
+        error_code=DIVIDE_BY_ZERO_V2_ERROR,
+        msg="$setUnion should propagate $divide by zero when divisor comes from field path",
+    ),
+    AccumulatorTestCase(
+        "error_prop_divide_by_zero_later_doc",
+        docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": 0}],
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {
+                "$group": {
+                    "_id": None,
+                    "result": {"$setUnion": {"$let": {"vars": {}, "in": [{"$divide": [1, "$v"]}]}}},
+                }
+            },
+        ],
+        error_code=DIVIDE_BY_ZERO_V2_ERROR,
+        msg="$setUnion should propagate error even when failing doc is not the first",
+    ),
+    AccumulatorTestCase(
+        "error_prop_mod_by_zero",
+        docs=[{"v": 10}],
+        pipeline=[
+            {
+                "$group": {
+                    "_id": None,
+                    "result": {
+                        "$setUnion": {
+                            "$let": {
+                                "vars": {"x": {"$mod": ["$v", 0]}},
+                                "in": ["$$x"],
+                            }
+                        }
+                    },
+                }
+            },
+        ],
+        error_code=MODULO_BY_ZERO_V2_ERROR,
+        msg="$setUnion should propagate $mod by zero error",
+    ),
+]
+
 SETUNION_ERROR_TESTS = (
-    SETUNION_TYPE_ERROR_TESTS + SETUNION_MIXED_TYPE_ERROR_TESTS + SETUNION_ARITY_ERROR_TESTS
+    SETUNION_TYPE_ERROR_TESTS
+    + SETUNION_MIXED_TYPE_ERROR_TESTS
+    + SETUNION_ARITY_ERROR_TESTS
+    + SETUNION_NULL_FIELD_ERROR_TESTS
+    + SETUNION_EXPRESSION_ERROR_TESTS
 )
 
 

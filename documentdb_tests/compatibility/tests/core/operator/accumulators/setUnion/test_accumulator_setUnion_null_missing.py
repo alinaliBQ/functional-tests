@@ -1,4 +1,4 @@
-"""Tests for $setUnion accumulator: null/missing field handling and null elements."""
+"""Tests for $setUnion accumulator: missing field handling, $$REMOVE, and null elements."""
 
 from __future__ import annotations
 
@@ -7,43 +7,9 @@ import pytest
 from documentdb_tests.compatibility.tests.core.operator.accumulators.utils.accumulator_test_case import (  # noqa: E501
     AccumulatorTestCase,
 )
-from documentdb_tests.framework.assertions import assertFailureCode, assertSuccess
-from documentdb_tests.framework.error_codes import TYPE_MISMATCH_ERROR
+from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
-
-# Property [Null Field Error]: null field values cause TYPE_MISMATCH_ERROR in
-# accumulator context.
-SETUNION_NULL_FIELD_ERROR_TESTS: list[AccumulatorTestCase] = [
-    AccumulatorTestCase(
-        "null_field_single_doc",
-        docs=[{"v": None}],
-        pipeline=[{"$group": {"_id": None, "result": {"$setUnion": "$v"}}}],
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="$setUnion should reject null field value with TYPE_MISMATCH_ERROR",
-    ),
-    AccumulatorTestCase(
-        "null_field_all_docs",
-        docs=[{"v": None}, {"v": None}],
-        pipeline=[{"$group": {"_id": None, "result": {"$setUnion": "$v"}}}],
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="$setUnion should reject when all documents have null field",
-    ),
-    AccumulatorTestCase(
-        "null_field_mixed_with_array",
-        docs=[{"v": [1, 2]}, {"v": None}],
-        pipeline=[{"$group": {"_id": None, "result": {"$setUnion": "$v"}}}],
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="$setUnion should reject when any document has null field among arrays",
-    ),
-    AccumulatorTestCase(
-        "null_field_before_array",
-        docs=[{"v": None}, {"v": [1, 2]}],
-        pipeline=[{"$group": {"_id": None, "result": {"$setUnion": "$v"}}}],
-        error_code=TYPE_MISMATCH_ERROR,
-        msg="$setUnion should reject null field regardless of document order",
-    ),
-]
 
 # Property [Missing Field Ignored]: missing fields are silently ignored in
 # accumulator context, producing empty array when no array values remain.
@@ -218,15 +184,3 @@ def test_accumulator_setUnion_null_missing_success(collection, test_case: Accumu
         {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
     )
     assertSuccess(result, test_case.expected, msg=test_case.msg)
-
-
-@pytest.mark.parametrize("test_case", pytest_params(SETUNION_NULL_FIELD_ERROR_TESTS))
-def test_accumulator_setUnion_null_missing_errors(collection, test_case):
-    """Test $setUnion accumulator null field error cases."""
-    if test_case.docs:
-        collection.insert_many(test_case.docs)
-    result = execute_command(
-        collection,
-        {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
-    )
-    assertFailureCode(result, test_case.error_code, msg=test_case.msg)

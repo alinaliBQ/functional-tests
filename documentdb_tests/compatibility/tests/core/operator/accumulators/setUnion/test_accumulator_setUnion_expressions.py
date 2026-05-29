@@ -1,4 +1,4 @@
-"""Tests for $setUnion accumulator: expression types and error propagation."""
+"""Tests for $setUnion accumulator: expression types."""
 
 from __future__ import annotations
 
@@ -7,12 +7,7 @@ import pytest
 from documentdb_tests.compatibility.tests.core.operator.accumulators.utils.accumulator_test_case import (  # noqa: E501
     AccumulatorTestCase,
 )
-from documentdb_tests.framework.assertions import assertFailureCode, assertSuccess
-from documentdb_tests.framework.error_codes import (
-    CONVERSION_FAILURE_ERROR,
-    DIVIDE_BY_ZERO_V2_ERROR,
-    MODULO_BY_ZERO_V2_ERROR,
-)
+from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
@@ -112,108 +107,8 @@ SETUNION_EXPRESSION_TYPE_TESTS: list[AccumulatorTestCase] = [
     ),
 ]
 
-# Property [Expression Error Propagation]: errors from sub-expressions propagate
-# through $setUnion without being caught or suppressed.
-SETUNION_EXPRESSION_ERROR_TESTS: list[AccumulatorTestCase] = [
-    AccumulatorTestCase(
-        "error_prop_toint_non_convertible",
-        docs=[{"v": "hello"}],
-        pipeline=[
-            {
-                "$group": {
-                    "_id": None,
-                    "result": {
-                        "$setUnion": {
-                            "$let": {
-                                "vars": {"x": {"$toInt": "$v"}},
-                                "in": ["$$x"],
-                            }
-                        }
-                    },
-                }
-            },
-        ],
-        error_code=CONVERSION_FAILURE_ERROR,
-        msg="$setUnion should propagate $toInt conversion error for non-convertible value",
-    ),
-    AccumulatorTestCase(
-        "error_prop_divide_by_zero",
-        docs=[{"v": 10}],
-        pipeline=[
-            {
-                "$group": {
-                    "_id": None,
-                    "result": {
-                        "$setUnion": {
-                            "$let": {
-                                "vars": {"x": {"$divide": ["$v", 0]}},
-                                "in": ["$$x"],
-                            }
-                        }
-                    },
-                }
-            },
-        ],
-        error_code=DIVIDE_BY_ZERO_V2_ERROR,
-        msg="$setUnion should propagate $divide by zero error",
-    ),
-    AccumulatorTestCase(
-        "error_prop_divide_by_zero_field_path",
-        docs=[{"_id": 0, "v": 0}],
-        pipeline=[
-            {"$sort": {"_id": 1}},
-            {
-                "$group": {
-                    "_id": None,
-                    "result": {"$setUnion": {"$let": {"vars": {}, "in": [{"$divide": [1, "$v"]}]}}},
-                }
-            },
-        ],
-        error_code=DIVIDE_BY_ZERO_V2_ERROR,
-        msg="$setUnion should propagate $divide by zero when divisor comes from field path",
-    ),
-    AccumulatorTestCase(
-        "error_prop_divide_by_zero_later_doc",
-        docs=[{"_id": 0, "v": 1}, {"_id": 1, "v": 0}],
-        pipeline=[
-            {"$sort": {"_id": 1}},
-            {
-                "$group": {
-                    "_id": None,
-                    "result": {"$setUnion": {"$let": {"vars": {}, "in": [{"$divide": [1, "$v"]}]}}},
-                }
-            },
-        ],
-        error_code=DIVIDE_BY_ZERO_V2_ERROR,
-        msg="$setUnion should propagate error even when failing doc is not the first",
-    ),
-    AccumulatorTestCase(
-        "error_prop_mod_by_zero",
-        docs=[{"v": 10}],
-        pipeline=[
-            {
-                "$group": {
-                    "_id": None,
-                    "result": {
-                        "$setUnion": {
-                            "$let": {
-                                "vars": {"x": {"$mod": ["$v", 0]}},
-                                "in": ["$$x"],
-                            }
-                        }
-                    },
-                }
-            },
-        ],
-        error_code=MODULO_BY_ZERO_V2_ERROR,
-        msg="$setUnion should propagate $mod by zero error",
-    ),
-]
 
-SETUNION_EXPRESSION_SUCCESS_TESTS = SETUNION_EXPRESSION_TYPE_TESTS
-
-
-@pytest.mark.parametrize("test_case", pytest_params(SETUNION_EXPRESSION_SUCCESS_TESTS))
+@pytest.mark.parametrize("test_case", pytest_params(SETUNION_EXPRESSION_TYPE_TESTS))
 def test_accumulator_setUnion_expressions(collection, test_case: AccumulatorTestCase):
     """Test $setUnion accumulator expression type handling."""
     if test_case.docs:
@@ -223,15 +118,3 @@ def test_accumulator_setUnion_expressions(collection, test_case: AccumulatorTest
         {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
     )
     assertSuccess(result, test_case.expected, msg=test_case.msg)
-
-
-@pytest.mark.parametrize("test_case", pytest_params(SETUNION_EXPRESSION_ERROR_TESTS))
-def test_accumulator_setUnion_expression_errors(collection, test_case):
-    """Test $setUnion accumulator expression error propagation."""
-    if test_case.docs:
-        collection.insert_many(test_case.docs)
-    result = execute_command(
-        collection,
-        {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
-    )
-    assertFailureCode(result, test_case.error_code, msg=test_case.msg)
