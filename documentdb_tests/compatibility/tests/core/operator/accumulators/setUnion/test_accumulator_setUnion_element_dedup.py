@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 import pytest
-from bson import Binary, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
+from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
 from documentdb_tests.compatibility.tests.core.operator.accumulators.utils.accumulator_test_case import (  # noqa: E501
     AccumulatorTestCase,
@@ -314,6 +314,7 @@ SETUNION_ALL_BSON_TYPES_TESTS: list[AccumulatorTestCase] = [
             {"v": [Timestamp(1, 1)]},
             {"v": [Binary(b"\x01")]},
             {"v": [Regex("x", "")]},
+            {"v": [Code("function(){}")]},
             {"v": [MinKey()]},
             {"v": [MaxKey()]},
             {"v": [None]},
@@ -323,8 +324,8 @@ SETUNION_ALL_BSON_TYPES_TESTS: list[AccumulatorTestCase] = [
             {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
             {"$project": {"_id": 0, "size": {"$size": "$result"}}},
         ],
-        expected=[{"size": 17}],
-        msg="$setUnion should preserve all 17 distinct BSON type elements",
+        expected=[{"size": 18}],
+        msg="$setUnion should preserve all 18 distinct BSON type elements",
     ),
     AccumulatorTestCase(
         "all_bson_types_dedup",
@@ -344,6 +345,7 @@ SETUNION_ALL_BSON_TYPES_TESTS: list[AccumulatorTestCase] = [
                     Timestamp(1, 1),
                     Binary(b"\x01"),
                     Regex("x", ""),
+                    Code("function(){}"),
                     MinKey(),
                     MaxKey(),
                     None,
@@ -365,6 +367,7 @@ SETUNION_ALL_BSON_TYPES_TESTS: list[AccumulatorTestCase] = [
                     Timestamp(1, 1),
                     Binary(b"\x01"),
                     Regex("x", ""),
+                    Code("function(){}"),
                     MinKey(),
                     MaxKey(),
                     None,
@@ -376,7 +379,7 @@ SETUNION_ALL_BSON_TYPES_TESTS: list[AccumulatorTestCase] = [
             {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
             {"$project": {"_id": 0, "size": {"$size": "$result"}}},
         ],
-        expected=[{"size": 17}],
+        expected=[{"size": 18}],
         msg="$setUnion should deduplicate all BSON types to single instance of each",
     ),
 ]

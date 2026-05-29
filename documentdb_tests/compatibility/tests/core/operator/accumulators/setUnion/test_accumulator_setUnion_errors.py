@@ -6,7 +6,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 import pytest
-from bson import Binary, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
+from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
 from documentdb_tests.compatibility.tests.core.operator.accumulators.utils.accumulator_test_case import (  # noqa: E501
     AccumulatorTestCase,
@@ -130,6 +130,13 @@ SETUNION_TYPE_ERROR_TESTS: list[AccumulatorTestCase] = [
         pipeline=[{"$group": {"_id": None, "result": {"$setUnion": "$v"}}}],
         error_code=TYPE_MISMATCH_ERROR,
         msg="$setUnion should reject MaxKey field value",
+    ),
+    AccumulatorTestCase(
+        "type_error_code",
+        docs=[{"v": Code("function(){}")}],
+        pipeline=[{"$group": {"_id": None, "result": {"$setUnion": "$v"}}}],
+        error_code=TYPE_MISMATCH_ERROR,
+        msg="$setUnion should reject Code (JavaScript) field value",
     ),
 ]
 
