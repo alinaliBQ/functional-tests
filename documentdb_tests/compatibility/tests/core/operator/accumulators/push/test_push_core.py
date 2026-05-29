@@ -3,7 +3,6 @@ type preservation, nested structures, grouping, field paths, and system variable
 
 from __future__ import annotations
 
-import math
 from datetime import datetime, timezone
 
 import pytest
@@ -12,7 +11,7 @@ from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Rege
 from documentdb_tests.compatibility.tests.core.operator.accumulators.utils.accumulator_test_case import (  # noqa: E501
     AccumulatorTestCase,
 )
-from documentdb_tests.framework.assertions import assertSuccess
+from documentdb_tests.framework.assertions import assertSuccess, assertSuccessNaN
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import (
@@ -342,16 +341,17 @@ PUSH_DUPLICATE_TESTS: list[AccumulatorTestCase] = [
     ),
 ]
 
-# Property [Special Numeric Value Preservation]: $push preserves NaN,
-# Infinity, and negative zero without normalization.
-PUSH_SPECIAL_NUMERIC_TESTS: list[AccumulatorTestCase] = [
+# Property [Special Numeric Value Preservation – NaN]: $push preserves NaN
+# without normalization.  These tests use assertSuccessNaN because float NaN
+# and Decimal128 NaN do not compare equal with ==.
+PUSH_SPECIAL_NAN_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
         "special_float_nan",
         docs=[{"v": FLOAT_NAN}],
         pipeline=[
             {"$group": {"_id": None, "result": {"$push": "$v"}}},
         ],
-        expected=[{"_id": None, "result": [pytest.approx(math.nan, nan_ok=True)]}],
+        expected=[{"_id": None, "result": [float("nan")]}],
         msg="$push should preserve float NaN in output array",
     ),
     AccumulatorTestCase(
@@ -370,9 +370,14 @@ PUSH_SPECIAL_NUMERIC_TESTS: list[AccumulatorTestCase] = [
             {"$sort": {"s": 1}},
             {"$group": {"_id": None, "result": {"$push": "$v"}}},
         ],
-        expected=[{"_id": None, "result": [pytest.approx(math.nan, nan_ok=True), 5.0]}],
+        expected=[{"_id": None, "result": [float("nan"), 5.0]}],
         msg="$push should preserve NaN alongside finite values in correct position",
     ),
+]
+
+# Property [Special Numeric Value Preservation]: $push preserves
+# Infinity and negative zero without normalization.
+PUSH_SPECIAL_NUMERIC_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
         "special_float_inf",
         docs=[{"v": FLOAT_INFINITY}],
@@ -717,3 +722,15 @@ def test_push_core(collection, test_case: AccumulatorTestCase):
         {"aggregate": collection.name, "pipeline": test_case.pipeline or [], "cursor": {}},
     )
     assertSuccess(result, test_case.expected, msg=test_case.msg)
+
+
+@pytest.mark.parametrize("test_case", pytest_params(PUSH_SPECIAL_NAN_TESTS))
+def test_push_core_nan(collection, test_case: AccumulatorTestCase):
+    """Test $push NaN preservation (uses assertSuccessNaN for NaN equality)."""
+    if test_case.docs:
+        collection.insert_many(test_case.docs)
+    result = execute_command(
+        collection,
+        {"aggregate": collection.name, "pipeline": test_case.pipeline or [], "cursor": {}},
+    )
+    assertSuccessNaN(result, test_case.expected, msg=test_case.msg)
