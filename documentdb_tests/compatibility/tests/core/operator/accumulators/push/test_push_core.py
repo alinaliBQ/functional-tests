@@ -123,7 +123,7 @@ PUSH_BSON_TYPE_TESTS: list[AccumulatorTestCase] = [
         pipeline=[
             {"$group": {"_id": None, "result": {"$push": "$v"}}},
         ],
-        expected=[{"_id": None, "result": [Binary(b"\x01\x02\x03")]}],
+        expected=[{"_id": None, "result": [b"\x01\x02\x03"]}],
         msg="$push should preserve Binary value in output array",
     ),
     AccumulatorTestCase(
