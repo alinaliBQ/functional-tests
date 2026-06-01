@@ -209,6 +209,16 @@ PUSH_EXPRESSION_ARGS_TESTS: list[AccumulatorTestCase] = [
         expected=[{"_id": None, "result": [10, 20]}],
         msg="$push should accept $let variable expression",
     ),
+    AccumulatorTestCase(
+        "expr_sum_array",
+        docs=[{"arr": [1, 2, 3], "s": 1}, {"arr": [10, 20], "s": 2}],
+        pipeline=[
+            {"$sort": {"s": 1}},
+            {"$group": {"_id": None, "result": {"$push": {"$sum": "$arr"}}}},
+        ],
+        expected=[{"_id": None, "result": [6, 30]}],
+        msg="$push should collect per-document array sums from $sum expression",
+    ),
 ]
 
 # Property [Object Expression Accumulation]: $push with an object expression

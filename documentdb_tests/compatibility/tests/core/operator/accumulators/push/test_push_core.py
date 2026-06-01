@@ -246,6 +246,24 @@ PUSH_FIELD_PATH_TESTS: list[AccumulatorTestCase] = [
         expected=[{"_id": None, "result": []}],
         msg="$push should produce empty array for non-existent field path",
     ),
+    AccumulatorTestCase(
+        "field_array_of_objects",
+        docs=[{"items": [{"name": "a"}, {"name": "b"}]}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$push": "$items.name"}}},
+        ],
+        expected=[{"_id": None, "result": [["a", "b"]]}],
+        msg="$push should collect array traversal result from field path through array of objects",
+    ),
+    AccumulatorTestCase(
+        "field_array_index_path",
+        docs=[{"a": {"0": {"b": 99}}}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$push": "$a.0.b"}}},
+        ],
+        expected=[{"_id": None, "result": [99]}],
+        msg="$push should resolve numeric path component as object key in expression context",
+    ),
 ]
 
 # Property [System Variables]: $push accepts system variables as its expression
@@ -272,6 +290,45 @@ PUSH_SYSTEM_VARIABLE_TESTS: list[AccumulatorTestCase] = [
         ],
         expected=[{"result": [1, 2]}],
         msg="$push with $$CURRENT should collect entire documents like $$ROOT",
+    ),
+    AccumulatorTestCase(
+        "sysvar_root_mixed_shapes",
+        docs=[{"a": 1, "s": 1}, {"b": "hello", "s": 2}, {"a": 3, "c": True, "s": 3}],
+        pipeline=[
+            {"$sort": {"s": 1}},
+            {"$group": {"_id": None, "result": {"$push": "$$ROOT"}}},
+            {
+                "$project": {
+                    "_id": 0,
+                    "a_vals": {
+                        "$map": {
+                            "input": "$result",
+                            "in": {"$ifNull": ["$$this.a", "MISSING"]},
+                        }
+                    },
+                    "b_vals": {
+                        "$map": {
+                            "input": "$result",
+                            "in": {"$ifNull": ["$$this.b", "MISSING"]},
+                        }
+                    },
+                    "c_vals": {
+                        "$map": {
+                            "input": "$result",
+                            "in": {"$ifNull": ["$$this.c", "MISSING"]},
+                        }
+                    },
+                }
+            },
+        ],
+        expected=[
+            {
+                "a_vals": [1, "MISSING", 3],
+                "b_vals": ["MISSING", "hello", "MISSING"],
+                "c_vals": ["MISSING", "MISSING", True],
+            }
+        ],
+        msg="$push with $$ROOT should preserve documents with different field shapes",
     ),
 ]
 
