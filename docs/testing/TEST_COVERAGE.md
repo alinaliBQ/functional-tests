@@ -100,6 +100,7 @@ Note: Distinguish between fractional doubles (2.5) and whole-number doubles (3.0
 - **Underflow**: `INT32_MIN` - 1 → long, `INT64_MIN` - 1 → double
 - **Sign handling**: positive, negative, zero
 - **Negative zero**: `DOUBLE_NEGATIVE_ZERO` → verify behavior (some operators normalize to `0.0`, others preserve `-0.0`); `DECIMAL128_NEGATIVE_ZERO` → verify; `NumberDecimal("-0E+N")` and `NumberDecimal("-0E-N")` → verify exponent preservation
+- **Special float values mixed with non-numeric types**: For operators that collect or pass through values (e.g. `$push`, `$addToSet`), test special float values (NaN, Infinity, -Infinity, -0.0) alongside non-numeric types (string, boolean, null, object, array) in the same group to verify all values are preserved without coercion or loss.
 - **Special values**: MinKey, MaxKey combinations
 - **Two's complement asymmetry (single-input operators)**: `INT32_MIN` has no positive int counterpart → must promote to long; `INT64_MIN` has no positive long counterpart → verify overflow/error behavior
 - **Double precision boundaries**: `DOUBLE_NEAR_MAX`, `DOUBLE_MIN_SUBNORMAL`, `DOUBLE_MIN_NEGATIVE_SUBNORMAL`, `DOUBLE_NEAR_MIN`, `DOUBLE_NEGATIVE_ZERO` → use `NUMERIC_DOUBLE` from `test_constants.py`
