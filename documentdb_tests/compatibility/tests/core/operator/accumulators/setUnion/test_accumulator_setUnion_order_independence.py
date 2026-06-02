@@ -113,6 +113,68 @@ SETUNION_ORDER_INDEPENDENCE_TESTS: list[AccumulatorTestCase] = [
         expected=[{"result": [1, 2]}],
         msg="$setUnion should produce the same set with empty array, descending sort",
     ),
+    # --- compound sort with mixed directions ---
+    AccumulatorTestCase(
+        "compound_sort_mixed_asc_desc",
+        docs=[
+            {"priority": 1, "status": 2, "v": [1, 2]},
+            {"priority": 1, "status": 1, "v": [2, 3]},
+            {"priority": 2, "status": 2, "v": [3, 4]},
+        ],
+        pipeline=[
+            {"$sort": {"priority": 1, "status": -1}},
+            {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
+            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+        ],
+        expected=[{"result": [1, 2, 3, 4]}],
+        msg="$setUnion should produce the same set with compound sort (asc, desc)",
+    ),
+    AccumulatorTestCase(
+        "compound_sort_mixed_desc_asc",
+        docs=[
+            {"priority": 1, "status": 2, "v": [1, 2]},
+            {"priority": 1, "status": 1, "v": [2, 3]},
+            {"priority": 2, "status": 2, "v": [3, 4]},
+        ],
+        pipeline=[
+            {"$sort": {"priority": -1, "status": 1}},
+            {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
+            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+        ],
+        expected=[{"result": [1, 2, 3, 4]}],
+        msg="$setUnion should produce the same set with compound sort (desc, asc)",
+    ),
+    # --- sort on nested field path ---
+    AccumulatorTestCase(
+        "nested_field_sort_asc",
+        docs=[
+            {"meta": {"dept": "A"}, "v": [1, 2]},
+            {"meta": {"dept": "C"}, "v": [2, 3]},
+            {"meta": {"dept": "B"}, "v": [3, 4]},
+        ],
+        pipeline=[
+            {"$sort": {"meta.dept": 1}},
+            {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
+            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+        ],
+        expected=[{"result": [1, 2, 3, 4]}],
+        msg="$setUnion should produce the same set with nested field path sort ascending",
+    ),
+    AccumulatorTestCase(
+        "nested_field_sort_desc",
+        docs=[
+            {"meta": {"dept": "A"}, "v": [1, 2]},
+            {"meta": {"dept": "C"}, "v": [2, 3]},
+            {"meta": {"dept": "B"}, "v": [3, 4]},
+        ],
+        pipeline=[
+            {"$sort": {"meta.dept": -1}},
+            {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
+            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+        ],
+        expected=[{"result": [1, 2, 3, 4]}],
+        msg="$setUnion should produce the same set with nested field path sort descending",
+    ),
 ]
 
 

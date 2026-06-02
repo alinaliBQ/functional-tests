@@ -286,9 +286,9 @@ SETUNION_LARGE_GROUP_TESTS: list[AccumulatorTestCase] = [
         docs=[{"v": [i]} for i in range(100)],
         pipeline=[
             {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
-            {"$project": {"_id": 0, "size": {"$size": "$result"}}},
+            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
         ],
-        expected=[{"size": 100}],
+        expected=[{"result": list(range(100))}],
         msg="$setUnion should produce 100 elements from 100 documents with unique values",
     ),
     AccumulatorTestCase(
@@ -308,10 +308,139 @@ SETUNION_LARGE_GROUP_TESTS: list[AccumulatorTestCase] = [
         ],
         pipeline=[
             {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
+            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+        ],
+        expected=[{"result": list(range(150))}],
+        msg="$setUnion should correctly union large arrays with overlap",
+    ),
+    AccumulatorTestCase(
+        "large_1000_unique_elements",
+        docs=[{"v": [i]} for i in range(1000)],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
+            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+        ],
+        expected=[{"result": list(range(1000))}],
+        msg="$setUnion should produce correct content from 1000 documents with unique values",
+    ),
+]
+
+# Property [Multiple Same-Type Accumulators]: multiple $setUnion accumulators
+# in the same $group independently collect from their respective fields without
+# cross-contamination.
+SETUNION_MULTIPLE_SAME_TYPE_TESTS: list[AccumulatorTestCase] = [
+    AccumulatorTestCase(
+        "multi_setunion_two_fields",
+        docs=[
+            {"cat": "A", "x": [1, 2], "y": [10, 20]},
+            {"cat": "A", "x": [2, 3], "y": [20, 30]},
+            {"cat": "B", "x": [4, 5], "y": [40, 50]},
+            {"cat": "B", "x": [5, 6], "y": [50, 60]},
+        ],
+        pipeline=[
+            {
+                "$group": {
+                    "_id": "$cat",
+                    "xs": {"$setUnion": "$x"},
+                    "ys": {"$setUnion": "$y"},
+                }
+            },
+            {
+                "$project": {
+                    "_id": 1,
+                    "xs": {"$sortArray": {"input": "$xs", "sortBy": 1}},
+                    "ys": {"$sortArray": {"input": "$ys", "sortBy": 1}},
+                }
+            },
+            {"$sort": {"_id": 1}},
+        ],
+        expected=[
+            {"_id": "A", "xs": [1, 2, 3], "ys": [10, 20, 30]},
+            {"_id": "B", "xs": [4, 5, 6], "ys": [40, 50, 60]},
+        ],
+        msg="$setUnion should independently collect from two fields in the same $group",
+    ),
+    AccumulatorTestCase(
+        "multi_setunion_null_independence",
+        docs=[
+            {"cat": "A", "x": [1, 2]},
+            {"cat": "A", "y": [10, 20]},
+        ],
+        pipeline=[
+            {
+                "$group": {
+                    "_id": "$cat",
+                    "xs": {"$setUnion": "$x"},
+                    "ys": {"$setUnion": "$y"},
+                }
+            },
+            {
+                "$project": {
+                    "_id": 1,
+                    "xs": {"$sortArray": {"input": "$xs", "sortBy": 1}},
+                    "ys": {"$sortArray": {"input": "$ys", "sortBy": 1}},
+                }
+            },
+        ],
+        expected=[
+            {"_id": "A", "xs": [1, 2], "ys": [10, 20]},
+        ],
+        msg="$setUnion should handle missing fields independently per accumulator",
+    ),
+]
+
+# Property [Nested Structure Preservation]: deeply nested arrays-of-objects
+# with embedded arrays are preserved without flattening or truncation.
+SETUNION_NESTED_STRUCTURE_TESTS: list[AccumulatorTestCase] = [
+    AccumulatorTestCase(
+        "nested_deep_objects",
+        docs=[
+            {"v": [{"data": {"users": [{"profile": {"name": "Alice", "scores": [85, 90]}}]}}]},
+            {"v": [{"data": {"users": [{"profile": {"name": "Bob", "scores": [70, 80]}}]}}]},
+        ],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
             {"$project": {"_id": 0, "size": {"$size": "$result"}}},
         ],
-        expected=[{"size": 150}],
-        msg="$setUnion should correctly union large arrays with overlap",
+        expected=[{"size": 2}],
+        msg="$setUnion should preserve deeply nested arrays-of-objects as distinct elements",
+    ),
+    AccumulatorTestCase(
+        "nested_deep_objects_dedup",
+        docs=[
+            {"v": [{"data": {"users": [{"profile": {"name": "Alice", "scores": [85, 90]}}]}}]},
+            {"v": [{"data": {"users": [{"profile": {"name": "Alice", "scores": [85, 90]}}]}}]},
+        ],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
+        ],
+        expected=[
+            {
+                "_id": None,
+                "result": [
+                    {"data": {"users": [{"profile": {"name": "Alice", "scores": [85, 90]}}]}}
+                ],
+            }
+        ],
+        msg="$setUnion should deduplicate identical deeply nested structures",
+    ),
+]
+
+# Property [Array Traversal via Field Paths]: $a.b on arrays-of-objects
+# correctly collects values and produces an array suitable for $setUnion.
+SETUNION_ARRAY_TRAVERSAL_TESTS: list[AccumulatorTestCase] = [
+    AccumulatorTestCase(
+        "traversal_array_of_objects",
+        docs=[
+            {"a": [{"b": [1, 2]}, {"b": [3, 4]}]},
+            {"a": [{"b": [4, 5]}, {"b": [6]}]},
+        ],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$setUnion": "$a.b"}}},
+            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+        ],
+        expected=[{"result": [[1, 2], [3, 4], [4, 5], [6]]}],
+        msg="$setUnion should collect values via array traversal and deduplicate",
     ),
 ]
 
@@ -357,6 +486,9 @@ SETUNION_CORE_SUCCESS_TESTS = (
     + SETUNION_MULTIPLE_GROUP_TESTS
     + SETUNION_GROUPING_KEY_TESTS
     + SETUNION_LARGE_GROUP_TESTS
+    + SETUNION_MULTIPLE_SAME_TYPE_TESTS
+    + SETUNION_NESTED_STRUCTURE_TESTS
+    + SETUNION_ARRAY_TRAVERSAL_TESTS
     + SETUNION_EMPTY_GROUP_TESTS
 )
 
