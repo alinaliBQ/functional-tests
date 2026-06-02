@@ -279,6 +279,39 @@ MULTIPLE_MERGEOBJECTS_TESTS: list[AccumulatorTestCase] = [
         ],
         msg="Multiple $mergeObjects accumulators should merge their fields independently",
     ),
+    AccumulatorTestCase(
+        "multiple_mergeObjects_multi_group_independent",
+        docs=[
+            {"_id": 1, "cat": "a", "meta": {"x": 1}, "cfg": {"debug": True}},
+            {"_id": 2, "cat": "a", "meta": {"y": 2}, "cfg": {"verbose": False}},
+            {"_id": 3, "cat": "b", "meta": {"z": 3}, "cfg": {"level": "info"}},
+            {"_id": 4, "cat": "b", "meta": None, "cfg": {"level": "warn"}},
+        ],
+        pipeline=[
+            {"$sort": {"_id": 1}},
+            {
+                "$group": {
+                    "_id": "$cat",
+                    "merged_meta": {"$mergeObjects": "$meta"},
+                    "merged_cfg": {"$mergeObjects": "$cfg"},
+                }
+            },
+            {"$sort": {"_id": 1}},
+        ],
+        expected=[
+            {
+                "_id": "a",
+                "merged_meta": {"x": 1, "y": 2},
+                "merged_cfg": {"debug": True, "verbose": False},
+            },
+            {
+                "_id": "b",
+                "merged_meta": {"z": 3},
+                "merged_cfg": {"level": "warn"},
+            },
+        ],
+        msg="Multiple $mergeObjects should reset independently across group boundaries",
+    ),
 ]
 
 MERGEOBJECTS_INTEGRATION_TESTS = (

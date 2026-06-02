@@ -145,6 +145,13 @@ MERGE_OBJECTS_NON_OBJECT_TYPE_TESTS: list[AccumulatorTestCase] = [
         error_code=MERGE_OBJECTS_NON_OBJECT_ERROR,
         msg="$mergeObjects should reject numeric strings without coercion",
     ),
+    AccumulatorTestCase(
+        "non_object_array_from_field_path_traversal",
+        docs=[{"a": [{"b": {"x": 1}}, {"b": {"y": 2}}]}],
+        pipeline=[{"$group": {"_id": None, "result": {"$mergeObjects": "$a.b"}}}],
+        error_code=MERGE_OBJECTS_NON_OBJECT_ERROR,
+        msg="$mergeObjects should reject array from field path traversal on array-of-objects",
+    ),
 ]
 
 # Property [Non-Object After Valid Objects]: $mergeObjects errors when a

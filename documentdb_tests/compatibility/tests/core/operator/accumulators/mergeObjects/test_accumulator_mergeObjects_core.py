@@ -228,6 +228,62 @@ MERGE_OBJECTS_BSON_TYPE_TESTS: list[AccumulatorTestCase] = [
     ),
 ]
 
+# Property [Nested Structure Preservation]: $mergeObjects preserves deeply
+# nested arrays-of-objects with embedded arrays without flattening or
+# truncation, and correctly resolves array traversal via field paths.
+MERGE_OBJECTS_NESTED_STRUCTURE_TESTS: list[AccumulatorTestCase] = [
+    AccumulatorTestCase(
+        "nested_arrays_of_objects_with_embedded_arrays",
+        docs=[
+            {
+                "v": {
+                    "data": {
+                        "users": [
+                            {"profile": {"name": "Alice", "scores": [85, 90]}},
+                            {"profile": {"name": "Bob", "scores": [70, 80]}},
+                        ]
+                    }
+                }
+            },
+            {"v": {"metadata": {"tags": [["a", "b"], ["c"]]}}},
+        ],
+        pipeline=[{"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}}],
+        expected=[
+            {
+                "_id": None,
+                "result": {
+                    "data": {
+                        "users": [
+                            {"profile": {"name": "Alice", "scores": [85, 90]}},
+                            {"profile": {"name": "Bob", "scores": [70, 80]}},
+                        ]
+                    },
+                    "metadata": {"tags": [["a", "b"], ["c"]]},
+                },
+            }
+        ],
+        msg="$mergeObjects should preserve deeply nested arrays-of-objects with embedded arrays",
+    ),
+    AccumulatorTestCase(
+        "nested_mixed_depth_structures",
+        docs=[
+            {"v": {"a": {"arr": [{"nested": [1, 2]}, {"nested": [3]}]}}},
+            {"v": {"b": [{"obj": {"key": "val"}}, [1, 2, 3]]}},
+        ],
+        pipeline=[{"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}}],
+        expected=[
+            {
+                "_id": None,
+                "result": {
+                    "a": {"arr": [{"nested": [1, 2]}, {"nested": [3]}]},
+                    "b": [{"obj": {"key": "val"}}, [1, 2, 3]],
+                },
+            }
+        ],
+        msg="$mergeObjects should preserve mixed-depth nested structures with arrays and objects",
+    ),
+]
+
 # Property [Grouped Merge]: $mergeObjects correctly merges documents per group
 # when grouping by a key.
 MERGE_OBJECTS_GROUPED_TESTS: list[AccumulatorTestCase] = [
@@ -270,6 +326,7 @@ MERGE_OBJECTS_CORE_TESTS = (
     + MERGE_OBJECTS_SHALLOW_TESTS
     + MERGE_OBJECTS_EMPTY_DOC_TESTS
     + MERGE_OBJECTS_BSON_TYPE_TESTS
+    + MERGE_OBJECTS_NESTED_STRUCTURE_TESTS
     + MERGE_OBJECTS_GROUPED_TESTS
 )
 

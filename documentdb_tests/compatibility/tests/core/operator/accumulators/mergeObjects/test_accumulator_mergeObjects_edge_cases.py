@@ -54,6 +54,20 @@ MERGE_OBJECTS_MANY_DOCS_TESTS: list[AccumulatorTestCase] = [
         expected=[{"_id": None, "result": {"a": 9}}],
         msg="$mergeObjects should use last value when many documents share the same key",
     ),
+    AccumulatorTestCase(
+        "large_scale_disjoint_keys",
+        docs=[{"v": {f"k{i}": i}} for i in range(1000)],
+        pipeline=[{"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}}],
+        expected=[{"_id": None, "result": {f"k{i}": i for i in range(1000)}}],
+        msg="$mergeObjects should correctly merge 1000 documents with disjoint keys",
+    ),
+    AccumulatorTestCase(
+        "large_scale_same_key",
+        docs=[{"v": {"a": i}} for i in range(1000)],
+        pipeline=[{"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}}],
+        expected=[{"_id": None, "result": {"a": 999}}],
+        msg="$mergeObjects should use last value from 1000 documents sharing the same key",
+    ),
 ]
 
 # Property [Large Documents]: $mergeObjects handles documents with many fields.
@@ -225,6 +239,34 @@ MERGE_OBJECTS_ORDER_DEPENDENCE_TESTS: list[AccumulatorTestCase] = [
         ],
         expected=[{"_id": None, "result": {"a": 1}}],
         msg="$mergeObjects with descending sort should use value from last document",
+    ),
+    AccumulatorTestCase(
+        "order_dependent_compound_sort",
+        docs=[
+            {"_id": 1, "priority": 1, "status": "active", "v": {"a": "first"}},
+            {"_id": 2, "priority": 1, "status": "active", "v": {"a": "second"}},
+            {"_id": 3, "priority": 2, "status": "inactive", "v": {"a": "third"}},
+        ],
+        pipeline=[
+            {"$sort": {"priority": 1, "status": -1, "_id": 1}},
+            {"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}},
+        ],
+        expected=[{"_id": None, "result": {"a": "third"}}],
+        msg="$mergeObjects with compound mixed-direction sort should use last value",
+    ),
+    AccumulatorTestCase(
+        "order_dependent_nested_field_sort",
+        docs=[
+            {"_id": 1, "user": {"dept": "eng"}, "v": {"a": 1}},
+            {"_id": 2, "user": {"dept": "sales"}, "v": {"a": 2}},
+            {"_id": 3, "user": {"dept": "eng"}, "v": {"a": 3}},
+        ],
+        pipeline=[
+            {"$sort": {"user.dept": 1, "_id": 1}},
+            {"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}},
+        ],
+        expected=[{"_id": None, "result": {"a": 2}}],
+        msg="$mergeObjects with nested field path sort should use last document's value",
     ),
 ]
 

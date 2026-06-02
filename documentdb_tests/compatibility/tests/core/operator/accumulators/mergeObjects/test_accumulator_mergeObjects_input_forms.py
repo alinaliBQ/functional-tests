@@ -142,6 +142,18 @@ MERGE_OBJECTS_FIELD_LOOKUP_TESTS: list[AccumulatorTestCase] = [
         msg="$mergeObjects should traverse numeric string key as object field name",
     ),
     AccumulatorTestCase(
+        "field_lookup_nested_object_path",
+        docs=[
+            {"data": {"inner": {"obj": {"x": 1}}}},
+            {"data": {"inner": {"obj": {"y": 2}}}},
+        ],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$mergeObjects": "$data.inner.obj"}}},
+        ],
+        expected=[{"_id": None, "result": {"x": 1, "y": 2}}],
+        msg="$mergeObjects should resolve deeply nested object field path",
+    ),
+    AccumulatorTestCase(
         "field_lookup_nonexistent_returns_empty",
         docs=[{"v": {"a": 1}}, {"v": {"b": 2}}],
         pipeline=[
@@ -168,6 +180,23 @@ MERGE_OBJECTS_CONSTANT_OBJECT_TESTS: list[AccumulatorTestCase] = [
         pipeline=[{"$group": {"_id": None, "result": {"$mergeObjects": {}}}}],
         expected=[{"_id": None, "result": {}}],
         msg="$mergeObjects should accept constant empty object and return empty document",
+    ),
+    AccumulatorTestCase(
+        "constant_object_multi_group",
+        docs=[
+            {"cat": "A", "x": 1},
+            {"cat": "A", "x": 2},
+            {"cat": "B", "x": 3},
+        ],
+        pipeline=[
+            {"$group": {"_id": "$cat", "result": {"$mergeObjects": {"val": "$x"}}}},
+            {"$sort": {"_id": 1}},
+        ],
+        expected=[
+            {"_id": "A", "result": {"val": 2}},
+            {"_id": "B", "result": {"val": 3}},
+        ],
+        msg="$mergeObjects with object expression should merge independently per group",
     ),
 ]
 

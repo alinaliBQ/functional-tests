@@ -122,6 +122,24 @@ MERGE_OBJECTS_NULL_MISSING_MIX_TESTS: list[AccumulatorTestCase] = [
         expected=[{"_id": None, "result": {"a": 1}}],
         msg="$mergeObjects should ignore both null and missing, merging only objects",
     ),
+    AccumulatorTestCase(
+        "null_and_missing_multi_group",
+        docs=[
+            {"cat": "A", "v": None},
+            {"cat": "A", "v": {"a": 1}},
+            {"cat": "B"},
+            {"cat": "B", "v": {"b": 2}},
+        ],
+        pipeline=[
+            {"$group": {"_id": "$cat", "result": {"$mergeObjects": "$v"}}},
+            {"$sort": {"_id": 1}},
+        ],
+        expected=[
+            {"_id": "A", "result": {"a": 1}},
+            {"_id": "B", "result": {"b": 2}},
+        ],
+        msg="$mergeObjects should handle null and missing independently per group boundary",
+    ),
 ]
 
 # Property [$$REMOVE Handling]: $$REMOVE is treated as missing and silently
