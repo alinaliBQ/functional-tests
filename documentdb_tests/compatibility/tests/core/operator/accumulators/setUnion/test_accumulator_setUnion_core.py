@@ -444,6 +444,59 @@ SETUNION_ARRAY_TRAVERSAL_TESTS: list[AccumulatorTestCase] = [
     ),
 ]
 
+# Property [Chained $group Stages]: $setUnion in a second $group stage
+# correctly re-unions the arrays produced by a first $group stage.
+SETUNION_CHAINED_GROUP_TESTS: list[AccumulatorTestCase] = [
+    AccumulatorTestCase(
+        "chained_group_sub_then_global",
+        docs=[
+            {"cat": "A", "v": [1, 2]},
+            {"cat": "A", "v": [2, 3]},
+            {"cat": "B", "v": [3, 4]},
+            {"cat": "B", "v": [4, 5]},
+        ],
+        pipeline=[
+            {"$group": {"_id": "$cat", "partial": {"$setUnion": "$v"}}},
+            {"$group": {"_id": None, "result": {"$setUnion": "$partial"}}},
+            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+        ],
+        expected=[{"result": [1, 2, 3, 4, 5]}],
+        msg="$setUnion in second $group should re-union per-category results into global set",
+    ),
+    AccumulatorTestCase(
+        "chained_group_disjoint_categories",
+        docs=[
+            {"cat": "X", "v": [10, 20]},
+            {"cat": "X", "v": [20, 30]},
+            {"cat": "Y", "v": [40, 50]},
+            {"cat": "Y", "v": [50, 60]},
+            {"cat": "Z", "v": [70, 80]},
+        ],
+        pipeline=[
+            {"$group": {"_id": "$cat", "partial": {"$setUnion": "$v"}}},
+            {"$group": {"_id": None, "result": {"$setUnion": "$partial"}}},
+            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+        ],
+        expected=[{"result": [10, 20, 30, 40, 50, 60, 70, 80]}],
+        msg="$setUnion in second $group should union disjoint per-category arrays",
+    ),
+    AccumulatorTestCase(
+        "chained_group_all_overlap",
+        docs=[
+            {"cat": "A", "v": [1, 2, 3]},
+            {"cat": "B", "v": [1, 2, 3]},
+            {"cat": "C", "v": [1, 2, 3]},
+        ],
+        pipeline=[
+            {"$group": {"_id": "$cat", "partial": {"$setUnion": "$v"}}},
+            {"$group": {"_id": None, "result": {"$setUnion": "$partial"}}},
+            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+        ],
+        expected=[{"result": [1, 2, 3]}],
+        msg="$setUnion in second $group should deduplicate identical per-category results",
+    ),
+]
+
 # Property [Empty-Group Behavior]: when $group with _id: null runs against an
 # empty collection (or all documents are filtered out), no group is produced
 # and the result is an empty cursor.
@@ -489,6 +542,7 @@ SETUNION_CORE_SUCCESS_TESTS = (
     + SETUNION_MULTIPLE_SAME_TYPE_TESTS
     + SETUNION_NESTED_STRUCTURE_TESTS
     + SETUNION_ARRAY_TRAVERSAL_TESTS
+    + SETUNION_CHAINED_GROUP_TESTS
     + SETUNION_EMPTY_GROUP_TESTS
 )
 
