@@ -81,8 +81,21 @@ FOREIGN_FIELD_TESTS: list[SessionCommandTestCase] = [
     ),
 ]
 
+# Property [writeConcern Unknown Sub-Field]: unknown writeConcern sub-fields are rejected.
+WRITECONCERN_UNKNOWN_SUBFIELD_TESTS: list[SessionCommandTestCase] = [
+    SessionCommandTestCase(
+        "wc_unknown_subfield",
+        command={"commitTransaction": 1, "writeConcern": {"w": 1, "unknownOption": True}},
+        error_code=UNRECOGNIZED_COMMAND_FIELD_ERROR,
+        msg="commitTransaction should reject unknown writeConcern sub-field",
+    ),
+]
+
 UNRECOGNIZED_TESTS: list[SessionCommandTestCase] = (
-    UNRECOGNIZED_FIELD_TESTS + CASE_SENSITIVITY_TESTS + FOREIGN_FIELD_TESTS
+    UNRECOGNIZED_FIELD_TESTS
+    + CASE_SENSITIVITY_TESTS
+    + FOREIGN_FIELD_TESTS
+    + WRITECONCERN_UNKNOWN_SUBFIELD_TESTS
 )
 
 

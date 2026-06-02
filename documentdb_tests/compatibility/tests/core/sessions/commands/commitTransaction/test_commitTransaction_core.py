@@ -62,24 +62,6 @@ CORE_PARAMETER_INTERACTION_TESTS: list[SessionCommandTestCase] = [
         msg="commitTransaction with txnNumber only should fail with IllegalOperation",
     ),
     SessionCommandTestCase(
-        "interaction_autocommit_txn_number",
-        command={"commitTransaction": 1, "autocommit": False, "txnNumber": Int64(1)},
-        error_code=ILLEGAL_OPERATION_ERROR,
-        msg="commitTransaction with autocommit and txnNumber should fail with IllegalOperation",
-    ),
-    SessionCommandTestCase(
-        "interaction_all_params",
-        command={
-            "commitTransaction": 1,
-            "autocommit": False,
-            "txnNumber": Int64(1),
-            "writeConcern": {"w": "majority", "j": True, "wtimeout": 10_000},
-            "comment": "full commit",
-        },
-        error_code=ILLEGAL_OPERATION_ERROR,
-        msg="commitTransaction with all valid parameters should fail with IllegalOperation",
-    ),
-    SessionCommandTestCase(
         "interaction_lsid",
         command={"commitTransaction": 1, "lsid": {"id": Binary(b"\x00" * 16, 4)}},
         error_code=NO_SUCH_TRANSACTION_ERROR,

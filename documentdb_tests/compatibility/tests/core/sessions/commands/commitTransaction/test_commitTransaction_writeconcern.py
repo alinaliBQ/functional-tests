@@ -46,6 +46,27 @@ WRITECONCERN_ACCEPTANCE_TESTS: list[SessionCommandTestCase] = [
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="commitTransaction should accept writeConcern:null",
     ),
+    SessionCommandTestCase(
+        "wc_combined_w_j_wtimeout",
+        command={
+            "commitTransaction": 1,
+            "writeConcern": {"w": "majority", "j": True, "wtimeout": 10_000},
+        },
+        error_code=NO_SUCH_TRANSACTION_ERROR,
+        msg="commitTransaction should accept combined w + j + wtimeout",
+    ),
+    SessionCommandTestCase(
+        "wc_w0_j_true",
+        command={"commitTransaction": 1, "writeConcern": {"w": 0, "j": True}},
+        error_code=NO_SUCH_TRANSACTION_ERROR,
+        msg="commitTransaction should accept conflicting w:0 with j:true",
+    ),
+    SessionCommandTestCase(
+        "wc_fsync_true",
+        command={"commitTransaction": 1, "writeConcern": {"fsync": True}},
+        error_code=NO_SUCH_TRANSACTION_ERROR,
+        msg="commitTransaction should accept legacy writeConcern.fsync:true",
+    ),
 ]
 
 # Property [writeConcern Type Rejection]: non-document types are rejected with TypeMismatch.
