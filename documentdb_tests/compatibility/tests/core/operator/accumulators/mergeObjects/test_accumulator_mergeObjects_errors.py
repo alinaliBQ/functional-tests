@@ -14,6 +14,7 @@ from documentdb_tests.framework.error_codes import (
     EXPRESSION_OBJECT_MULTIPLE_FIELDS_ERROR,
     GROUP_ACCUMULATOR_ARRAY_ARGUMENT_ERROR,
     INVALID_DOLLAR_FIELD_PATH,
+    MODULO_BY_ZERO_V2_ERROR,
 )
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
@@ -81,6 +82,22 @@ MERGE_OBJECTS_ARITY_ERROR_TESTS: list[AccumulatorTestCase] = [
 # errors for any document in the group, the error propagates to the caller.
 MERGE_OBJECTS_EXPRESSION_ERROR_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
+        "expr_error_toint_non_convertible",
+        docs=[{"v": "hello"}],
+        pipeline=[
+            {
+                "$group": {
+                    "_id": None,
+                    "result": {
+                        "$mergeObjects": {"$let": {"vars": {}, "in": {"x": {"$toInt": "$v"}}}}
+                    },
+                }
+            }
+        ],
+        error_code=CONVERSION_FAILURE_ERROR,
+        msg="$mergeObjects should propagate $toInt conversion error for non-convertible value",
+    ),
+    AccumulatorTestCase(
         "expr_error_to_object_id_invalid",
         docs=[{"v": "not_valid_oid"}],
         pipeline=[
@@ -147,6 +164,22 @@ MERGE_OBJECTS_EXPRESSION_ERROR_TESTS: list[AccumulatorTestCase] = [
         ],
         error_code=DIVIDE_BY_ZERO_V2_ERROR,
         msg="$mergeObjects should propagate error even when failing doc is not the first",
+    ),
+    AccumulatorTestCase(
+        "expr_error_mod_by_zero",
+        docs=[{"v": 10}],
+        pipeline=[
+            {
+                "$group": {
+                    "_id": None,
+                    "result": {
+                        "$mergeObjects": {"$let": {"vars": {}, "in": {"x": {"$mod": ["$v", 0]}}}}
+                    },
+                }
+            },
+        ],
+        error_code=MODULO_BY_ZERO_V2_ERROR,
+        msg="$mergeObjects should propagate $mod by zero error",
     ),
 ]
 
