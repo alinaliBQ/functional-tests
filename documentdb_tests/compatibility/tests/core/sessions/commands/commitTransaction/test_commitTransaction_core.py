@@ -1,7 +1,7 @@
 """Tests for commitTransaction command core behavior.
 
 Validates fundamental command behavior including the no-transaction error,
-admin database requirement, parameter interactions, and response structure.
+admin database requirement, and parameter interactions.
 """
 
 from __future__ import annotations
@@ -35,6 +35,22 @@ CORE_NO_TRANSACTION_TESTS: list[SessionCommandTestCase] = [
     ),
 ]
 
+# Property [Parameter Acceptance]: all valid parameters combined are syntactically accepted.
+CORE_PARAMETER_ACCEPTANCE_TESTS: list[SessionCommandTestCase] = [
+    SessionCommandTestCase(
+        "all_valid_params",
+        command={
+            "commitTransaction": 1,
+            "autocommit": False,
+            "txnNumber": Int64(1),
+            "writeConcern": {"w": "majority", "j": True, "wtimeout": 10_000},
+            "comment": "full commit",
+        },
+        error_code=ILLEGAL_OPERATION_ERROR,
+        msg="commitTransaction with all valid params should not produce a parsing error",
+    ),
+]
+
 # Property [Parameter Interactions]: combinations of valid parameters behave correctly.
 CORE_PARAMETER_INTERACTION_TESTS: list[SessionCommandTestCase] = [
     SessionCommandTestCase(
@@ -62,6 +78,12 @@ CORE_PARAMETER_INTERACTION_TESTS: list[SessionCommandTestCase] = [
         msg="commitTransaction with txnNumber only should fail with IllegalOperation",
     ),
     SessionCommandTestCase(
+        "interaction_autocommit_txn_number",
+        command={"commitTransaction": 1, "autocommit": False, "txnNumber": Int64(1)},
+        error_code=ILLEGAL_OPERATION_ERROR,
+        msg="commitTransaction with autocommit + txnNumber should fail with IllegalOperation",
+    ),
+    SessionCommandTestCase(
         "interaction_lsid",
         command={"commitTransaction": 1, "lsid": {"id": Binary(b"\x00" * 16, 4)}},
         error_code=NO_SUCH_TRANSACTION_ERROR,
@@ -70,7 +92,7 @@ CORE_PARAMETER_INTERACTION_TESTS: list[SessionCommandTestCase] = [
 ]
 
 CORE_TESTS: list[SessionCommandTestCase] = (
-    CORE_NO_TRANSACTION_TESTS + CORE_PARAMETER_INTERACTION_TESTS
+    CORE_NO_TRANSACTION_TESTS + CORE_PARAMETER_ACCEPTANCE_TESTS + CORE_PARAMETER_INTERACTION_TESTS
 )
 
 
