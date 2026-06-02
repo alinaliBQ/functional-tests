@@ -1,8 +1,8 @@
 """Tests for commitTransaction writeConcern parameter type acceptance.
 
 Validates that writeConcern must be a document. Document types (including
-empty and null) are accepted and produce NoSuchTransaction (125). All
-non-document types are rejected with TypeMismatch (14).
+empty and null) are accepted and produce NoSuchTransaction. All non-document
+types are rejected with TypeMismatch.
 """
 
 from __future__ import annotations

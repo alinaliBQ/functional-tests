@@ -1,8 +1,8 @@
 """Tests for commitTransaction command field type acceptance.
 
 Validates that the commitTransaction command's primary field accepts all BSON
-types. All types produce error 125 (NoSuchTransaction) because no transaction
-is active, confirming the field value itself is not type-checked.
+types. All types produce NoSuchTransaction because no transaction is active,
+confirming the field value itself is not type-checked.
 """
 
 from __future__ import annotations
@@ -23,8 +23,7 @@ from documentdb_tests.framework.parametrize import pytest_params
 pytestmark = pytest.mark.admin
 
 
-# Property [Field Type Acceptance]: commitTransaction accepts any BSON type as
-# the command field value without a type error.
+# Property [Field Type Acceptance]: the command field accepts any BSON type.
 FIELD_TYPE_TESTS: list[SessionCommandTestCase] = [
     SessionCommandTestCase(
         "field_int32_positive",

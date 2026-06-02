@@ -1,8 +1,8 @@
 """Tests for commitTransaction writeConcern.wtimeout sub-field validation.
 
 Validates type and value acceptance for the writeConcern.wtimeout sub-field.
-wtimeout accepts numeric types broadly. Most values produce NoSuchTransaction
-(125). Int64 max value produces FailedToParse (9) due to overflow.
+wtimeout accepts numeric types broadly. Most values produce NoSuchTransaction.
+Int64 max value produces FailedToParse due to overflow.
 """
 
 from __future__ import annotations

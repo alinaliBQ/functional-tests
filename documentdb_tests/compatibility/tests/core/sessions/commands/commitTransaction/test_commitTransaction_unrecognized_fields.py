@@ -1,9 +1,8 @@
 """Tests for commitTransaction unrecognized field handling.
 
-Validates that the commitTransaction command rejects unknown fields with
-UNRECOGNIZED_COMMAND_FIELD_ERROR (40415). Covers single unknown fields,
-multiple unknown fields, case-sensitive field names, known fields from other
-commands, and dollar-prefixed fields.
+Validates that the commitTransaction command rejects unknown fields. Covers
+single unknown fields, multiple unknown fields, case-sensitive field names,
+known fields from other commands, and dollar-prefixed fields.
 """
 
 from __future__ import annotations
@@ -22,7 +21,7 @@ from documentdb_tests.framework.parametrize import pytest_params
 pytestmark = pytest.mark.admin
 
 
-# Property [Unrecognized Field Rejection]: unknown fields are rejected with error 40415.
+# Property [Unrecognized Field Rejection]: unknown fields are rejected.
 UNRECOGNIZED_FIELD_TESTS: list[SessionCommandTestCase] = [
     SessionCommandTestCase(
         "unknown_single_field",
@@ -38,8 +37,7 @@ UNRECOGNIZED_FIELD_TESTS: list[SessionCommandTestCase] = [
     ),
 ]
 
-# Property [Case Sensitivity]: field names are case-sensitive; wrong-case
-# variants of valid fields are rejected as unrecognized.
+# Property [Case Sensitivity]: field names are case-sensitive and wrong-case variants are rejected.
 CASE_SENSITIVITY_TESTS: list[SessionCommandTestCase] = [
     SessionCommandTestCase(
         "case_WriteConcern",
@@ -67,8 +65,7 @@ CASE_SENSITIVITY_TESTS: list[SessionCommandTestCase] = [
     ),
 ]
 
-# Property [Foreign Field Rejection]: fields valid in other commands are
-# still rejected by commitTransaction.
+# Property [Foreign Field Rejection]: fields from other commands are rejected.
 FOREIGN_FIELD_TESTS: list[SessionCommandTestCase] = [
     SessionCommandTestCase(
         "foreign_query",

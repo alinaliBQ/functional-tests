@@ -1,8 +1,8 @@
 """Tests for commitTransaction comment parameter type acceptance.
 
 Validates that the comment parameter accepts any BSON type. All types produce
-NoSuchTransaction (125) because no transaction is active, confirming the
-comment field itself is not type-checked.
+NoSuchTransaction because no transaction is active, confirming the comment
+field itself is not type-checked.
 """
 
 from __future__ import annotations

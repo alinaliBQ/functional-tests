@@ -1,8 +1,8 @@
 """Tests for commitTransaction writeConcern.w sub-field validation.
 
 Validates type and value acceptance for the writeConcern.w sub-field. w accepts
-int and string values. Valid values pass through to NoSuchTransaction (125).
-Invalid values produce FailedToParse (9) or BadValue (2).
+int and string values. Valid values pass through to NoSuchTransaction. Invalid
+values produce FailedToParse or BadValue.
 """
 
 from __future__ import annotations

@@ -2,7 +2,7 @@
 
 Validates type acceptance for the writeConcern.j sub-field. j accepts boolean
 and numeric values (which are coerced). String, object, and array types are
-rejected with TypeMismatch (14). Null is accepted.
+rejected with TypeMismatch. Null is accepted.
 """
 
 from __future__ import annotations

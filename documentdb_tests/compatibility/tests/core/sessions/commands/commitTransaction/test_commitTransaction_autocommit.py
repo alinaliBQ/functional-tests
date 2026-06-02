@@ -2,8 +2,8 @@
 
 Validates type and value acceptance for the autocommit parameter. Per the
 MongoDB documentation, autocommit must be literal boolean false. Boolean true
-produces InvalidOptions (72), non-boolean types produce TypeMismatch (14),
-and null is treated as omitted (falls through to NoSuchTransaction 125).
+produces InvalidOptions, non-boolean types produce TypeMismatch, and null is
+treated as omitted (falls through to NoSuchTransaction).
 """
 
 from __future__ import annotations
@@ -26,8 +26,7 @@ from documentdb_tests.framework.parametrize import pytest_params
 pytestmark = pytest.mark.admin
 
 
-# Property [autocommit Boolean Values]: autocommit accepts only boolean values,
-# and both true and false produce errors outside a transaction.
+# Property [autocommit Boolean Values]: autocommit accepts only boolean values.
 AUTOCOMMIT_BOOLEAN_TESTS: list[SessionCommandTestCase] = [
     SessionCommandTestCase(
         "autocommit_bool_false",
@@ -43,8 +42,7 @@ AUTOCOMMIT_BOOLEAN_TESTS: list[SessionCommandTestCase] = [
     ),
 ]
 
-# Property [autocommit Type Strictness]: non-boolean types are rejected with
-# TypeMismatch, including numeric zeros that are semantically equivalent to false.
+# Property [autocommit Type Strictness]: non-boolean types are rejected with TypeMismatch.
 AUTOCOMMIT_TYPE_REJECTION_TESTS: list[SessionCommandTestCase] = [
     SessionCommandTestCase(
         "autocommit_int32_zero",

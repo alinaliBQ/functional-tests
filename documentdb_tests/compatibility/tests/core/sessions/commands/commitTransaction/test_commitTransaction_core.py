@@ -25,7 +25,7 @@ from documentdb_tests.framework.parametrize import pytest_params
 pytestmark = pytest.mark.admin
 
 
-# Property [No-Transaction Error]: commitTransaction outside a transaction fails with error 125.
+# Property [No-Transaction Error]: commitTransaction outside a transaction fails.
 CORE_NO_TRANSACTION_TESTS: list[SessionCommandTestCase] = [
     SessionCommandTestCase(
         "no_transaction_basic",

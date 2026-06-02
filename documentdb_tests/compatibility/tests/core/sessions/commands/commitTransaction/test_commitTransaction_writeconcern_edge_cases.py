@@ -41,8 +41,7 @@ WRITECONCERN_COMBINED_TESTS: list[SessionCommandTestCase] = [
     ),
 ]
 
-# Property [writeConcern Unknown Sub-Field]: unknown writeConcern sub-fields
-# are rejected with UNRECOGNIZED_COMMAND_FIELD_ERROR.
+# Property [writeConcern Unknown Sub-Field]: unknown writeConcern sub-fields are rejected.
 WRITECONCERN_UNKNOWN_SUBFIELD_TESTS: list[SessionCommandTestCase] = [
     SessionCommandTestCase(
         "wc_unknown_subfield",

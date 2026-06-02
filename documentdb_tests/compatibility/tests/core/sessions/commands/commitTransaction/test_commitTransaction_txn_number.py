@@ -2,9 +2,9 @@
 
 Validates type acceptance for the txnNumber parameter. Per the MongoDB
 documentation, txnNumber is typed as long (Int64). Int64 values produce
-IllegalOperation (20) because the session has no matching transaction.
-Non-Int64 numeric types and non-numeric types produce TypeMismatch (14).
-Null is treated as omitted (falls through to NoSuchTransaction 125).
+IllegalOperation because the session has no matching transaction. Non-Int64
+numeric types and non-numeric types produce TypeMismatch. Null is treated
+as omitted (falls through to NoSuchTransaction).
 """
 
 from __future__ import annotations
@@ -27,8 +27,7 @@ from documentdb_tests.framework.parametrize import pytest_params
 pytestmark = pytest.mark.admin
 
 
-# Property [txnNumber Int64 Acceptance]: Int64 values are accepted for txnNumber
-# and produce IllegalOperation because no matching transaction exists.
+# Property [txnNumber Int64 Acceptance]: Int64 values are accepted for txnNumber.
 TXN_NUMBER_INT64_TESTS: list[SessionCommandTestCase] = [
     SessionCommandTestCase(
         "txn_number_int64_positive",
