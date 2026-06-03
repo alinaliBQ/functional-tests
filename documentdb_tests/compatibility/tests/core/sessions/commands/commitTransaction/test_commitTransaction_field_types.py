@@ -12,8 +12,8 @@ from datetime import datetime, timezone
 import pytest
 from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
-from documentdb_tests.compatibility.tests.core.sessions.commands.utils.session_command_test_case import (  # noqa: E501
-    SessionCommandTestCase,
+from documentdb_tests.compatibility.tests.core.collections.commands.utils.command_test_case import (
+    CommandTestCase,
 )
 from documentdb_tests.framework.assertions import assertFailureCode
 from documentdb_tests.framework.error_codes import NO_SUCH_TRANSACTION_ERROR
@@ -24,170 +24,170 @@ pytestmark = pytest.mark.admin
 
 
 # Property [Field Type Acceptance]: the command field accepts any BSON type.
-FIELD_TYPE_TESTS: list[SessionCommandTestCase] = [
-    SessionCommandTestCase(
+FIELD_TYPE_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
         "field_int32_positive",
         command={"commitTransaction": 1},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="commitTransaction should accept int32 positive value",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "field_int32_negative",
         command={"commitTransaction": -1},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="commitTransaction should accept int32 negative value",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "field_int32_zero",
         command={"commitTransaction": 0},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="commitTransaction should accept int32 zero value",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "field_int64",
         command={"commitTransaction": Int64(1)},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="commitTransaction should accept int64 value",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "field_int64_max",
         command={"commitTransaction": Int64(9_223_372_036_854_775_807)},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="commitTransaction should accept int64 max value",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "field_double",
         command={"commitTransaction": 1.0},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="commitTransaction should accept double value",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "field_double_negative",
         command={"commitTransaction": -1.0},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="commitTransaction should accept negative double value",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "field_double_zero",
         command={"commitTransaction": 0.0},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="commitTransaction should accept double zero value",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "field_decimal128",
         command={"commitTransaction": Decimal128("1")},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="commitTransaction should accept Decimal128 value",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "field_bool_true",
         command={"commitTransaction": True},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="commitTransaction should accept bool true value",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "field_bool_false",
         command={"commitTransaction": False},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="commitTransaction should accept bool false value",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "field_nan",
         command={"commitTransaction": float("nan")},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="commitTransaction should accept NaN value",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "field_infinity",
         command={"commitTransaction": float("inf")},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="commitTransaction should accept Infinity value",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "field_string",
         command={"commitTransaction": "commitTransaction"},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="commitTransaction should accept string value",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "field_string_empty",
         command={"commitTransaction": ""},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="commitTransaction should accept empty string value",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "field_null",
         command={"commitTransaction": None},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="commitTransaction should accept null value",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "field_object_empty",
         command={"commitTransaction": {}},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="commitTransaction should accept empty object value",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "field_object_nonempty",
         command={"commitTransaction": {"key": "value"}},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="commitTransaction should accept non-empty object value",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "field_array_empty",
         command={"commitTransaction": []},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="commitTransaction should accept empty array value",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "field_array_nonempty",
         command={"commitTransaction": [1, 2]},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="commitTransaction should accept non-empty array value",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "field_binary",
         command={"commitTransaction": Binary(b"\x00")},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="commitTransaction should accept Binary value",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "field_objectid",
         command={"commitTransaction": ObjectId()},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="commitTransaction should accept ObjectId value",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "field_datetime",
         command={"commitTransaction": datetime(2024, 1, 1, tzinfo=timezone.utc)},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="commitTransaction should accept datetime value",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "field_regex",
         command={"commitTransaction": Regex(".*")},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="commitTransaction should accept Regex value",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "field_timestamp",
         command={"commitTransaction": Timestamp(0, 0)},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="commitTransaction should accept Timestamp value",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "field_code",
         command={"commitTransaction": Code("function(){}")},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="commitTransaction should accept Code value",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "field_minkey",
         command={"commitTransaction": MinKey()},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="commitTransaction should accept MinKey value",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "field_maxkey",
         command={"commitTransaction": MaxKey()},
         error_code=NO_SUCH_TRANSACTION_ERROR,

@@ -9,8 +9,8 @@ from __future__ import annotations
 import pytest
 from bson import Binary, Int64
 
-from documentdb_tests.compatibility.tests.core.sessions.commands.utils.session_command_test_case import (  # noqa: E501
-    SessionCommandTestCase,
+from documentdb_tests.compatibility.tests.core.collections.commands.utils.command_test_case import (
+    CommandTestCase,
 )
 from documentdb_tests.framework.assertions import assertFailureCode
 from documentdb_tests.framework.error_codes import (
@@ -26,8 +26,8 @@ pytestmark = pytest.mark.admin
 
 
 # Property [No-Transaction Error]: commitTransaction outside a transaction fails.
-CORE_NO_TRANSACTION_TESTS: list[SessionCommandTestCase] = [
-    SessionCommandTestCase(
+CORE_NO_TRANSACTION_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
         "no_transaction_basic",
         command={"commitTransaction": 1},
         error_code=NO_SUCH_TRANSACTION_ERROR,
@@ -36,8 +36,8 @@ CORE_NO_TRANSACTION_TESTS: list[SessionCommandTestCase] = [
 ]
 
 # Property [Parameter Acceptance]: all valid parameters combined are syntactically accepted.
-CORE_PARAMETER_ACCEPTANCE_TESTS: list[SessionCommandTestCase] = [
-    SessionCommandTestCase(
+CORE_PARAMETER_ACCEPTANCE_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
         "all_valid_params",
         command={
             "commitTransaction": 1,
@@ -52,38 +52,38 @@ CORE_PARAMETER_ACCEPTANCE_TESTS: list[SessionCommandTestCase] = [
 ]
 
 # Property [Parameter Interactions]: combinations of valid parameters behave correctly.
-CORE_PARAMETER_INTERACTION_TESTS: list[SessionCommandTestCase] = [
-    SessionCommandTestCase(
+CORE_PARAMETER_INTERACTION_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
         "interaction_writeconcern_only",
         command={"commitTransaction": 1, "writeConcern": {"w": 1}},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="commitTransaction with writeConcern only should fail with NoSuchTransaction",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "interaction_comment_only",
         command={"commitTransaction": 1, "comment": "test"},
         error_code=NO_SUCH_TRANSACTION_ERROR,
         msg="commitTransaction with comment only should fail with NoSuchTransaction",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "interaction_autocommit_only",
         command={"commitTransaction": 1, "autocommit": False},
         error_code=INVALID_OPTIONS_ERROR,
         msg="commitTransaction with autocommit:false only should fail with InvalidOptions",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "interaction_txn_number_only",
         command={"commitTransaction": 1, "txnNumber": Int64(1)},
         error_code=ILLEGAL_OPERATION_ERROR,
         msg="commitTransaction with txnNumber only should fail with IllegalOperation",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "interaction_autocommit_txn_number",
         command={"commitTransaction": 1, "autocommit": False, "txnNumber": Int64(1)},
         error_code=ILLEGAL_OPERATION_ERROR,
         msg="commitTransaction with autocommit + txnNumber should fail with IllegalOperation",
     ),
-    SessionCommandTestCase(
+    CommandTestCase(
         "interaction_lsid",
         command={"commitTransaction": 1, "lsid": {"id": Binary(b"\x00" * 16, 4)}},
         error_code=NO_SUCH_TRANSACTION_ERROR,
@@ -91,7 +91,7 @@ CORE_PARAMETER_INTERACTION_TESTS: list[SessionCommandTestCase] = [
     ),
 ]
 
-CORE_TESTS: list[SessionCommandTestCase] = (
+CORE_TESTS: list[CommandTestCase] = (
     CORE_NO_TRANSACTION_TESTS + CORE_PARAMETER_ACCEPTANCE_TESTS + CORE_PARAMETER_INTERACTION_TESTS
 )
 
@@ -104,8 +104,8 @@ def test_commitTransaction_core(collection, test):
 
 
 # Property [Admin Database Requirement]: commitTransaction must run against the admin database.
-ADMIN_DB_TESTS: list[SessionCommandTestCase] = [
-    SessionCommandTestCase(
+ADMIN_DB_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
         "non_admin_database",
         command={"commitTransaction": 1},
         error_code=UNAUTHORIZED_ERROR,
