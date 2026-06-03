@@ -11,6 +11,19 @@ from bson.codec_options import CodecOptions
 
 TZ_AWARE_CODEC = CodecOptions(tz_aware=True, tzinfo=timezone.utc)
 
+# Fields injected by replica-set / sharded deployments that are not part
+# of the command semantics under test.  Stripping them keeps assertions
+# portable across standalone and replica-set topologies.
+_REPLICA_SET_FIELDS = {"$clusterTime", "operationTime"}
+
+
+def _strip_topology_fields(result: Any) -> Any:
+    """Remove replica-set metadata fields from a command result dict."""
+    if isinstance(result, dict):
+        for key in _REPLICA_SET_FIELDS:
+            result.pop(key, None)
+    return result
+
 
 def execute_command(collection, command: Dict, codec_options=TZ_AWARE_CODEC) -> Any:
     """
@@ -28,7 +41,7 @@ def execute_command(collection, command: Dict, codec_options=TZ_AWARE_CODEC) -> 
     try:
         db = collection.database
         result = db.command(command, codec_options=codec_options)
-        return result
+        return _strip_topology_fields(result)
     except Exception as e:
         return e
 
@@ -47,7 +60,7 @@ def execute_admin_command(collection, command: Dict) -> Any:
     try:
         db = collection.database.client.admin
         result = db.command(command)
-        return result
+        return _strip_topology_fields(result)
     except Exception as e:
         return e
 
@@ -95,7 +108,9 @@ def execute_session_command(collection, test_case) -> Any:
             op.execute(collection, session)
         if test_case.commit_command is not None:
             try:
-                commit_result = client.admin.command(test_case.commit_command, session=session)
+                commit_result = _strip_topology_fields(
+                    client.admin.command(test_case.commit_command, session=session)
+                )
             except Exception as e:
                 commit_result = e
         else:
