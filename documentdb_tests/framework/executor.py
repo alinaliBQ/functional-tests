@@ -17,9 +17,25 @@ TZ_AWARE_CODEC = CodecOptions(tz_aware=True, tzinfo=timezone.utc)
 # portable across standalone and replica-set topologies.
 _TOPOLOGY_FIELDS = {"$clusterTime", "operationTime", "electionId", "opTime"}
 
+# Per-client cache for replica-set detection.
+_rs_cache: dict[int, bool] = {}
 
-def _normalize_result(result: Any) -> Any:
+
+def _is_replica_set(client) -> bool:
+    """Return True if *client* is connected to a replica set (cached)."""
+    cid = id(client)
+    if cid not in _rs_cache:
+        try:
+            _rs_cache[cid] = bool(client.admin.command("hello").get("setName"))
+        except Exception:
+            _rs_cache[cid] = False
+    return _rs_cache[cid]
+
+
+def _normalize_result(result: Any, client) -> Any:
     """Normalize a command result for topology-portable assertions.
+
+    Only applied when the server is a replica set.
 
     1. Strip replica-set metadata fields (``$clusterTime``, ``operationTime``,
        ``electionId``, ``opTime``) so assertions don't need to account for them.
@@ -29,7 +45,7 @@ def _normalize_result(result: Any) -> Any:
        scenario raises ``OperationFailure``.  Converting here makes behaviour
        consistent across topologies.
     """
-    if not isinstance(result, dict):
+    if not isinstance(result, dict) or not _is_replica_set(client):
         return result
     for key in _TOPOLOGY_FIELDS:
         result.pop(key, None)
@@ -55,7 +71,7 @@ def execute_command(collection, command: Dict, codec_options=TZ_AWARE_CODEC) -> 
     try:
         db = collection.database
         result = db.command(command, codec_options=codec_options)
-        return _normalize_result(result)
+        return _normalize_result(result, db.client)
     except Exception as e:
         return e
 
@@ -72,9 +88,9 @@ def execute_admin_command(collection, command: Dict) -> Any:
         Result if successful, Exception if failed
     """
     try:
-        db = collection.database.client.admin
-        result = db.command(command)
-        return _normalize_result(result)
+        client = collection.database.client
+        result = client.admin.command(command)
+        return _normalize_result(result, client)
     except Exception as e:
         return e
 
@@ -123,7 +139,8 @@ def execute_session_command(collection, test_case) -> Any:
         if test_case.commit_command is not None:
             try:
                 commit_result = _normalize_result(
-                    client.admin.command(test_case.commit_command, session=session)
+                    client.admin.command(test_case.commit_command, session=session),
+                    client,
                 )
             except Exception as e:
                 commit_result = e
