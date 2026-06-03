@@ -23,9 +23,10 @@ pytestmark = [pytest.mark.admin, pytest.mark.replica_set]
 
 # ---------------------------------------------------------------------------
 # Property [Commit Persistence]: committed operations are durable.
+# Property [Commit with writeConcern]: explicit writeConcern is accepted.
 # ---------------------------------------------------------------------------
 
-COMMIT_PERSISTENCE_TESTS: list[SessionTestCase] = [
+COMMIT_READBACK_TESTS: list[SessionTestCase] = [
     SessionTestCase(
         "commit_insert",
         ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 1, "x": "inserted"})],
@@ -66,12 +67,26 @@ COMMIT_PERSISTENCE_TESTS: list[SessionTestCase] = [
         expected=[{"_id": 1, "x": "modified"}, {"_id": 2, "x": "new"}],
         msg="commitTransaction should persist all operations from a multi-op transaction",
     ),
+    SessionTestCase(
+        "commit_with_writeconcern",
+        docs=[{"_id": 1, "x": "before"}],
+        ops=[
+            SessionOperation(
+                op=SessionOp.UPDATE,
+                filter={"_id": 1},
+                update={"$set": {"x": "after"}},
+            )
+        ],
+        commit_command={"commitTransaction": 1, "writeConcern": {"w": 1}},
+        expected=[{"_id": 1, "x": "after"}],
+        msg="commitTransaction with writeConcern should persist changes",
+    ),
 ]
 
 
-@pytest.mark.parametrize("test", pytest_params(COMMIT_PERSISTENCE_TESTS))
-def test_commitTransaction_persistence(collection, test):
-    """Test commitTransaction persists operations."""
+@pytest.mark.parametrize("test", pytest_params(COMMIT_READBACK_TESTS))
+def test_commitTransaction_readback(collection, test):
+    """Test commitTransaction persists operations (verified via readback)."""
     result = execute_session_command(collection, test)
     assertSuccess(
         result,
@@ -104,9 +119,10 @@ def test_commitTransaction_empty(collection, test):
 
 # ---------------------------------------------------------------------------
 # Property [Response Structure]: commit response contains ok:1 on success.
+# Property [Commit with comment]: comment parameter is accepted.
 # ---------------------------------------------------------------------------
 
-RESPONSE_STRUCTURE_TESTS: list[SessionTestCase] = [
+COMMIT_RESPONSE_TESTS: list[SessionTestCase] = [
     SessionTestCase(
         "commit_response_ok",
         ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 1})],
@@ -114,62 +130,6 @@ RESPONSE_STRUCTURE_TESTS: list[SessionTestCase] = [
         expected_response={"ok": 1.0},
         msg="commitTransaction response should have ok:1 on success",
     ),
-]
-
-
-@pytest.mark.parametrize("test", pytest_params(RESPONSE_STRUCTURE_TESTS))
-def test_commitTransaction_response(collection, test):
-    """Test commitTransaction returns expected response fields."""
-    result = execute_session_command(collection, test)
-    assertSuccess(
-        result,
-        test.expected_response,
-        msg=test.msg,
-        raw_res=True,
-        transform=lambda r: {"ok": r["ok"]},
-    )
-
-
-# ---------------------------------------------------------------------------
-# Property [Commit with writeConcern]: explicit writeConcern is accepted.
-# ---------------------------------------------------------------------------
-
-COMMIT_WRITECONCERN_TESTS: list[SessionTestCase] = [
-    SessionTestCase(
-        "commit_with_writeconcern",
-        docs=[{"_id": 1, "x": "before"}],
-        ops=[
-            SessionOperation(
-                op=SessionOp.UPDATE,
-                filter={"_id": 1},
-                update={"$set": {"x": "after"}},
-            )
-        ],
-        commit_command={"commitTransaction": 1, "writeConcern": {"w": 1}},
-        expected=[{"_id": 1, "x": "after"}],
-        msg="commitTransaction with writeConcern should persist changes",
-    ),
-]
-
-
-@pytest.mark.parametrize("test", pytest_params(COMMIT_WRITECONCERN_TESTS))
-def test_commitTransaction_writeconcern(collection, test):
-    """Test commitTransaction succeeds with explicit writeConcern."""
-    result = execute_session_command(collection, test)
-    assertSuccess(
-        result,
-        {"cursor": {"firstBatch": test.expected}},
-        msg=test.msg,
-        raw_res=True,
-        transform=lambda r: {"cursor": {"firstBatch": r["cursor"]["firstBatch"]}},
-    )
-
-
-# ---------------------------------------------------------------------------
-# Property [Commit with comment]: comment parameter is accepted.
-# ---------------------------------------------------------------------------
-
-COMMIT_COMMENT_TESTS: list[SessionTestCase] = [
     SessionTestCase(
         "commit_with_comment",
         ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 1})],
@@ -180,9 +140,9 @@ COMMIT_COMMENT_TESTS: list[SessionTestCase] = [
 ]
 
 
-@pytest.mark.parametrize("test", pytest_params(COMMIT_COMMENT_TESTS))
-def test_commitTransaction_comment(collection, test):
-    """Test commitTransaction succeeds with comment parameter."""
+@pytest.mark.parametrize("test", pytest_params(COMMIT_RESPONSE_TESTS))
+def test_commitTransaction_response(collection, test):
+    """Test commitTransaction returns expected response fields."""
     result = execute_session_command(collection, test)
     assertSuccess(
         result,
