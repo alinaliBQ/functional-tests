@@ -8,20 +8,34 @@ from datetime import timezone
 from typing import Any, Dict
 
 from bson.codec_options import CodecOptions
+from pymongo.errors import WriteConcernError
 
 TZ_AWARE_CODEC = CodecOptions(tz_aware=True, tzinfo=timezone.utc)
 
 # Fields injected by replica-set / sharded deployments that are not part
 # of the command semantics under test.  Stripping them keeps assertions
 # portable across standalone and replica-set topologies.
-_REPLICA_SET_FIELDS = {"$clusterTime", "operationTime"}
+_TOPOLOGY_FIELDS = {"$clusterTime", "operationTime", "electionId", "opTime"}
 
 
-def _strip_topology_fields(result: Any) -> Any:
-    """Remove replica-set metadata fields from a command result dict."""
-    if isinstance(result, dict):
-        for key in _REPLICA_SET_FIELDS:
-            result.pop(key, None)
+def _normalize_result(result: Any) -> Any:
+    """Normalize a command result for topology-portable assertions.
+
+    1. Strip replica-set metadata fields (``$clusterTime``, ``operationTime``,
+       ``electionId``, ``opTime``) so assertions don't need to account for them.
+    2. Convert ``writeConcernError`` into a ``WriteConcernError`` exception.
+       On a replica set, ``db.command()`` returns ``ok: 1.0`` with a
+       ``writeConcernError`` field instead of raising; on standalone the same
+       scenario raises ``OperationFailure``.  Converting here makes behaviour
+       consistent across topologies.
+    """
+    if not isinstance(result, dict):
+        return result
+    for key in _TOPOLOGY_FIELDS:
+        result.pop(key, None)
+    wce = result.pop("writeConcernError", None)
+    if wce is not None:
+        return WriteConcernError(wce.get("errmsg", ""), code=wce.get("code"), details=wce)
     return result
 
 
@@ -41,7 +55,7 @@ def execute_command(collection, command: Dict, codec_options=TZ_AWARE_CODEC) -> 
     try:
         db = collection.database
         result = db.command(command, codec_options=codec_options)
-        return _strip_topology_fields(result)
+        return _normalize_result(result)
     except Exception as e:
         return e
 
@@ -60,7 +74,7 @@ def execute_admin_command(collection, command: Dict) -> Any:
     try:
         db = collection.database.client.admin
         result = db.command(command)
-        return _strip_topology_fields(result)
+        return _normalize_result(result)
     except Exception as e:
         return e
 
@@ -108,7 +122,7 @@ def execute_session_command(collection, test_case) -> Any:
             op.execute(collection, session)
         if test_case.commit_command is not None:
             try:
-                commit_result = _strip_topology_fields(
+                commit_result = _normalize_result(
                     client.admin.command(test_case.commit_command, session=session)
                 )
             except Exception as e:
