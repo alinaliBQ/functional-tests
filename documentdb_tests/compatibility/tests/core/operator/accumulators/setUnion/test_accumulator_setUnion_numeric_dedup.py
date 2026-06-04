@@ -7,6 +7,7 @@ from bson import Decimal128, Int64
 
 from documentdb_tests.compatibility.tests.core.operator.accumulators.utils.accumulator_test_case import (  # noqa: E501
     AccumulatorTestCase,
+    sort_array_project,
 )
 from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
@@ -129,7 +130,7 @@ SETUNION_NUMERIC_RETENTION_TESTS: list[AccumulatorTestCase] = [
         docs=[{"v": [1, 2, 3]}, {"v": [Int64(1), Int64(2), Int64(3)]}],
         pipeline=[
             {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
-            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+            sort_array_project("result"),
         ],
         expected=[{"result": [1, 2, 3]}],
         msg="$setUnion should collapse int and long versions to 3 unique elements",

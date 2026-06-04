@@ -11,6 +11,7 @@ import pytest
 
 from documentdb_tests.compatibility.tests.core.operator.accumulators.utils.accumulator_test_case import (  # noqa: E501
     AccumulatorTestCase,
+    sort_array_project,
 )
 from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
@@ -28,7 +29,7 @@ SETUNION_ORDER_INDEPENDENCE_TESTS: list[AccumulatorTestCase] = [
         pipeline=[
             {"$sort": {"k": 1}},
             {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
-            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+            sort_array_project("result"),
         ],
         expected=[{"result": [1, 2, 3, 4]}],
         msg="$setUnion should produce the same set with ascending sort",
@@ -39,7 +40,7 @@ SETUNION_ORDER_INDEPENDENCE_TESTS: list[AccumulatorTestCase] = [
         pipeline=[
             {"$sort": {"k": -1}},
             {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
-            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+            sort_array_project("result"),
         ],
         expected=[{"result": [1, 2, 3, 4]}],
         msg="$setUnion should produce the same set with descending sort",
@@ -51,7 +52,7 @@ SETUNION_ORDER_INDEPENDENCE_TESTS: list[AccumulatorTestCase] = [
         pipeline=[
             {"$sort": {"k": 1}},
             {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
-            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+            sort_array_project("result"),
         ],
         expected=[{"result": [1, 2, 3]}],
         msg="$setUnion should produce the same set for three docs with ascending sort",
@@ -62,7 +63,7 @@ SETUNION_ORDER_INDEPENDENCE_TESTS: list[AccumulatorTestCase] = [
         pipeline=[
             {"$sort": {"k": -1}},
             {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
-            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+            sort_array_project("result"),
         ],
         expected=[{"result": [1, 2, 3]}],
         msg="$setUnion should produce the same set for three docs with descending sort",
@@ -74,7 +75,7 @@ SETUNION_ORDER_INDEPENDENCE_TESTS: list[AccumulatorTestCase] = [
         pipeline=[
             {"$sort": {"k": 1}},
             {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
-            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+            sort_array_project("result"),
         ],
         expected=[{"result": [1, 2, 3, 4]}],
         msg="$setUnion should produce the same set with overlapping arrays, ascending sort",
@@ -85,7 +86,7 @@ SETUNION_ORDER_INDEPENDENCE_TESTS: list[AccumulatorTestCase] = [
         pipeline=[
             {"$sort": {"k": -1}},
             {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
-            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+            sort_array_project("result"),
         ],
         expected=[{"result": [1, 2, 3, 4]}],
         msg="$setUnion should produce the same set with overlapping arrays, descending sort",
@@ -97,7 +98,7 @@ SETUNION_ORDER_INDEPENDENCE_TESTS: list[AccumulatorTestCase] = [
         pipeline=[
             {"$sort": {"k": 1}},
             {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
-            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+            sort_array_project("result"),
         ],
         expected=[{"result": [1, 2]}],
         msg="$setUnion should produce the same set with empty array, ascending sort",
@@ -108,7 +109,7 @@ SETUNION_ORDER_INDEPENDENCE_TESTS: list[AccumulatorTestCase] = [
         pipeline=[
             {"$sort": {"k": -1}},
             {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
-            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+            sort_array_project("result"),
         ],
         expected=[{"result": [1, 2]}],
         msg="$setUnion should produce the same set with empty array, descending sort",
@@ -124,7 +125,7 @@ SETUNION_ORDER_INDEPENDENCE_TESTS: list[AccumulatorTestCase] = [
         pipeline=[
             {"$sort": {"priority": 1, "status": -1}},
             {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
-            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+            sort_array_project("result"),
         ],
         expected=[{"result": [1, 2, 3, 4]}],
         msg="$setUnion should produce the same set with compound sort (asc, desc)",
@@ -139,7 +140,7 @@ SETUNION_ORDER_INDEPENDENCE_TESTS: list[AccumulatorTestCase] = [
         pipeline=[
             {"$sort": {"priority": -1, "status": 1}},
             {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
-            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+            sort_array_project("result"),
         ],
         expected=[{"result": [1, 2, 3, 4]}],
         msg="$setUnion should produce the same set with compound sort (desc, asc)",
@@ -155,7 +156,7 @@ SETUNION_ORDER_INDEPENDENCE_TESTS: list[AccumulatorTestCase] = [
         pipeline=[
             {"$sort": {"meta.dept": 1}},
             {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
-            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+            sort_array_project("result"),
         ],
         expected=[{"result": [1, 2, 3, 4]}],
         msg="$setUnion should produce the same set with nested field path sort ascending",
@@ -170,7 +171,7 @@ SETUNION_ORDER_INDEPENDENCE_TESTS: list[AccumulatorTestCase] = [
         pipeline=[
             {"$sort": {"meta.dept": -1}},
             {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
-            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+            sort_array_project("result"),
         ],
         expected=[{"result": [1, 2, 3, 4]}],
         msg="$setUnion should produce the same set with nested field path sort descending",

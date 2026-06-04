@@ -7,6 +7,7 @@ import pytest
 
 from documentdb_tests.compatibility.tests.core.operator.accumulators.utils.accumulator_test_case import (  # noqa: E501
     AccumulatorTestCase,
+    sort_array_project,
 )
 from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
@@ -20,7 +21,7 @@ SETUNION_CORE_TESTS: list[AccumulatorTestCase] = [
         docs=[{"v": [1, 2]}, {"v": [3, 4]}],
         pipeline=[
             {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
-            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+            sort_array_project("result"),
         ],
         expected=[{"result": [1, 2, 3, 4]}],
         msg="$setUnion should union disjoint arrays from two documents",
@@ -30,7 +31,7 @@ SETUNION_CORE_TESTS: list[AccumulatorTestCase] = [
         docs=[{"v": [1, 2]}, {"v": [2, 3]}, {"v": [3, 4]}],
         pipeline=[
             {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
-            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+            sort_array_project("result"),
         ],
         expected=[{"result": [1, 2, 3, 4]}],
         msg="$setUnion should deduplicate overlapping elements across three documents",
@@ -40,7 +41,7 @@ SETUNION_CORE_TESTS: list[AccumulatorTestCase] = [
         docs=[{"v": [1, 2, 3]} for _ in range(5)],
         pipeline=[
             {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
-            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+            sort_array_project("result"),
         ],
         expected=[{"result": [1, 2, 3]}],
         msg="$setUnion should deduplicate when all five documents have the same array",
@@ -50,7 +51,7 @@ SETUNION_CORE_TESTS: list[AccumulatorTestCase] = [
         docs=[{"v": [1, 2, 3]}],
         pipeline=[
             {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
-            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+            sort_array_project("result"),
         ],
         expected=[{"result": [1, 2, 3]}],
         msg="$setUnion should return the document's array when there is a single document",
@@ -60,7 +61,7 @@ SETUNION_CORE_TESTS: list[AccumulatorTestCase] = [
         docs=[{"v": [1, 1, 2, 2, 3]}],
         pipeline=[
             {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
-            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+            sort_array_project("result"),
         ],
         expected=[{"result": [1, 2, 3]}],
         msg="$setUnion should deduplicate within a single document's array",
@@ -70,7 +71,7 @@ SETUNION_CORE_TESTS: list[AccumulatorTestCase] = [
         docs=[{"v": [1, 10]}, {"v": [1, 20]}, {"v": [1, 30]}],
         pipeline=[
             {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
-            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+            sort_array_project("result"),
         ],
         expected=[{"result": [1, 10, 20, 30]}],
         msg="$setUnion should keep shared element once and preserve unique elements",
@@ -80,7 +81,7 @@ SETUNION_CORE_TESTS: list[AccumulatorTestCase] = [
         docs=[{"v": [1, 2, 3, 4, 5]} for _ in range(10)],
         pipeline=[
             {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
-            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+            sort_array_project("result"),
         ],
         expected=[{"result": [1, 2, 3, 4, 5]}],
         msg="$setUnion should deduplicate across 10 documents with identical arrays",
@@ -104,7 +105,7 @@ SETUNION_EMPTY_ARRAY_TESTS: list[AccumulatorTestCase] = [
         docs=[{"v": []}, {"v": [1, 2]}, {"v": []}],
         pipeline=[
             {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
-            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+            sort_array_project("result"),
         ],
         expected=[{"result": [1, 2]}],
         msg="$setUnion should ignore empty arrays and return values from non-empty docs",
@@ -114,7 +115,7 @@ SETUNION_EMPTY_ARRAY_TESTS: list[AccumulatorTestCase] = [
         docs=[{"v": []}, {"v": [3, 4]}, {"v": [4, 5]}],
         pipeline=[
             {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
-            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+            sort_array_project("result"),
         ],
         expected=[{"result": [3, 4, 5]}],
         msg="$setUnion should treat empty array as identity in union with non-empty arrays",
@@ -129,7 +130,7 @@ SETUNION_NESTED_ARRAY_TESTS: list[AccumulatorTestCase] = [
         docs=[{"v": [[1, 2]]}, {"v": [[3, 4]]}],
         pipeline=[
             {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
-            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+            sort_array_project("result"),
         ],
         expected=[{"result": [[1, 2], [3, 4]]}],
         msg="$setUnion should treat nested arrays as opaque elements without flattening",
@@ -168,7 +169,7 @@ SETUNION_MULTIPLE_GROUP_TESTS: list[AccumulatorTestCase] = [
         ],
         pipeline=[
             {"$group": {"_id": "$g", "result": {"$setUnion": "$v"}}},
-            {"$project": {"_id": 1, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+            sort_array_project("result", include_id=True),
             {"$sort": {"_id": 1}},
         ],
         expected=[
@@ -189,7 +190,7 @@ SETUNION_MULTIPLE_GROUP_TESTS: list[AccumulatorTestCase] = [
         ],
         pipeline=[
             {"$group": {"_id": "$g", "result": {"$setUnion": "$v"}}},
-            {"$project": {"_id": 1, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+            sort_array_project("result", include_id=True),
             {"$sort": {"_id": 1}},
         ],
         expected=[
@@ -207,7 +208,7 @@ SETUNION_MULTIPLE_GROUP_TESTS: list[AccumulatorTestCase] = [
         ],
         pipeline=[
             {"$group": {"_id": "$g", "result": {"$setUnion": "$v"}}},
-            {"$project": {"_id": 1, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+            sort_array_project("result", include_id=True),
             {"$sort": {"_id": 1}},
         ],
         expected=[
@@ -226,7 +227,7 @@ SETUNION_MULTIPLE_GROUP_TESTS: list[AccumulatorTestCase] = [
         ],
         pipeline=[
             {"$group": {"_id": "$g", "result": {"$setUnion": "$v"}}},
-            {"$project": {"_id": 1, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+            sort_array_project("result", include_id=True),
             {"$sort": {"_id": 1}},
         ],
         expected=[
@@ -249,7 +250,7 @@ SETUNION_GROUPING_KEY_TESTS: list[AccumulatorTestCase] = [
         ],
         pipeline=[
             {"$group": {"_id": "$cat", "result": {"$setUnion": "$v"}}},
-            {"$project": {"_id": 1, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+            sort_array_project("result", include_id=True),
             {"$sort": {"_id": 1}},
         ],
         expected=[
@@ -267,7 +268,7 @@ SETUNION_GROUPING_KEY_TESTS: list[AccumulatorTestCase] = [
         ],
         pipeline=[
             {"$group": {"_id": {"cat": "$cat", "sub": "$sub"}, "result": {"$setUnion": "$v"}}},
-            {"$project": {"_id": 1, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+            sort_array_project("result", include_id=True),
             {"$sort": {"_id.sub": 1}},
         ],
         expected=[
@@ -298,13 +299,7 @@ SETUNION_MULTIPLE_SAME_TYPE_TESTS: list[AccumulatorTestCase] = [
                     "ys": {"$setUnion": "$y"},
                 }
             },
-            {
-                "$project": {
-                    "_id": 1,
-                    "xs": {"$sortArray": {"input": "$xs", "sortBy": 1}},
-                    "ys": {"$sortArray": {"input": "$ys", "sortBy": 1}},
-                }
-            },
+            sort_array_project("xs", "ys", include_id=True),
             {"$sort": {"_id": 1}},
         ],
         expected=[
@@ -327,13 +322,7 @@ SETUNION_MULTIPLE_SAME_TYPE_TESTS: list[AccumulatorTestCase] = [
                     "ys": {"$setUnion": "$y"},
                 }
             },
-            {
-                "$project": {
-                    "_id": 1,
-                    "xs": {"$sortArray": {"input": "$xs", "sortBy": 1}},
-                    "ys": {"$sortArray": {"input": "$ys", "sortBy": 1}},
-                }
-            },
+            sort_array_project("xs", "ys", include_id=True),
         ],
         expected=[
             {"_id": "A", "xs": [1, 2], "ys": [10, 20]},
@@ -390,7 +379,7 @@ SETUNION_ARRAY_TRAVERSAL_TESTS: list[AccumulatorTestCase] = [
         ],
         pipeline=[
             {"$group": {"_id": None, "result": {"$setUnion": "$a.b"}}},
-            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+            sort_array_project("result"),
         ],
         expected=[{"result": [[1, 2], [3, 4], [4, 5], [6]]}],
         msg="$setUnion should collect values via array traversal and deduplicate",
@@ -411,7 +400,7 @@ SETUNION_CHAINED_GROUP_TESTS: list[AccumulatorTestCase] = [
         pipeline=[
             {"$group": {"_id": "$cat", "partial": {"$setUnion": "$v"}}},
             {"$group": {"_id": None, "result": {"$setUnion": "$partial"}}},
-            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+            sort_array_project("result"),
         ],
         expected=[{"result": [1, 2, 3, 4, 5]}],
         msg="$setUnion in second $group should re-union per-category results into global set",
@@ -428,7 +417,7 @@ SETUNION_CHAINED_GROUP_TESTS: list[AccumulatorTestCase] = [
         pipeline=[
             {"$group": {"_id": "$cat", "partial": {"$setUnion": "$v"}}},
             {"$group": {"_id": None, "result": {"$setUnion": "$partial"}}},
-            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+            sort_array_project("result"),
         ],
         expected=[{"result": [10, 20, 30, 40, 50, 60, 70, 80]}],
         msg="$setUnion in second $group should union disjoint per-category arrays",
@@ -443,7 +432,7 @@ SETUNION_CHAINED_GROUP_TESTS: list[AccumulatorTestCase] = [
         pipeline=[
             {"$group": {"_id": "$cat", "partial": {"$setUnion": "$v"}}},
             {"$group": {"_id": None, "result": {"$setUnion": "$partial"}}},
-            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+            sort_array_project("result"),
         ],
         expected=[{"result": [1, 2, 3]}],
         msg="$setUnion in second $group should deduplicate identical per-category results",

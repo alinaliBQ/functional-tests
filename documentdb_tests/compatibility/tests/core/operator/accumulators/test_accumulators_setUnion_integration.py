@@ -6,6 +6,7 @@ import pytest
 
 from documentdb_tests.compatibility.tests.core.operator.accumulators.utils.accumulator_test_case import (  # noqa: E501
     AccumulatorTestCase,
+    sort_array_project,
 )
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.executor import execute_command
@@ -87,12 +88,7 @@ SETUNION_WITH_ADDTOSET_TESTS: list[AccumulatorTestCase] = [
                     "statuses": {"$addToSet": "$status"},
                 }
             },
-            {
-                "$project": {
-                    "all_tags": {"$sortArray": {"input": "$all_tags", "sortBy": 1}},
-                    "statuses": {"$sortArray": {"input": "$statuses", "sortBy": 1}},
-                }
-            },
+            sort_array_project("all_tags", "statuses", include_id=True),
         ],
         expected=[
             {"_id": "a", "all_tags": [1, 2, 3, 4], "statuses": ["closed", "open"]},
@@ -281,12 +277,7 @@ MULTIPLE_SETUNION_TESTS: list[AccumulatorTestCase] = [
                     "all_colors": {"$setUnion": "$colors"},
                 }
             },
-            {
-                "$project": {
-                    "all_tags": {"$sortArray": {"input": "$all_tags", "sortBy": 1}},
-                    "all_colors": {"$sortArray": {"input": "$all_colors", "sortBy": 1}},
-                }
-            },
+            sort_array_project("all_tags", "all_colors", include_id=True),
         ],
         expected=[
             {"_id": "a", "all_tags": [1, 2, 3], "all_colors": ["blue", "green", "red"]},
@@ -308,12 +299,7 @@ MULTIPLE_SETUNION_TESTS: list[AccumulatorTestCase] = [
                     "all_ids": {"$setUnion": "$ids"},
                 }
             },
-            {
-                "$project": {
-                    "all_tags": {"$sortArray": {"input": "$all_tags", "sortBy": 1}},
-                    "all_ids": {"$sortArray": {"input": "$all_ids", "sortBy": 1}},
-                }
-            },
+            sort_array_project("all_tags", "all_ids", include_id=True),
         ],
         expected=[
             {"_id": "a", "all_tags": [1, 2, 3], "all_ids": ["x", "y"]},

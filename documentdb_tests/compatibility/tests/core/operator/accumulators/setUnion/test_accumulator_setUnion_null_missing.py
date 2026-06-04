@@ -6,6 +6,7 @@ import pytest
 
 from documentdb_tests.compatibility.tests.core.operator.accumulators.utils.accumulator_test_case import (  # noqa: E501
     AccumulatorTestCase,
+    sort_array_project,
 )
 from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
@@ -33,7 +34,7 @@ SETUNION_MISSING_FIELD_TESTS: list[AccumulatorTestCase] = [
         docs=[{"v": [1, 2]}, {"x": 1}, {"v": [2, 3]}],
         pipeline=[
             {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
-            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+            sort_array_project("result"),
         ],
         expected=[{"result": [1, 2, 3]}],
         msg="$setUnion should ignore missing fields and union only array values",
@@ -49,7 +50,7 @@ SETUNION_MISSING_FIELD_TESTS: list[AccumulatorTestCase] = [
         ],
         pipeline=[
             {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
-            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+            sort_array_project("result"),
         ],
         expected=[{"result": [1, 2, 3, 4, 5]}],
         msg="$setUnion should skip missing docs and union the 3 arrays",
@@ -65,7 +66,7 @@ SETUNION_MISSING_FIELD_TESTS: list[AccumulatorTestCase] = [
         ],
         pipeline=[
             {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
-            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+            sort_array_project("result"),
         ],
         expected=[{"result": [10, 20]}],
         msg="$setUnion should return the single array when 4 of 5 docs are missing",
@@ -101,7 +102,7 @@ SETUNION_REMOVE_TESTS: list[AccumulatorTestCase] = [
                     },
                 }
             },
-            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+            sort_array_project("result"),
         ],
         expected=[{"result": [1, 2]}],
         msg="$setUnion should skip $$REMOVE documents and union remaining arrays",
@@ -155,7 +156,7 @@ SETUNION_MISSING_GROUP_TESTS: list[AccumulatorTestCase] = [
         ],
         pipeline=[
             {"$group": {"_id": "$g", "result": {"$setUnion": "$v"}}},
-            {"$project": {"_id": 1, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+            sort_array_project("result", include_id=True),
             {"$sort": {"_id": 1}},
         ],
         expected=[
@@ -181,7 +182,7 @@ SETUNION_MISSING_NESTED_PATH_TESTS: list[AccumulatorTestCase] = [
         ],
         pipeline=[
             {"$group": {"_id": None, "result": {"$setUnion": "$a.b"}}},
-            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+            sort_array_project("result"),
         ],
         expected=[{"result": [1, 2, 3]}],
         msg="$setUnion on $a.b should ignore docs where a exists but b is missing or a is missing",
@@ -196,7 +197,7 @@ SETUNION_MISSING_NESTED_PATH_TESTS: list[AccumulatorTestCase] = [
         ],
         pipeline=[
             {"$group": {"_id": None, "result": {"$setUnion": "$a.b"}}},
-            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+            sort_array_project("result"),
         ],
         expected=[{"result": [1, 2, 3]}],
         msg="$setUnion on $a.b should ignore docs where a is a non-object scalar",
@@ -212,7 +213,7 @@ SETUNION_MISSING_NESTED_PATH_TESTS: list[AccumulatorTestCase] = [
         ],
         pipeline=[
             {"$group": {"_id": None, "result": {"$setUnion": "$a.b.c"}}},
-            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+            sort_array_project("result"),
         ],
         expected=[{"result": [1, 2, 3]}],
         msg="$setUnion on $a.b.c should ignore docs missing at any level of the path",
@@ -226,7 +227,7 @@ SETUNION_MISSING_NESTED_PATH_TESTS: list[AccumulatorTestCase] = [
         ],
         pipeline=[
             {"$group": {"_id": None, "result": {"$setUnion": "$a.b"}}},
-            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+            sort_array_project("result"),
         ],
         expected=[{"result": [[1, 2], [3], [3, 4]]}],
         msg="$setUnion on $a.b should traverse arrays and skip elements where b is missing",
@@ -241,7 +242,7 @@ SETUNION_MISSING_NESTED_PATH_TESTS: list[AccumulatorTestCase] = [
         ],
         pipeline=[
             {"$group": {"_id": None, "result": {"$setUnion": "$a.b"}}},
-            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+            sort_array_project("result"),
         ],
         expected=[{"result": [10, 20, 30]}],
         msg="$setUnion on $a.b should ignore docs where a is array or bool, union objects only",

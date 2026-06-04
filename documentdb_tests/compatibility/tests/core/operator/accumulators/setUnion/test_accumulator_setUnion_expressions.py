@@ -6,6 +6,7 @@ import pytest
 
 from documentdb_tests.compatibility.tests.core.operator.accumulators.utils.accumulator_test_case import (  # noqa: E501
     AccumulatorTestCase,
+    sort_array_project,
 )
 from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.executor import execute_command
@@ -25,7 +26,7 @@ SETUNION_EXPRESSION_TYPE_TESTS: list[AccumulatorTestCase] = [
                     "result": {"$setUnion": {"$literal": [10, 20]}},
                 }
             },
-            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+            sort_array_project("result"),
         ],
         expected=[{"result": [10, 20]}],
         msg="$setUnion should accept $literal array expression",
@@ -35,7 +36,7 @@ SETUNION_EXPRESSION_TYPE_TESTS: list[AccumulatorTestCase] = [
         docs=[{"v": [1, 2]}, {"v": [2, 3]}],
         pipeline=[
             {"$group": {"_id": None, "result": {"$setUnion": "$v"}}},
-            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+            sort_array_project("result"),
         ],
         expected=[{"result": [1, 2, 3]}],
         msg="$setUnion should accept simple field path expression",
@@ -45,7 +46,7 @@ SETUNION_EXPRESSION_TYPE_TESTS: list[AccumulatorTestCase] = [
         docs=[{"a": {"b": [1, 2]}}, {"a": {"b": [2, 3]}}],
         pipeline=[
             {"$group": {"_id": None, "result": {"$setUnion": "$a.b"}}},
-            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+            sort_array_project("result"),
         ],
         expected=[{"result": [1, 2, 3]}],
         msg="$setUnion should accept nested field path expression",
@@ -60,7 +61,7 @@ SETUNION_EXPRESSION_TYPE_TESTS: list[AccumulatorTestCase] = [
                     "result": {"$setUnion": {"$setUnion": ["$v", [4]]}},
                 }
             },
-            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+            sort_array_project("result"),
         ],
         expected=[{"result": [1, 2, 3, 4]}],
         msg="$setUnion should accept expression operator ($setUnion expression) as argument",
@@ -83,7 +84,7 @@ SETUNION_EXPRESSION_TYPE_TESTS: list[AccumulatorTestCase] = [
                     },
                 }
             },
-            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+            sort_array_project("result"),
         ],
         expected=[{"result": [1, 2, 5, 6]}],
         msg="$setUnion should accept $cond expression as argument",
@@ -100,7 +101,7 @@ SETUNION_EXPRESSION_TYPE_TESTS: list[AccumulatorTestCase] = [
                     },
                 }
             },
-            {"$project": {"_id": 0, "result": {"$sortArray": {"input": "$result", "sortBy": 1}}}},
+            sort_array_project("result"),
         ],
         expected=[{"result": [1, 2, 3]}],
         msg="$setUnion should accept object expression ($ifNull) as argument",
