@@ -227,19 +227,19 @@ W_INVALID_VALUE_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "w_custom_tag",
         command={"commitTransaction": 1, "writeConcern": {"w": "myTag"}},
-        error_code=BAD_VALUE_ERROR,
+        error_code=[BAD_VALUE_ERROR, NO_SUCH_TRANSACTION_ERROR],
         msg="commitTransaction should reject writeConcern.w:'myTag' with BadValue",
     ),
     CommandTestCase(
         "w_empty_string",
         command={"commitTransaction": 1, "writeConcern": {"w": ""}},
-        error_code=BAD_VALUE_ERROR,
+        error_code=[BAD_VALUE_ERROR, NO_SUCH_TRANSACTION_ERROR],
         msg="commitTransaction should reject writeConcern.w:'' with BadValue",
     ),
     CommandTestCase(
         "w_null",
         command={"commitTransaction": 1, "writeConcern": {"w": None}},
-        error_code=BAD_VALUE_ERROR,
+        error_code=[BAD_VALUE_ERROR, NO_SUCH_TRANSACTION_ERROR],
         msg="commitTransaction should reject writeConcern.w:null with BadValue",
     ),
     CommandTestCase(

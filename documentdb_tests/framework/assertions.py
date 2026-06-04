@@ -255,16 +255,50 @@ def assertFailure(
         assert _strict_equal(actual, expected), error_text
 
 
-def assertFailureCode(result: Union[Any, Exception], expected_code: int, msg: Optional[str] = None):
-    """Assert command failed and check only the code field."""
-    expected = {"code": expected_code}
-    assertFailure(result, expected, msg, transform=partial_match(expected))
+def assertFailureCode(
+    result: Union[Any, Exception],
+    expected_code: Union[int, list[int]],
+    msg: Optional[str] = None,
+):
+    """Assert command failed and check only the code field.
+
+    ``expected_code`` may be a single int or a list of ints.  When a
+    list is provided the assertion passes if the actual code matches
+    **any** of the listed codes.  This is useful when the server returns
+    different error codes depending on topology (standalone vs replica
+    set).
+    """
+    if isinstance(expected_code, list):
+        # Multi-code path: extract actual code and check membership.
+        custom_msg = f" {msg}" if msg else ""
+        if isinstance(result, dict) and "writeErrors" in result:
+            actual_code = result["writeErrors"][0]["code"]
+        elif isinstance(result, Exception):
+            if isinstance(result, _INFRA_TYPES):
+                raise result
+            actual_code = getattr(result, "code", None)
+        else:
+            error_text = (
+                f"[UNEXPECTED_SUCCESS]{custom_msg} Expected error but got result:\n"
+                f"{_truncate_repr(result)}\n"
+            )
+            raise AssertionError(error_text)
+        if actual_code not in expected_code:
+            error_text = (
+                f"[ERROR_MISMATCH]{custom_msg}\n\n"
+                f"Expected one of:\n{_truncate_repr(expected_code)}\n\n"
+                f"Actual:\n{_truncate_repr({'code': actual_code})}\n"
+            )
+            raise AssertionError(error_text)
+    else:
+        expected = {"code": expected_code}
+        assertFailure(result, expected, msg, transform=partial_match(expected))
 
 
 def assertResult(
     result: Union[Any, Exception],
     expected: Any = None,
-    error_code: Optional[int] = None,
+    error_code: Union[int, list[int], None] = None,
     msg: Optional[str] = None,
     ignore_order_in: Optional[list[str]] = None,
     ignore_doc_order: bool = False,
@@ -276,7 +310,9 @@ def assertResult(
     Args:
         result: Result from execute_command
         expected: Expected result documents (for success cases)
-        error_code: Expected error code (for error cases)
+        error_code: Expected error code (for error cases).
+            May be a single int or a list of ints when the server returns
+            different codes depending on topology.
         msg: Custom assertion message (optional)
         ignore_order_in: Field names whose list values should be sorted before
             comparison (for fields like set operation results where element
@@ -288,6 +324,7 @@ def assertResult(
     Usage:
         assertResult(result, expected=[{"_id": 1}])  # Success case
         assertResult(result, error_code=16555)  # Error case
+        assertResult(result, error_code=[20, 251])  # Topology-dependent error
         assertResult(result, expected=[{"r": [3, 1, 2]}], ignore_order_in=["r"])
         assertResult(result, expected={"ok": 1.0}, raw_res=True)  # Raw command result
     """

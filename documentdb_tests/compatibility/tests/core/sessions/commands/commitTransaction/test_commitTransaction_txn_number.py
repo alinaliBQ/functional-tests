@@ -18,7 +18,9 @@ from documentdb_tests.compatibility.tests.core.collections.commands.utils.comman
 from documentdb_tests.framework.assertions import assertFailureCode
 from documentdb_tests.framework.error_codes import (
     ILLEGAL_OPERATION_ERROR,
+    INVALID_OPTIONS_ERROR,
     NO_SUCH_TRANSACTION_ERROR,
+    NOT_A_RETRYABLE_WRITE_COMMAND_ERROR,
     TYPE_MISMATCH_ERROR,
 )
 from documentdb_tests.framework.executor import execute_admin_command
@@ -32,25 +34,25 @@ TXN_NUMBER_INT64_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "txn_number_int64_positive",
         command={"commitTransaction": 1, "txnNumber": Int64(1)},
-        error_code=ILLEGAL_OPERATION_ERROR,
+        error_code=[ILLEGAL_OPERATION_ERROR, NOT_A_RETRYABLE_WRITE_COMMAND_ERROR],
         msg="commitTransaction should accept txnNumber:Int64(1) and fail with IllegalOperation",
     ),
     CommandTestCase(
         "txn_number_int64_zero",
         command={"commitTransaction": 1, "txnNumber": Int64(0)},
-        error_code=ILLEGAL_OPERATION_ERROR,
+        error_code=[ILLEGAL_OPERATION_ERROR, NOT_A_RETRYABLE_WRITE_COMMAND_ERROR],
         msg="commitTransaction should accept txnNumber:Int64(0) and fail with IllegalOperation",
     ),
     CommandTestCase(
         "txn_number_int64_max",
         command={"commitTransaction": 1, "txnNumber": Int64(9_223_372_036_854_775_807)},
-        error_code=ILLEGAL_OPERATION_ERROR,
+        error_code=[ILLEGAL_OPERATION_ERROR, NOT_A_RETRYABLE_WRITE_COMMAND_ERROR],
         msg="commitTransaction should accept txnNumber:Int64 max value",
     ),
     CommandTestCase(
         "txn_number_int64_negative",
         command={"commitTransaction": 1, "txnNumber": Int64(-1)},
-        error_code=ILLEGAL_OPERATION_ERROR,
+        error_code=[ILLEGAL_OPERATION_ERROR, INVALID_OPTIONS_ERROR],
         msg="commitTransaction should reject negative txnNumber with IllegalOperation",
     ),
 ]
