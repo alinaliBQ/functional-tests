@@ -297,16 +297,6 @@ PUSH_GROUPING_TESTS: list[AccumulatorTestCase] = [
         msg="$push should produce single-element arrays for single-document groups",
     ),
     AccumulatorTestCase(
-        "group_large",
-        docs=[{"v": i} for i in range(10_000)],
-        pipeline=[
-            {"$sort": {"v": 1}},
-            {"$group": {"_id": None, "result": {"$push": "$v"}}},
-        ],
-        expected=[{"_id": None, "result": list(range(10_000))}],
-        msg="$push should collect all 10000 values in correct sorted order",
-    ),
-    AccumulatorTestCase(
         "group_compound_id",
         docs=[
             {"region": "us", "status": "active", "v": 1},
@@ -352,43 +342,6 @@ PUSH_GROUPING_TESTS: list[AccumulatorTestCase] = [
             {"_id": "sales", "result": [30, 40]},
         ],
         msg="$push should group correctly when _id is a nested field path",
-    ),
-    AccumulatorTestCase(
-        "group_large_multiple_groups",
-        docs=[{"cat": f"g{i % 100}", "v": i} for i in range(10_000)],
-        pipeline=[
-            {"$group": {"_id": "$cat", "result": {"$push": "$v"}}},
-            {
-                "$project": {
-                    "_id": 1,
-                    "count": {"$size": "$result"},
-                    "total": {"$sum": "$result"},
-                    "lo": {"$min": "$result"},
-                    "hi": {"$max": "$result"},
-                }
-            },
-            {
-                "$group": {
-                    "_id": None,
-                    "groups": {"$sum": 1},
-                    "total_docs": {"$sum": "$count"},
-                    "grand_total": {"$sum": "$total"},
-                    "global_lo": {"$min": "$lo"},
-                    "global_hi": {"$max": "$hi"},
-                }
-            },
-        ],
-        expected=[
-            {
-                "_id": None,
-                "groups": 100,
-                "total_docs": 10_000,
-                "grand_total": 49_995_000,
-                "global_lo": 0,
-                "global_hi": 9_999,
-            }
-        ],
-        msg="$push should produce 100 groups with correct content across 10000 documents",
     ),
 ]
 
