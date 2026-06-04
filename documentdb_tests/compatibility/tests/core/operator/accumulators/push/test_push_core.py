@@ -394,6 +394,15 @@ PUSH_FIELD_PATH_TESTS: list[AccumulatorTestCase] = [
         expected=[{"_id": None, "result": [99]}],
         msg="$push should resolve numeric path component as object key in expression context",
     ),
+    AccumulatorTestCase(
+        "field_array_index_path_on_array",
+        docs=[{"a": [{"b": 1}, {"b": 2}]}],
+        pipeline=[
+            {"$group": {"_id": None, "result": {"$push": "$a.0.b"}}},
+        ],
+        expected=[{"_id": None, "result": [[]]}],
+        msg="$push with numeric path on array field should not index; traversal yields empty array",
+    ),
 ]
 
 # Property [System Variables]: $push accepts system variables as its expression
