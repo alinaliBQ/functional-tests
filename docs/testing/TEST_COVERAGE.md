@@ -365,7 +365,7 @@ For each invalid_type in [string, object, array, ...]:
 - Primary operation on basic input
 - Empty input and non-existent collection both produce correct output without error
 - Works as the sole pipeline stage
-- For `$group`: test compound `_id` (grouping by multiple fields, e.g. `{"_id": {"region": "$region", "status": "$status"}}`), nested field path `_id` (e.g. `"_id": "$user.dept"`), and large-scale multi-group aggregation (e.g. 10,000 documents across 100+ groups) to verify group partitioning at scale beyond single-group `_id: null`
+- For `$group`: test compound `_id` (grouping by multiple fields, e.g. `{"_id": {"region": "$region", "status": "$status"}}`) and nested field path `_id` (e.g. `"_id": "$user.dept"`) beyond single-group `_id: null`
 
 **Parameter Validation**:
 - Test every BSON type against the parameter. Numeric stages (`$limit`, `$skip`, `$sample`) accept int32, int64, whole-number double, whole-number Decimal128. Document stages (`$match`, `$project`, `$group`, `$set`) reject non-documents. String stages (`$count`, `$unwind`) reject non-strings.
@@ -459,9 +459,6 @@ For each invalid_type in [string, object, array, ...]:
   - For order-dependent accumulators, tests asserting a specific result must include a preceding `$sort`. Tests without `$sort` are flaky. (e.g. $first)
   - For order-independent accumulators, the result must be the same regardless of input order. Verify this by running the same input twice with different `$sort` directions and asserting identical results.
   - Sort coverage must include compound sorts with mixed directions (e.g. `{"$sort": {"priority": 1, "status": -1, "timestamp": 1}}`) and sorts on nested field paths (e.g. `{"$sort": {"user.dept": 1}}`).
-
-  **Large-Scale Result Verification**:
-  When testing accumulators at scale (1000+ documents), verify the actual content of the result, not just its count. Prefer building the expected result with a loop (e.g. `expected=[{"_id": None, "result": list(range(10_000))}]`) over using server-side aggregates like `$size` or `$count` in a `$project`. A count-only check can pass even if values are duplicated, dropped, or corrupted. When a full element-by-element expected list is impractical (e.g. multi-group aggregation), use server-side content checks (`$sum`, `$min`, `$max` on the pushed array) as a secondary option.
 
   **Tested in Other Folders** (in scope, but add under a different folder):
   - **Host-stage compatibility** — when adding a new accumulator, add one smoke case for each host stage that supports it (`$group`, `$bucket`, `$bucketAuto`, `$setWindowFields`) under that stage's folder
