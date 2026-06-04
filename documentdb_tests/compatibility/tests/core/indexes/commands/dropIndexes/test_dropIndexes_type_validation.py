@@ -281,6 +281,7 @@ INVALID_WRITE_CONCERN_VALUES: list[IndexTestCase] = [
         write_concern={"w": "invalid"},
         error_code=BAD_VALUE_ERROR,
         msg="Invalid string w value should fail with BadValue",
+        marks=(pytest.mark.standalone,),
     ),
     IndexTestCase(
         "w_negative",

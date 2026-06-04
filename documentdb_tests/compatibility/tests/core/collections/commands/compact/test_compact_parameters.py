@@ -19,6 +19,7 @@ COMPACT_NULL_AND_MISSING_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "dryRun": None},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="null dryRun should be treated as omitted (defaults to false)",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "force_null",
@@ -26,6 +27,7 @@ COMPACT_NULL_AND_MISSING_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "force": None},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="null force should be treated as omitted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "free_space_target_mb_null",
@@ -33,6 +35,7 @@ COMPACT_NULL_AND_MISSING_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "freeSpaceTargetMB": None},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="null freeSpaceTargetMB should be treated as omitted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "comment_null",
@@ -40,6 +43,7 @@ COMPACT_NULL_AND_MISSING_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "comment": None},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="null comment should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "all_null",
@@ -53,6 +57,7 @@ COMPACT_NULL_AND_MISSING_TESTS: list[CommandTestCase] = [
         },
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="All-null optional parameters should be treated as all omitted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "write_concern_null",
@@ -60,6 +65,7 @@ COMPACT_NULL_AND_MISSING_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "writeConcern": None},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="null writeConcern should be treated as omitted",
+        marks=(pytest.mark.standalone,),
     ),
 ]
 
@@ -72,6 +78,7 @@ COMPACT_RESPONSE_FORMAT_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="Should return bytesFreed and ok when dryRun is omitted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "dry_run_false",
@@ -79,6 +86,7 @@ COMPACT_RESPONSE_FORMAT_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "dryRun": False},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="Should return bytesFreed and ok when dryRun is false",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "dry_run_true",
@@ -86,6 +94,7 @@ COMPACT_RESPONSE_FORMAT_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "dryRun": True},
         expected={"estimatedBytesFreed": 0, "ok": 1.0},
         msg="Should return estimatedBytesFreed when dryRun is true",
+        marks=(pytest.mark.standalone,),
     ),
 ]
 
@@ -98,6 +107,7 @@ COMPACT_FORCE_BEHAVIOR_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "force": True},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="force=true should be accepted with same response as omitted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "force_false",
@@ -105,6 +115,7 @@ COMPACT_FORCE_BEHAVIOR_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "force": False},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="force=false should be accepted with same response as omitted",
+        marks=(pytest.mark.standalone,),
     ),
 ]
 
@@ -123,6 +134,7 @@ COMPACT_PARAMETER_INTERACTIONS_TESTS: list[CommandTestCase] = [
         },
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="All params with dryRun=false should succeed with bytesFreed",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "dry_run_true_force_true_threshold",
@@ -135,6 +147,7 @@ COMPACT_PARAMETER_INTERACTIONS_TESTS: list[CommandTestCase] = [
         },
         expected={"estimatedBytesFreed": 0, "ok": 1.0},
         msg="dryRun=true + force=true + freeSpaceTargetMB should succeed together",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "force_and_threshold_without_dry_run",
@@ -146,6 +159,7 @@ COMPACT_PARAMETER_INTERACTIONS_TESTS: list[CommandTestCase] = [
         },
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="force + freeSpaceTargetMB without dryRun should succeed",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "comment_with_other_params",
@@ -159,6 +173,7 @@ COMPACT_PARAMETER_INTERACTIONS_TESTS: list[CommandTestCase] = [
         },
         expected={"estimatedBytesFreed": 0, "ok": 1.0},
         msg="comment should not interact with other parameters",
+        marks=(pytest.mark.standalone,),
     ),
 ]
 

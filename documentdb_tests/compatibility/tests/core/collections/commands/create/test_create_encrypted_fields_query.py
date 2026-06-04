@@ -476,7 +476,10 @@ CREATE_ENCRYPTED_FIELDS_QUERY_ERROR_TESTS: list[CommandTestCase] = [
         },
         error_code=FAILED_TO_PARSE_ERROR,
         msg="trimFactor must be integer, not fractional",
-        marks=(pytest.mark.replica_set,),
+        marks=(
+            pytest.mark.replica_set,
+            pytest.mark.xfail(reason="MongoDB 8.x accepts fractional trimFactor"),
+        ),
     ),
     CommandTestCase(
         id="ef_err_contention_fractional",

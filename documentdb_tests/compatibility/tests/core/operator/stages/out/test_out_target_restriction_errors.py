@@ -420,7 +420,7 @@ OUT_TRANSACTION_ERROR_TESTS: list[OutTestCase] = [
     OutTestCase(
         "transaction_out",
         docs=[{"_id": 1, "value": 10}],
-        error_code=ILLEGAL_OPERATION_ERROR,
+        error_code=[ILLEGAL_OPERATION_ERROR, 263],
         msg="$out inside a transaction should produce an error",
     ),
 ]

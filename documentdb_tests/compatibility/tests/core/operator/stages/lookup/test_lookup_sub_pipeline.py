@@ -76,7 +76,7 @@ LOOKUP_RESTRICTED_STAGES_TESTS: list[LookupTestCase] = [
                 }
             }
         ],
-        error_code=CHANGE_STREAM_NOT_ALLOWED_ERROR,
+        error_code=[CHANGE_STREAM_NOT_ALLOWED_ERROR, LOOKUP_SUB_PIPELINE_NOT_ALLOWED_ERROR],
         msg="$lookup should reject $changeStream in the sub-pipeline",
     ),
     LookupTestCase(

@@ -24,6 +24,7 @@ COMPACT_VALID_NAME_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="Collection name with digits should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "space",
@@ -32,6 +33,7 @@ COMPACT_VALID_NAME_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="Collection name with space should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "tab",
@@ -40,6 +42,7 @@ COMPACT_VALID_NAME_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="Collection name with tab should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "newline",
@@ -48,6 +51,7 @@ COMPACT_VALID_NAME_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="Collection name with newline should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "carriage_return",
@@ -56,6 +60,7 @@ COMPACT_VALID_NAME_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="Collection name with carriage return should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "control_char_u0001",
@@ -64,6 +69,7 @@ COMPACT_VALID_NAME_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="Collection name with control character U+0001 should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "control_char_u001f",
@@ -72,6 +78,7 @@ COMPACT_VALID_NAME_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="Collection name with control character U+001F should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "cjk",
@@ -80,6 +87,7 @@ COMPACT_VALID_NAME_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="Collection name with CJK characters should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "emoji",
@@ -88,6 +96,7 @@ COMPACT_VALID_NAME_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="Collection name with emoji should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "zwj_emoji_sequence",
@@ -98,6 +107,7 @@ COMPACT_VALID_NAME_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="Collection name with ZWJ emoji sequence should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "non_leading_dot",
@@ -106,6 +116,7 @@ COMPACT_VALID_NAME_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="Collection name with non-leading dot should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "dash",
@@ -114,6 +125,7 @@ COMPACT_VALID_NAME_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="Collection name with dash should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "backslash",
@@ -122,6 +134,7 @@ COMPACT_VALID_NAME_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="Collection name with backslash should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "forward_slash",
@@ -130,6 +143,7 @@ COMPACT_VALID_NAME_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="Collection name with forward slash should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "bom",
@@ -138,6 +152,7 @@ COMPACT_VALID_NAME_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="Collection name with BOM U+FEFF should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "zwsp",
@@ -146,6 +161,7 @@ COMPACT_VALID_NAME_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="Collection name with ZWSP U+200B should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "zwj",
@@ -154,6 +170,7 @@ COMPACT_VALID_NAME_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="Collection name with ZWJ U+200D should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "ltr_mark",
@@ -162,6 +179,7 @@ COMPACT_VALID_NAME_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="Collection name with LTR mark U+200E should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "nbsp",
@@ -170,6 +188,7 @@ COMPACT_VALID_NAME_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="Collection name with NBSP U+00A0 should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "en_space",
@@ -178,6 +197,7 @@ COMPACT_VALID_NAME_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="Collection name with en space U+2000 should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "punctuation",
@@ -186,6 +206,7 @@ COMPACT_VALID_NAME_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="Collection name with punctuation should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "precomposed_e_acute",
@@ -194,6 +215,7 @@ COMPACT_VALID_NAME_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="Collection name with precomposed U+00E9 should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "combining_e_acute",
@@ -202,6 +224,7 @@ COMPACT_VALID_NAME_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="Collection name with combining sequence should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "two_byte_utf8",
@@ -210,6 +233,7 @@ COMPACT_VALID_NAME_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="Collection name with 2-byte UTF-8 character should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "three_byte_utf8",
@@ -218,6 +242,7 @@ COMPACT_VALID_NAME_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="Collection name with 3-byte UTF-8 character should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "four_byte_utf8",
@@ -226,6 +251,7 @@ COMPACT_VALID_NAME_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="Collection name with 4-byte UTF-8 character should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "namespace_at_255_byte_limit",
@@ -237,6 +263,7 @@ COMPACT_VALID_NAME_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="Namespace at 255-byte limit should succeed",
+        marks=(pytest.mark.standalone,),
     ),
 ]
 

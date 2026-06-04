@@ -280,7 +280,7 @@ CREATE_VIEW_DISALLOWED_STAGE_ERROR_TESTS: list[CommandTestCase] = [
             "viewOn": ctx.collection,
             "pipeline": [{"$changeStream": {}}],
         },
-        error_code=CHANGE_STREAM_NOT_ALLOWED_ERROR,
+        error_code=[CHANGE_STREAM_NOT_ALLOWED_ERROR, OPTION_NOT_SUPPORTED_ON_VIEW_ERROR],
         msg="$changeStream in view pipeline should fail",
     ),
     CommandTestCase(

@@ -35,6 +35,7 @@ COMPACT_COMMENT_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "comment": "hello"},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="comment=string should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "comment_int32",
@@ -42,6 +43,7 @@ COMPACT_COMMENT_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "comment": 42},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="comment=int32 should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "comment_int64",
@@ -49,6 +51,7 @@ COMPACT_COMMENT_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "comment": Int64(42)},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="comment=Int64 should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "comment_double",
@@ -56,6 +59,7 @@ COMPACT_COMMENT_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "comment": 3.14},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="comment=double should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "comment_decimal128",
@@ -63,6 +67,7 @@ COMPACT_COMMENT_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "comment": Decimal128("99")},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="comment=Decimal128 should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "comment_bool_true",
@@ -70,6 +75,7 @@ COMPACT_COMMENT_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "comment": True},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="comment=True should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "comment_bool_false",
@@ -77,6 +83,7 @@ COMPACT_COMMENT_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "comment": False},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="comment=False should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "comment_array",
@@ -84,6 +91,7 @@ COMPACT_COMMENT_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "comment": [1, 2, 3]},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="comment=array should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "comment_object",
@@ -91,6 +99,7 @@ COMPACT_COMMENT_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "comment": {"key": "value"}},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="comment=object should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "comment_objectid",
@@ -98,6 +107,7 @@ COMPACT_COMMENT_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "comment": ObjectId()},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="comment=ObjectId should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "comment_datetime",
@@ -108,6 +118,7 @@ COMPACT_COMMENT_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         },
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="comment=datetime should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "comment_timestamp",
@@ -115,6 +126,7 @@ COMPACT_COMMENT_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "comment": Timestamp(1, 1)},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="comment=Timestamp should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "comment_binary",
@@ -122,6 +134,7 @@ COMPACT_COMMENT_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "comment": Binary(b"hello")},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="comment=Binary should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "comment_binary_subtype_4",
@@ -132,6 +145,7 @@ COMPACT_COMMENT_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         },
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="comment=Binary subtype 4 (UUID) should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "comment_binary_subtype_128",
@@ -142,6 +156,7 @@ COMPACT_COMMENT_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         },
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="comment=Binary user-defined subtype should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "comment_regex",
@@ -149,6 +164,7 @@ COMPACT_COMMENT_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "comment": Regex(".*")},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="comment=Regex should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "comment_code",
@@ -156,6 +172,7 @@ COMPACT_COMMENT_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "comment": Code("function(){}")},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="comment=Code should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "comment_code_with_scope",
@@ -166,6 +183,7 @@ COMPACT_COMMENT_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         },
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="comment=CodeWithScope should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "comment_minkey",
@@ -173,6 +191,7 @@ COMPACT_COMMENT_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "comment": MinKey()},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="comment=MinKey should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "comment_maxkey",
@@ -180,6 +199,7 @@ COMPACT_COMMENT_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "comment": MaxKey()},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="comment=MaxKey should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "comment_nan",
@@ -187,6 +207,7 @@ COMPACT_COMMENT_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "comment": FLOAT_NAN},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="comment=NaN should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "comment_infinity",
@@ -194,6 +215,7 @@ COMPACT_COMMENT_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "comment": FLOAT_INFINITY},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="comment=Infinity should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "comment_neg_infinity",
@@ -204,6 +226,7 @@ COMPACT_COMMENT_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         },
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="comment=-Infinity should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "comment_neg_zero",
@@ -211,6 +234,7 @@ COMPACT_COMMENT_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "comment": DOUBLE_NEGATIVE_ZERO},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="comment=-0.0 should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "comment_decimal128_nan",
@@ -218,6 +242,7 @@ COMPACT_COMMENT_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "comment": DECIMAL128_NAN},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="comment=Decimal128 NaN should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "comment_decimal128_infinity",
@@ -225,6 +250,7 @@ COMPACT_COMMENT_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "comment": DECIMAL128_INFINITY},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="comment=Decimal128 Infinity should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "comment_decimal128_neg_infinity",
@@ -235,6 +261,7 @@ COMPACT_COMMENT_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         },
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="comment=Decimal128 -Infinity should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "comment_decimal128_neg_zero",
@@ -245,6 +272,7 @@ COMPACT_COMMENT_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         },
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="comment=Decimal128 -0 should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "comment_empty_string",
@@ -252,6 +280,7 @@ COMPACT_COMMENT_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "comment": ""},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="comment=empty string should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "comment_empty_array",
@@ -259,6 +288,7 @@ COMPACT_COMMENT_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "comment": []},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="comment=empty array should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "comment_empty_object",
@@ -266,6 +296,7 @@ COMPACT_COMMENT_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "comment": {}},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="comment=empty object should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "comment_large_string",
@@ -273,6 +304,7 @@ COMPACT_COMMENT_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "comment": "x" * 10_000},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="comment=large string should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "comment_large_array",
@@ -280,6 +312,7 @@ COMPACT_COMMENT_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "comment": list(range(10_000))},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="comment=10K-element array should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "comment_deeply_nested_object",
@@ -290,6 +323,7 @@ COMPACT_COMMENT_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         },
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="comment=deeply nested object should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "comment_nested_array",
@@ -300,6 +334,7 @@ COMPACT_COMMENT_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         },
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="comment=nested array should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "comment_mixed_type_array",
@@ -310,6 +345,7 @@ COMPACT_COMMENT_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         },
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="comment=mixed-type array should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "comment_null_byte_string",
@@ -317,6 +353,7 @@ COMPACT_COMMENT_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "comment": "a\x00b"},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="comment=string with null byte should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "comment_emoji_string",
@@ -324,6 +361,7 @@ COMPACT_COMMENT_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "comment": "\U0001f600"},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="comment=emoji string should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "comment_dollar_prefix",
@@ -331,6 +369,7 @@ COMPACT_COMMENT_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "comment": "$test"},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="comment=$ prefix string should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
 ]
 

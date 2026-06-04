@@ -50,6 +50,7 @@ COMPACT_MAXTIMEMS_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "maxTimeMS": 0},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="maxTimeMS=0 as int32 should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "maxtimems_int64_zero",
@@ -57,6 +58,7 @@ COMPACT_MAXTIMEMS_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "maxTimeMS": INT64_ZERO},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="maxTimeMS=0 as Int64 should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "maxtimems_double_zero",
@@ -64,6 +66,7 @@ COMPACT_MAXTIMEMS_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "maxTimeMS": DOUBLE_ZERO},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="maxTimeMS=0 as double should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "maxtimems_double_negative_zero",
@@ -71,6 +74,7 @@ COMPACT_MAXTIMEMS_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "maxTimeMS": DOUBLE_NEGATIVE_ZERO},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="maxTimeMS=-0.0 should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "maxtimems_decimal128_zero",
@@ -78,6 +82,7 @@ COMPACT_MAXTIMEMS_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "maxTimeMS": DECIMAL128_ZERO},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="maxTimeMS=0 as Decimal128 should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "maxtimems_int32_max",
@@ -85,6 +90,7 @@ COMPACT_MAXTIMEMS_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "maxTimeMS": INT32_MAX},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="maxTimeMS at int32 max as int32 should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "maxtimems_int64_int32_max",
@@ -92,6 +98,7 @@ COMPACT_MAXTIMEMS_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "maxTimeMS": Int64(INT32_MAX)},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="maxTimeMS at int32 max as Int64 should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "maxtimems_double_int32_max",
@@ -99,6 +106,7 @@ COMPACT_MAXTIMEMS_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "maxTimeMS": float(INT32_MAX)},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="maxTimeMS at int32 max as double should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "maxtimems_decimal128_int32_max",
@@ -109,6 +117,7 @@ COMPACT_MAXTIMEMS_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         },
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="maxTimeMS at int32 max as Decimal128 should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "maxtimems_decimal128_negative_zero",
@@ -119,6 +128,7 @@ COMPACT_MAXTIMEMS_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         },
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="maxTimeMS=Decimal128(-0) should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
 ]
 
@@ -132,6 +142,7 @@ COMPACT_MAXTIMEMS_VALIDATION_ERROR_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "maxTimeMS": INT32_OVERFLOW},
         error_code=BAD_VALUE_ERROR,
         msg="maxTimeMS just above int32 max should be rejected as out of range",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "maxtimems_int64_max",
@@ -139,6 +150,7 @@ COMPACT_MAXTIMEMS_VALIDATION_ERROR_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "maxTimeMS": INT64_MAX},
         error_code=BAD_VALUE_ERROR,
         msg="maxTimeMS at Int64 MAX should be rejected as out of range",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "maxtimems_int64_min",
@@ -146,6 +158,7 @@ COMPACT_MAXTIMEMS_VALIDATION_ERROR_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "maxTimeMS": INT64_MIN},
         error_code=BAD_VALUE_ERROR,
         msg="maxTimeMS at Int64 MIN should be rejected as out of range",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "maxtimems_negative_one",
@@ -153,6 +166,7 @@ COMPACT_MAXTIMEMS_VALIDATION_ERROR_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "maxTimeMS": -1},
         error_code=BAD_VALUE_ERROR,
         msg="maxTimeMS=-1 as int32 should be rejected",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "maxtimems_int64_negative_one",
@@ -160,6 +174,7 @@ COMPACT_MAXTIMEMS_VALIDATION_ERROR_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "maxTimeMS": Int64(-1)},
         error_code=BAD_VALUE_ERROR,
         msg="maxTimeMS=-1 as Int64 should be rejected",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "maxtimems_double_negative_one",
@@ -167,6 +182,7 @@ COMPACT_MAXTIMEMS_VALIDATION_ERROR_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "maxTimeMS": -1.0},
         error_code=BAD_VALUE_ERROR,
         msg="maxTimeMS=-1.0 as double should be rejected",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "maxtimems_decimal128_above_range",
@@ -177,6 +193,7 @@ COMPACT_MAXTIMEMS_VALIDATION_ERROR_TESTS: list[CommandTestCase] = [
         },
         error_code=BAD_VALUE_ERROR,
         msg="maxTimeMS Decimal128 just above int32 max should be rejected",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "maxtimems_decimal128_negative",
@@ -187,6 +204,7 @@ COMPACT_MAXTIMEMS_VALIDATION_ERROR_TESTS: list[CommandTestCase] = [
         },
         error_code=BAD_VALUE_ERROR,
         msg="maxTimeMS Decimal128 negative should be rejected as out of range",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "maxtimems_fractional_double",
@@ -194,6 +212,7 @@ COMPACT_MAXTIMEMS_VALIDATION_ERROR_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "maxTimeMS": DOUBLE_HALF},
         error_code=FAILED_TO_PARSE_ERROR,
         msg="maxTimeMS fractional double should be rejected as non-integral",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "maxtimems_double_nan",
@@ -201,6 +220,7 @@ COMPACT_MAXTIMEMS_VALIDATION_ERROR_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "maxTimeMS": FLOAT_NAN},
         error_code=FAILED_TO_PARSE_ERROR,
         msg="maxTimeMS double NaN should be rejected as non-integral",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "maxtimems_double_subnormal",
@@ -208,6 +228,7 @@ COMPACT_MAXTIMEMS_VALIDATION_ERROR_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "maxTimeMS": DOUBLE_MIN_SUBNORMAL},
         error_code=FAILED_TO_PARSE_ERROR,
         msg="maxTimeMS subnormal double should be rejected as non-integral",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "maxtimems_double_infinity",
@@ -215,6 +236,7 @@ COMPACT_MAXTIMEMS_VALIDATION_ERROR_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "maxTimeMS": FLOAT_INFINITY},
         error_code=FAILED_TO_PARSE_ERROR,
         msg="maxTimeMS double Infinity should be rejected as non-representable",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "maxtimems_double_negative_infinity",
@@ -225,6 +247,7 @@ COMPACT_MAXTIMEMS_VALIDATION_ERROR_TESTS: list[CommandTestCase] = [
         },
         error_code=FAILED_TO_PARSE_ERROR,
         msg="maxTimeMS double -Infinity should be rejected as non-representable",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "maxtimems_double_max",
@@ -232,6 +255,7 @@ COMPACT_MAXTIMEMS_VALIDATION_ERROR_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "maxTimeMS": DOUBLE_MAX},
         error_code=FAILED_TO_PARSE_ERROR,
         msg="maxTimeMS DBL_MAX should be rejected as non-representable",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "maxtimems_decimal128_fractional_half",
@@ -239,6 +263,7 @@ COMPACT_MAXTIMEMS_VALIDATION_ERROR_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "maxTimeMS": DECIMAL128_HALF},
         error_code=FAILED_TO_PARSE_ERROR,
         msg="maxTimeMS Decimal128 fractional should be rejected as non-representable",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "maxtimems_decimal128_nan",
@@ -246,6 +271,7 @@ COMPACT_MAXTIMEMS_VALIDATION_ERROR_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "maxTimeMS": DECIMAL128_NAN},
         error_code=FAILED_TO_PARSE_ERROR,
         msg="maxTimeMS Decimal128 NaN should be rejected as non-representable",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "maxtimems_decimal128_infinity",
@@ -253,6 +279,7 @@ COMPACT_MAXTIMEMS_VALIDATION_ERROR_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "maxTimeMS": DECIMAL128_INFINITY},
         error_code=FAILED_TO_PARSE_ERROR,
         msg="maxTimeMS Decimal128 Infinity should be rejected as non-representable",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "maxtimems_decimal128_large_exponent",
@@ -263,6 +290,7 @@ COMPACT_MAXTIMEMS_VALIDATION_ERROR_TESTS: list[CommandTestCase] = [
         },
         error_code=FAILED_TO_PARSE_ERROR,
         msg="maxTimeMS Decimal128 large exponent should be rejected as non-representable",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "maxtimems_decimal128_negative_infinity",
@@ -273,6 +301,7 @@ COMPACT_MAXTIMEMS_VALIDATION_ERROR_TESTS: list[CommandTestCase] = [
         },
         error_code=FAILED_TO_PARSE_ERROR,
         msg="maxTimeMS Decimal128 -Infinity should be rejected as non-representable",
+        marks=(pytest.mark.standalone,),
     ),
 ]
 
@@ -285,6 +314,7 @@ COMPACT_MAXTIMEMS_TYPE_STRICTNESS_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "maxTimeMS": True},
         error_code=TYPE_MISMATCH_ERROR,
         msg="maxTimeMS=bool should produce TYPE_MISMATCH_ERROR",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "maxtimems_type_string",
@@ -292,6 +322,7 @@ COMPACT_MAXTIMEMS_TYPE_STRICTNESS_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "maxTimeMS": "hello"},
         error_code=TYPE_MISMATCH_ERROR,
         msg="maxTimeMS=string should produce TYPE_MISMATCH_ERROR",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "maxtimems_type_array",
@@ -299,6 +330,7 @@ COMPACT_MAXTIMEMS_TYPE_STRICTNESS_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "maxTimeMS": [1]},
         error_code=TYPE_MISMATCH_ERROR,
         msg="maxTimeMS=array should produce TYPE_MISMATCH_ERROR",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "maxtimems_type_object",
@@ -306,6 +338,7 @@ COMPACT_MAXTIMEMS_TYPE_STRICTNESS_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "maxTimeMS": {"a": 1}},
         error_code=TYPE_MISMATCH_ERROR,
         msg="maxTimeMS=object should produce TYPE_MISMATCH_ERROR",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "maxtimems_type_objectid",
@@ -313,6 +346,7 @@ COMPACT_MAXTIMEMS_TYPE_STRICTNESS_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "maxTimeMS": ObjectId()},
         error_code=TYPE_MISMATCH_ERROR,
         msg="maxTimeMS=ObjectId should produce TYPE_MISMATCH_ERROR",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "maxtimems_type_datetime",
@@ -323,6 +357,7 @@ COMPACT_MAXTIMEMS_TYPE_STRICTNESS_TESTS: list[CommandTestCase] = [
         },
         error_code=TYPE_MISMATCH_ERROR,
         msg="maxTimeMS=datetime should produce TYPE_MISMATCH_ERROR",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "maxtimems_type_timestamp",
@@ -330,6 +365,7 @@ COMPACT_MAXTIMEMS_TYPE_STRICTNESS_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "maxTimeMS": Timestamp(1, 1)},
         error_code=TYPE_MISMATCH_ERROR,
         msg="maxTimeMS=Timestamp should produce TYPE_MISMATCH_ERROR",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "maxtimems_type_binary",
@@ -337,6 +373,7 @@ COMPACT_MAXTIMEMS_TYPE_STRICTNESS_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "maxTimeMS": Binary(b"\x01")},
         error_code=TYPE_MISMATCH_ERROR,
         msg="maxTimeMS=Binary should produce TYPE_MISMATCH_ERROR",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "maxtimems_type_binary_uuid",
@@ -347,6 +384,7 @@ COMPACT_MAXTIMEMS_TYPE_STRICTNESS_TESTS: list[CommandTestCase] = [
         },
         error_code=TYPE_MISMATCH_ERROR,
         msg="maxTimeMS=Binary subtype 4 (UUID) should produce TYPE_MISMATCH_ERROR",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "maxtimems_type_regex",
@@ -354,6 +392,7 @@ COMPACT_MAXTIMEMS_TYPE_STRICTNESS_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "maxTimeMS": Regex(".*")},
         error_code=TYPE_MISMATCH_ERROR,
         msg="maxTimeMS=Regex should produce TYPE_MISMATCH_ERROR",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "maxtimems_type_code",
@@ -361,6 +400,7 @@ COMPACT_MAXTIMEMS_TYPE_STRICTNESS_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "maxTimeMS": Code("function(){}")},
         error_code=TYPE_MISMATCH_ERROR,
         msg="maxTimeMS=Code should produce TYPE_MISMATCH_ERROR",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "maxtimems_type_code_with_scope",
@@ -371,6 +411,7 @@ COMPACT_MAXTIMEMS_TYPE_STRICTNESS_TESTS: list[CommandTestCase] = [
         },
         error_code=TYPE_MISMATCH_ERROR,
         msg="maxTimeMS=CodeWithScope should produce TYPE_MISMATCH_ERROR",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "maxtimems_type_minkey",
@@ -378,6 +419,7 @@ COMPACT_MAXTIMEMS_TYPE_STRICTNESS_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "maxTimeMS": MinKey()},
         error_code=TYPE_MISMATCH_ERROR,
         msg="maxTimeMS=MinKey should produce TYPE_MISMATCH_ERROR",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "maxtimems_type_maxkey",
@@ -385,6 +427,7 @@ COMPACT_MAXTIMEMS_TYPE_STRICTNESS_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "maxTimeMS": MaxKey()},
         error_code=TYPE_MISMATCH_ERROR,
         msg="maxTimeMS=MaxKey should produce TYPE_MISMATCH_ERROR",
+        marks=(pytest.mark.standalone,),
     ),
 ]
 

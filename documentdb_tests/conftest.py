@@ -226,6 +226,12 @@ def pytest_collection_modifyitems(session, config, items):
                         reason="requires replica set " "(server is not a replica set member)"
                     )
                 )
+    else:
+        for item in items:
+            if item.get_closest_marker("standalone"):
+                item.add_marker(
+                    pytest.mark.skip(reason="requires standalone (server is a replica set member)")
+                )
 
     # Deselect no_parallel tests when running under xdist
     is_xdist = bool(getattr(config.option, "numprocesses", None)) or hasattr(config, "workerinput")

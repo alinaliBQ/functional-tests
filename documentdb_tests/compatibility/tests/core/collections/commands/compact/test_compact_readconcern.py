@@ -30,6 +30,7 @@ COMPACT_READCONCERN_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         },
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="readConcern level 'local' should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "readconcern_empty_object",
@@ -40,6 +41,7 @@ COMPACT_READCONCERN_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         },
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="readConcern as empty object should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
 ]
 
@@ -55,6 +57,7 @@ COMPACT_READCONCERN_UNSUPPORTED_LEVEL_TESTS: list[CommandTestCase] = [
         },
         error_code=INVALID_OPTIONS_ERROR,
         msg="readConcern level 'available' should be rejected",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "readconcern_majority",
@@ -65,6 +68,7 @@ COMPACT_READCONCERN_UNSUPPORTED_LEVEL_TESTS: list[CommandTestCase] = [
         },
         error_code=INVALID_OPTIONS_ERROR,
         msg="readConcern level 'majority' should be rejected",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "readconcern_linearizable",
@@ -75,6 +79,7 @@ COMPACT_READCONCERN_UNSUPPORTED_LEVEL_TESTS: list[CommandTestCase] = [
         },
         error_code=INVALID_OPTIONS_ERROR,
         msg="readConcern level 'linearizable' should be rejected",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "readconcern_snapshot",
@@ -85,6 +90,7 @@ COMPACT_READCONCERN_UNSUPPORTED_LEVEL_TESTS: list[CommandTestCase] = [
         },
         error_code=INVALID_OPTIONS_ERROR,
         msg="readConcern level 'snapshot' should be rejected",
+        marks=(pytest.mark.standalone,),
     ),
 ]
 
@@ -100,6 +106,7 @@ COMPACT_READCONCERN_INVALID_LEVEL_TESTS: list[CommandTestCase] = [
         },
         error_code=BAD_VALUE_ERROR,
         msg="readConcern with unrecognized level string should be rejected",
+        marks=(pytest.mark.standalone,),
     ),
 ]
 
@@ -112,6 +119,7 @@ COMPACT_READCONCERN_TYPE_STRICTNESS_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "readConcern": "local"},
         error_code=TYPE_MISMATCH_ERROR,
         msg="readConcern as string should be rejected as wrong type",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "readconcern_type_int32",
@@ -119,6 +127,7 @@ COMPACT_READCONCERN_TYPE_STRICTNESS_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "readConcern": 1},
         error_code=TYPE_MISMATCH_ERROR,
         msg="readConcern as int32 should be rejected as wrong type",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "readconcern_type_int64",
@@ -126,6 +135,7 @@ COMPACT_READCONCERN_TYPE_STRICTNESS_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "readConcern": Int64(1)},
         error_code=TYPE_MISMATCH_ERROR,
         msg="readConcern as Int64 should be rejected as wrong type",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "readconcern_type_double",
@@ -133,6 +143,7 @@ COMPACT_READCONCERN_TYPE_STRICTNESS_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "readConcern": 1.0},
         error_code=TYPE_MISMATCH_ERROR,
         msg="readConcern as double should be rejected as wrong type",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "readconcern_type_decimal128",
@@ -140,6 +151,7 @@ COMPACT_READCONCERN_TYPE_STRICTNESS_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "readConcern": Decimal128("1")},
         error_code=TYPE_MISMATCH_ERROR,
         msg="readConcern as Decimal128 should be rejected as wrong type",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "readconcern_type_bool",
@@ -147,6 +159,7 @@ COMPACT_READCONCERN_TYPE_STRICTNESS_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "readConcern": True},
         error_code=TYPE_MISMATCH_ERROR,
         msg="readConcern as bool should be rejected as wrong type",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "readconcern_type_array",
@@ -157,6 +170,7 @@ COMPACT_READCONCERN_TYPE_STRICTNESS_TESTS: list[CommandTestCase] = [
         },
         error_code=TYPE_MISMATCH_ERROR,
         msg="readConcern as array should be rejected as wrong type",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "readconcern_type_objectid",
@@ -164,6 +178,7 @@ COMPACT_READCONCERN_TYPE_STRICTNESS_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "readConcern": ObjectId()},
         error_code=TYPE_MISMATCH_ERROR,
         msg="readConcern as ObjectId should be rejected as wrong type",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "readconcern_type_datetime",
@@ -174,6 +189,7 @@ COMPACT_READCONCERN_TYPE_STRICTNESS_TESTS: list[CommandTestCase] = [
         },
         error_code=TYPE_MISMATCH_ERROR,
         msg="readConcern as datetime should be rejected as wrong type",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "readconcern_type_timestamp",
@@ -181,6 +197,7 @@ COMPACT_READCONCERN_TYPE_STRICTNESS_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "readConcern": Timestamp(1, 1)},
         error_code=TYPE_MISMATCH_ERROR,
         msg="readConcern as Timestamp should be rejected as wrong type",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "readconcern_type_binary",
@@ -188,6 +205,7 @@ COMPACT_READCONCERN_TYPE_STRICTNESS_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "readConcern": Binary(b"\x01")},
         error_code=TYPE_MISMATCH_ERROR,
         msg="readConcern as Binary should be rejected as wrong type",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "readconcern_type_regex",
@@ -195,6 +213,7 @@ COMPACT_READCONCERN_TYPE_STRICTNESS_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "readConcern": Regex(".*")},
         error_code=TYPE_MISMATCH_ERROR,
         msg="readConcern as Regex should be rejected as wrong type",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "readconcern_type_code",
@@ -202,6 +221,7 @@ COMPACT_READCONCERN_TYPE_STRICTNESS_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "readConcern": Code("x")},
         error_code=TYPE_MISMATCH_ERROR,
         msg="readConcern as Code should be rejected as wrong type",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "readconcern_type_code_with_scope",
@@ -212,6 +232,7 @@ COMPACT_READCONCERN_TYPE_STRICTNESS_TESTS: list[CommandTestCase] = [
         },
         error_code=TYPE_MISMATCH_ERROR,
         msg="readConcern as Code with scope should be rejected as wrong type",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "readconcern_type_minkey",
@@ -219,6 +240,7 @@ COMPACT_READCONCERN_TYPE_STRICTNESS_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "readConcern": MinKey()},
         error_code=TYPE_MISMATCH_ERROR,
         msg="readConcern as MinKey should be rejected as wrong type",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "readconcern_type_maxkey",
@@ -226,6 +248,7 @@ COMPACT_READCONCERN_TYPE_STRICTNESS_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "readConcern": MaxKey()},
         error_code=TYPE_MISMATCH_ERROR,
         msg="readConcern as MaxKey should be rejected as wrong type",
+        marks=(pytest.mark.standalone,),
     ),
 ]
 

@@ -105,7 +105,6 @@ WRITECONCERN_WTIMEOUT_ACCEPTANCE_TESTS: list[CommandTestCase] = [
     for id, val in [
         ("zero", 0),
         ("positive", 1000),
-        ("negative", -1),
         ("string", "hello"),
         ("bool", True),
         ("null", None),
@@ -124,6 +123,19 @@ WRITECONCERN_WTIMEOUT_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         ("minkey", MinKey()),
         ("maxkey", MaxKey()),
     ]
+] + [
+    CommandTestCase(
+        "wtimeout_negative",
+        docs=[{"_id": 1}],
+        command=lambda ctx: {
+            "convertToCapped": ctx.collection,
+            "size": 100_000,
+            "writeConcern": {"wtimeout": -1},
+        },
+        expected={"ok": 1.0},
+        msg="wtimeout=negative should succeed",
+        marks=(pytest.mark.standalone,),
+    ),
 ]
 
 # Property [WriteConcern wtimeout Overflow]: wtimeout values exceeding

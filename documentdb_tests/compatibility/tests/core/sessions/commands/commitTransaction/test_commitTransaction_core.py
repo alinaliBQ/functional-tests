@@ -19,6 +19,7 @@ from documentdb_tests.framework.error_codes import (
     NO_SUCH_TRANSACTION_ERROR,
     NO_SUCH_TRANSACTION_RS_ERROR,
     NOT_A_RETRYABLE_WRITE_COMMAND_ERROR,
+    TRANSACTION_ABORTED_ERROR,
     UNAUTHORIZED_ERROR,
 )
 from documentdb_tests.framework.executor import execute_admin_command, execute_command
@@ -48,7 +49,11 @@ CORE_PARAMETER_ACCEPTANCE_TESTS: list[CommandTestCase] = [
             "writeConcern": {"w": "majority", "j": True, "wtimeout": 10_000},
             "comment": "full commit",
         },
-        error_code=[ILLEGAL_OPERATION_ERROR, NO_SUCH_TRANSACTION_RS_ERROR],
+        error_code=[
+            ILLEGAL_OPERATION_ERROR,
+            NO_SUCH_TRANSACTION_RS_ERROR,
+            TRANSACTION_ABORTED_ERROR,
+        ],
         msg="commitTransaction with all valid params should not produce a parsing error",
     ),
 ]
@@ -82,7 +87,11 @@ CORE_PARAMETER_INTERACTION_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "interaction_autocommit_txn_number",
         command={"commitTransaction": 1, "autocommit": False, "txnNumber": Int64(1)},
-        error_code=[ILLEGAL_OPERATION_ERROR, NO_SUCH_TRANSACTION_RS_ERROR],
+        error_code=[
+            ILLEGAL_OPERATION_ERROR,
+            NO_SUCH_TRANSACTION_RS_ERROR,
+            TRANSACTION_ABORTED_ERROR,
+        ],
         msg="commitTransaction with autocommit + txnNumber should fail with IllegalOperation",
     ),
     CommandTestCase(

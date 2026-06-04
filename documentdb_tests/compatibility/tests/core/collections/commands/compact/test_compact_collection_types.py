@@ -32,6 +32,7 @@ COMPACT_COLLECTION_TYPE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="Empty collection should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "capped",
@@ -40,6 +41,7 @@ COMPACT_COLLECTION_TYPE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="Capped collection should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "timeseries",
@@ -48,6 +50,7 @@ COMPACT_COLLECTION_TYPE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="Timeseries collection should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "validated",
@@ -56,6 +59,7 @@ COMPACT_COLLECTION_TYPE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="Collection with validator should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "collated",
@@ -64,6 +68,7 @@ COMPACT_COLLECTION_TYPE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="Collection with collation should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "change_stream_pre_and_post_images",
@@ -72,6 +77,7 @@ COMPACT_COLLECTION_TYPE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="Collection with changeStreamPreAndPostImages should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "clustered",
@@ -80,6 +86,7 @@ COMPACT_COLLECTION_TYPE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="Clustered collection should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "ttl_index",
@@ -88,6 +95,7 @@ COMPACT_COLLECTION_TYPE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="Collection with TTL index should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "text_index",
@@ -96,6 +104,7 @@ COMPACT_COLLECTION_TYPE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="Collection with text index should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "hashed_index",
@@ -104,6 +113,7 @@ COMPACT_COLLECTION_TYPE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="Collection with hashed index should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "compound_index",
@@ -112,6 +122,7 @@ COMPACT_COLLECTION_TYPE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="Collection with compound index should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "2dsphere_index",
@@ -120,6 +131,7 @@ COMPACT_COLLECTION_TYPE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="Collection with 2dsphere index should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "wildcard_index",
@@ -128,6 +140,7 @@ COMPACT_COLLECTION_TYPE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="Collection with wildcard index should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "unique_index",
@@ -136,6 +149,7 @@ COMPACT_COLLECTION_TYPE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="Collection with unique index should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "timeseries_buckets",
@@ -143,6 +157,7 @@ COMPACT_COLLECTION_TYPE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="Timeseries system.buckets collection should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "system_views",
@@ -150,6 +165,7 @@ COMPACT_COLLECTION_TYPE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="system.views collection should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
 ]
 
@@ -162,6 +178,7 @@ COMPACT_VIEW_REJECTION_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection},
         error_code=COMMAND_NOT_SUPPORTED_ON_VIEW_ERROR,
         msg="Compacting a view should be rejected",
+        marks=(pytest.mark.standalone,),
     ),
 ]
 

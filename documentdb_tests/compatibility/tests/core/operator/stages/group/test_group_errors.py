@@ -289,6 +289,7 @@ GROUP_STRING_ID_REFERENCE_ERROR_TESTS: list[StageTestCase] = [
         pipeline=[{"$group": {"_id": "$$CLUSTER_TIME"}}],
         error_code=CLUSTER_TIME_NOT_AVAILABLE_ERROR,
         msg="$$CLUSTER_TIME in _id should produce an error in standalone mode",
+        marks=(pytest.mark.standalone,),
     ),
 ]
 

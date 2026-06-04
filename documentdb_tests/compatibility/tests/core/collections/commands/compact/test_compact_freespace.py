@@ -36,6 +36,7 @@ COMPACT_FREESPACE_TARGET_MB_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "freeSpaceTargetMB": 1},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="freeSpaceTargetMB=1 as int32 should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "freespace_accept_int64_one",
@@ -43,6 +44,7 @@ COMPACT_FREESPACE_TARGET_MB_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "freeSpaceTargetMB": Int64(1)},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="freeSpaceTargetMB=1 as Int64 should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "freespace_accept_double_one",
@@ -50,6 +52,7 @@ COMPACT_FREESPACE_TARGET_MB_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "freeSpaceTargetMB": 1.0},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="freeSpaceTargetMB=1.0 as double should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "freespace_accept_decimal128_one",
@@ -57,6 +60,7 @@ COMPACT_FREESPACE_TARGET_MB_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "freeSpaceTargetMB": Decimal128("1")},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="freeSpaceTargetMB=1 as Decimal128 should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "freespace_accept_int32_max",
@@ -64,6 +68,7 @@ COMPACT_FREESPACE_TARGET_MB_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "freeSpaceTargetMB": INT32_MAX},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="freeSpaceTargetMB=INT32_MAX should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "freespace_accept_double_fractional",
@@ -71,6 +76,7 @@ COMPACT_FREESPACE_TARGET_MB_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "freeSpaceTargetMB": 1.5},
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="freeSpaceTargetMB=1.5 as double should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "freespace_accept_decimal128_fractional",
@@ -81,6 +87,7 @@ COMPACT_FREESPACE_TARGET_MB_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         },
         expected={"bytesFreed": 0, "ok": 1.0},
         msg="freeSpaceTargetMB=Decimal128(1.5) should be accepted",
+        marks=(pytest.mark.standalone,),
     ),
 ]
 
@@ -94,6 +101,7 @@ COMPACT_FREESPACE_TARGET_MB_TYPE_STRICTNESS_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "freeSpaceTargetMB": "20"},
         error_code=TYPE_MISMATCH_ERROR,
         msg="string freeSpaceTargetMB should be rejected as wrong type",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "freespace_type_bool",
@@ -101,6 +109,7 @@ COMPACT_FREESPACE_TARGET_MB_TYPE_STRICTNESS_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "freeSpaceTargetMB": True},
         error_code=TYPE_MISMATCH_ERROR,
         msg="bool freeSpaceTargetMB should be rejected as wrong type",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "freespace_type_array",
@@ -108,6 +117,7 @@ COMPACT_FREESPACE_TARGET_MB_TYPE_STRICTNESS_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "freeSpaceTargetMB": [20]},
         error_code=TYPE_MISMATCH_ERROR,
         msg="array freeSpaceTargetMB should be rejected as wrong type",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "freespace_type_object",
@@ -115,6 +125,7 @@ COMPACT_FREESPACE_TARGET_MB_TYPE_STRICTNESS_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "freeSpaceTargetMB": {"x": 1}},
         error_code=TYPE_MISMATCH_ERROR,
         msg="object freeSpaceTargetMB should be rejected as wrong type",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "freespace_type_objectid",
@@ -122,6 +133,7 @@ COMPACT_FREESPACE_TARGET_MB_TYPE_STRICTNESS_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "freeSpaceTargetMB": ObjectId()},
         error_code=TYPE_MISMATCH_ERROR,
         msg="ObjectId freeSpaceTargetMB should be rejected as wrong type",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "freespace_type_datetime",
@@ -132,6 +144,7 @@ COMPACT_FREESPACE_TARGET_MB_TYPE_STRICTNESS_TESTS: list[CommandTestCase] = [
         },
         error_code=TYPE_MISMATCH_ERROR,
         msg="datetime freeSpaceTargetMB should be rejected as wrong type",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "freespace_type_timestamp",
@@ -142,6 +155,7 @@ COMPACT_FREESPACE_TARGET_MB_TYPE_STRICTNESS_TESTS: list[CommandTestCase] = [
         },
         error_code=TYPE_MISMATCH_ERROR,
         msg="Timestamp freeSpaceTargetMB should be rejected as wrong type",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "freespace_type_binary",
@@ -152,6 +166,7 @@ COMPACT_FREESPACE_TARGET_MB_TYPE_STRICTNESS_TESTS: list[CommandTestCase] = [
         },
         error_code=TYPE_MISMATCH_ERROR,
         msg="Binary subtype 0 freeSpaceTargetMB should be rejected as wrong type",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "freespace_type_binary_uuid",
@@ -162,6 +177,7 @@ COMPACT_FREESPACE_TARGET_MB_TYPE_STRICTNESS_TESTS: list[CommandTestCase] = [
         },
         error_code=TYPE_MISMATCH_ERROR,
         msg="Binary subtype 4 (UUID) freeSpaceTargetMB should be rejected as binData",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "freespace_type_binary_user_defined",
@@ -172,6 +188,7 @@ COMPACT_FREESPACE_TARGET_MB_TYPE_STRICTNESS_TESTS: list[CommandTestCase] = [
         },
         error_code=TYPE_MISMATCH_ERROR,
         msg="Binary subtype 128 freeSpaceTargetMB should be rejected as binData",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "freespace_type_regex",
@@ -179,6 +196,7 @@ COMPACT_FREESPACE_TARGET_MB_TYPE_STRICTNESS_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "freeSpaceTargetMB": Regex(".*")},
         error_code=TYPE_MISMATCH_ERROR,
         msg="Regex freeSpaceTargetMB should be rejected as wrong type",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "freespace_type_code",
@@ -186,6 +204,7 @@ COMPACT_FREESPACE_TARGET_MB_TYPE_STRICTNESS_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "freeSpaceTargetMB": Code("x")},
         error_code=TYPE_MISMATCH_ERROR,
         msg="Code freeSpaceTargetMB should be rejected as wrong type",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "freespace_type_code_with_scope",
@@ -196,6 +215,7 @@ COMPACT_FREESPACE_TARGET_MB_TYPE_STRICTNESS_TESTS: list[CommandTestCase] = [
         },
         error_code=TYPE_MISMATCH_ERROR,
         msg="Code with scope freeSpaceTargetMB should be rejected as wrong type",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "freespace_type_minkey",
@@ -203,6 +223,7 @@ COMPACT_FREESPACE_TARGET_MB_TYPE_STRICTNESS_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "freeSpaceTargetMB": MinKey()},
         error_code=TYPE_MISMATCH_ERROR,
         msg="MinKey freeSpaceTargetMB should be rejected as wrong type",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "freespace_type_maxkey",
@@ -210,6 +231,7 @@ COMPACT_FREESPACE_TARGET_MB_TYPE_STRICTNESS_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "freeSpaceTargetMB": MaxKey()},
         error_code=TYPE_MISMATCH_ERROR,
         msg="MaxKey freeSpaceTargetMB should be rejected as wrong type",
+        marks=(pytest.mark.standalone,),
     ),
 ]
 
@@ -222,6 +244,7 @@ COMPACT_FREESPACE_TARGET_MB_VALUE_VALIDATION_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "freeSpaceTargetMB": 0},
         error_code=BAD_VALUE_ERROR,
         msg="freeSpaceTargetMB=0 as int32 should be rejected",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "freespace_value_int64_zero",
@@ -229,6 +252,7 @@ COMPACT_FREESPACE_TARGET_MB_VALUE_VALIDATION_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "freeSpaceTargetMB": INT64_ZERO},
         error_code=BAD_VALUE_ERROR,
         msg="freeSpaceTargetMB=0 as Int64 should be rejected",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "freespace_value_double_zero",
@@ -236,6 +260,7 @@ COMPACT_FREESPACE_TARGET_MB_VALUE_VALIDATION_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "freeSpaceTargetMB": DOUBLE_ZERO},
         error_code=BAD_VALUE_ERROR,
         msg="freeSpaceTargetMB=0.0 should be rejected",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "freespace_value_double_negative_zero",
@@ -246,6 +271,7 @@ COMPACT_FREESPACE_TARGET_MB_VALUE_VALIDATION_TESTS: list[CommandTestCase] = [
         },
         error_code=BAD_VALUE_ERROR,
         msg="freeSpaceTargetMB=-0.0 should be rejected",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "freespace_value_decimal128_zero",
@@ -256,6 +282,7 @@ COMPACT_FREESPACE_TARGET_MB_VALUE_VALIDATION_TESTS: list[CommandTestCase] = [
         },
         error_code=BAD_VALUE_ERROR,
         msg="freeSpaceTargetMB=Decimal128(0) should be rejected",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "freespace_value_decimal128_negative_zero",
@@ -266,6 +293,7 @@ COMPACT_FREESPACE_TARGET_MB_VALUE_VALIDATION_TESTS: list[CommandTestCase] = [
         },
         error_code=BAD_VALUE_ERROR,
         msg="freeSpaceTargetMB=Decimal128(-0) should be rejected",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "freespace_value_negative_one",
@@ -273,6 +301,7 @@ COMPACT_FREESPACE_TARGET_MB_VALUE_VALIDATION_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "freeSpaceTargetMB": -1},
         error_code=BAD_VALUE_ERROR,
         msg="freeSpaceTargetMB=-1 should be rejected",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "freespace_value_double_half",
@@ -283,6 +312,7 @@ COMPACT_FREESPACE_TARGET_MB_VALUE_VALIDATION_TESTS: list[CommandTestCase] = [
         },
         error_code=BAD_VALUE_ERROR,
         msg="freeSpaceTargetMB=0.5 should be rejected",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "freespace_value_decimal128_half",
@@ -293,6 +323,7 @@ COMPACT_FREESPACE_TARGET_MB_VALUE_VALIDATION_TESTS: list[CommandTestCase] = [
         },
         error_code=BAD_VALUE_ERROR,
         msg="freeSpaceTargetMB=Decimal128(0.5) should be rejected",
+        marks=(pytest.mark.standalone,),
     ),
     CommandTestCase(
         "freespace_value_int64_min",
@@ -300,6 +331,7 @@ COMPACT_FREESPACE_TARGET_MB_VALUE_VALIDATION_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"compact": ctx.collection, "freeSpaceTargetMB": INT64_MIN},
         error_code=BAD_VALUE_ERROR,
         msg="freeSpaceTargetMB=Int64 MIN should be rejected",
+        marks=(pytest.mark.standalone,),
     ),
 ]
 
