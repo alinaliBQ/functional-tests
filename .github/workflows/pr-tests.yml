@@ -14,7 +14,6 @@ jobs:
         image: mongo:8.2.4
         ports:
           - 27017:27017
-        command: --replSet rs0
         options: >-
           --health-cmd "mongosh --eval 'db.runCommand({ ping: 1 })'"
           --health-interval 10s
@@ -23,9 +22,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
-
-      - name: Initialize replica set
-        run: docker exec "${{ job.services.mongodb.id }}" mongosh --eval 'rs.initiate()'
 
       - uses: actions/setup-python@v6
         with:
@@ -37,7 +33,7 @@ jobs:
       - name: Run compatibility tests against MongoDB
         run: |
           pytest documentdb_tests/compatibility/tests \
-            --connection-string "mongodb://localhost:27017/?replicaSet=rs0" \
+            --connection-string "mongodb://localhost:27017" \
             --engine-name mongodb \
             -n auto \
             -v \
@@ -63,6 +59,87 @@ jobs:
             cat ${{ github.workspace }}/.test-results/mongodb-analysis.txt >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
           fi
+
+  collect-replica-set:
+    name: Collect replica set tests
+    runs-on: ubuntu-latest
+    outputs:
+      tests: ${{ steps.collect.outputs.tests }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Collect replica_set test IDs
+        id: collect
+        run: |
+          TESTS=$(pytest documentdb_tests/compatibility/tests \
+            --connection-string mongodb://localhost:27017 \
+            --engine-name mongodb \
+            --collect-only -m replica_set 2>/dev/null \
+            | grep '<Function' \
+            | sed 's/.*<Function \(.*\)>/\1/' \
+            | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          echo "tests=$TESTS" >> "$GITHUB_OUTPUT"
+
+  test-mongodb-replica-set:
+    name: "Replica Set Test: ${{ matrix.test }}"
+    needs: collect-replica-set
+    if: needs.collect-replica-set.outputs.tests != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        test: ${{ fromJson(needs.collect-replica-set.outputs.tests) }}
+
+    services:
+      mongodb:
+        image: mongo:8.2.4
+        ports:
+          - 27017:27017
+        command: --replSet rs0
+        options: >-
+          --health-cmd "mongosh --eval 'db.runCommand({ ping: 1 })'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Initialize replica set
+        run: docker exec "${{ job.services.mongodb.id }}" mongosh --eval 'rs.initiate()'
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: "Run: ${{ matrix.test }}"
+        run: |
+          pytest documentdb_tests/compatibility/tests \
+            -m replica_set -k "${{ matrix.test }}" \
+            --connection-string "mongodb://localhost:27017/?replicaSet=rs0" \
+            --engine-name mongodb \
+            -v \
+            --json-report --json-report-file=${{ github.workspace }}/.test-results/replica-set-report.json \
+            --junitxml=${{ github.workspace }}/.test-results/replica-set-results.xml
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results-replica-set-${{ matrix.test }}
+          include-hidden-files: true
+          path: ${{ github.workspace }}/.test-results/
+          if-no-files-found: warn
 
   collect-xcrash:
     name: Collect crash tests
@@ -106,7 +183,6 @@ jobs:
         image: mongo:8.2.4
         ports:
           - 27017:27017
-        command: --replSet rs0
         options: >-
           --health-cmd "mongosh --eval 'db.runCommand({ ping: 1 })'"
           --health-interval 10s
@@ -115,9 +191,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
-
-      - name: Initialize replica set
-        run: docker exec "${{ job.services.mongodb.id }}" mongosh --eval 'rs.initiate()'
 
       - uses: actions/setup-python@v6
         with:
@@ -133,7 +206,7 @@ jobs:
           # and the engine_xcrash marker should be removed.
           if pytest documentdb_tests/compatibility/tests \
             -m engine_xcrash -k "${{ matrix.test }}" \
-            --connection-string "mongodb://localhost:27017/?replicaSet=rs0" \
+            --connection-string "mongodb://localhost:27017" \
             --engine-name mongodb-xcrash-probe \
             --timeout=10 -v; then
             echo "::error::Test passed unexpectedly - server bug may be fixed, remove engine_xcrash marker"
