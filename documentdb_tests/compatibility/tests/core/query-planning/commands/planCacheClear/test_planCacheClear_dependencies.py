@@ -16,19 +16,19 @@ from documentdb_tests.framework.parametrize import pytest_params
 # without query.
 PLANCACHECLEAR_PARAM_INDEPENDENCE_TESTS: list[CommandTestCase] = [
     CommandTestCase(
-        "dep_sort_without_query",
+        "sort_without_query",
         command=lambda ctx: {"planCacheClear": ctx.collection, "sort": {"a": 1}},
         expected={"ok": 1.0},
         msg="planCacheClear should accept sort without query",
     ),
     CommandTestCase(
-        "dep_projection_without_query",
+        "projection_without_query",
         command=lambda ctx: {"planCacheClear": ctx.collection, "projection": {"a": 1}},
         expected={"ok": 1.0},
         msg="planCacheClear should accept projection without query",
     ),
     CommandTestCase(
-        "dep_sort_projection_without_query",
+        "sort_and_projection_without_query",
         command=lambda ctx: {
             "planCacheClear": ctx.collection,
             "sort": {"a": 1},
@@ -38,7 +38,7 @@ PLANCACHECLEAR_PARAM_INDEPENDENCE_TESTS: list[CommandTestCase] = [
         msg="planCacheClear should accept sort and projection without query",
     ),
     CommandTestCase(
-        "dep_collation_without_query",
+        "collation_without_query",
         command=lambda ctx: {
             "planCacheClear": ctx.collection,
             "collation": {"locale": "en"},

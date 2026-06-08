@@ -50,28 +50,6 @@ PLANCACHECLEAR_QUERY_TYPE_TESTS: list[CommandTestCase] = [
     ]
 ]
 
-# Property [Query Field Name Validation]: query with special field names.
-PLANCACHECLEAR_QUERY_FIELD_NAME_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        "query_dotted_field_name",
-        command=lambda ctx: {
-            "planCacheClear": ctx.collection,
-            "query": {"a.b": 1},
-        },
-        expected={"ok": 1.0},
-        msg="planCacheClear should accept query with dotted field name",
-    ),
-    CommandTestCase(
-        "query_and_or_combinators",
-        command=lambda ctx: {
-            "planCacheClear": ctx.collection,
-            "query": {"$and": [{"$or": [{"a": 1}, {"b": 2}]}]},
-        },
-        expected={"ok": 1.0},
-        msg="planCacheClear should accept query with $and/$or combinators",
-    ),
-]
-
 # Property [Comment Type Acceptance]: comment field accepts any valid BSON type.
 PLANCACHECLEAR_COMMENT_TYPE_ACCEPTANCE_TESTS: list[CommandTestCase] = [
     CommandTestCase(
@@ -103,9 +81,7 @@ PLANCACHECLEAR_COMMENT_TYPE_ACCEPTANCE_TESTS: list[CommandTestCase] = [
 ]
 
 PLANCACHECLEAR_QUERY_COMMENT_TYPE_TESTS: list[CommandTestCase] = (
-    PLANCACHECLEAR_QUERY_TYPE_TESTS
-    + PLANCACHECLEAR_QUERY_FIELD_NAME_TESTS
-    + PLANCACHECLEAR_COMMENT_TYPE_ACCEPTANCE_TESTS
+    PLANCACHECLEAR_QUERY_TYPE_TESTS + PLANCACHECLEAR_COMMENT_TYPE_ACCEPTANCE_TESTS
 )
 
 

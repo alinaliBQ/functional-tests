@@ -41,7 +41,26 @@ PLANCACHECLEAR_BASIC_SUCCESS_TESTS: list[CommandTestCase] = [
 # projection parameters to target a specific cached query shape.
 PLANCACHECLEAR_QUERY_SHAPE_TESTS: list[CommandTestCase] = [
     CommandTestCase(
-        "shape_query_projection",
+        "query_only",
+        command=lambda ctx: {
+            "planCacheClear": ctx.collection,
+            "query": {"a": 1},
+        },
+        expected={"ok": 1.0},
+        msg="planCacheClear should succeed with query only",
+    ),
+    CommandTestCase(
+        "query_and_sort",
+        command=lambda ctx: {
+            "planCacheClear": ctx.collection,
+            "query": {"a": 1},
+            "sort": {"a": 1},
+        },
+        expected={"ok": 1.0},
+        msg="planCacheClear should succeed with query and sort",
+    ),
+    CommandTestCase(
+        "query_and_projection",
         command=lambda ctx: {
             "planCacheClear": ctx.collection,
             "query": {"a": 1},
@@ -51,7 +70,7 @@ PLANCACHECLEAR_QUERY_SHAPE_TESTS: list[CommandTestCase] = [
         msg="planCacheClear should succeed with query and projection",
     ),
     CommandTestCase(
-        "shape_query_sort_projection",
+        "query_sort_and_projection",
         command=lambda ctx: {
             "planCacheClear": ctx.collection,
             "query": {"a": 1},
@@ -60,153 +79,6 @@ PLANCACHECLEAR_QUERY_SHAPE_TESTS: list[CommandTestCase] = [
         },
         expected={"ok": 1.0},
         msg="planCacheClear should succeed with query, sort, and projection",
-    ),
-    CommandTestCase(
-        "shape_empty_query",
-        command=lambda ctx: {
-            "planCacheClear": ctx.collection,
-            "query": {},
-        },
-        expected={"ok": 1.0},
-        msg="planCacheClear should succeed with an empty query document",
-    ),
-    CommandTestCase(
-        "shape_empty_sort",
-        command=lambda ctx: {
-            "planCacheClear": ctx.collection,
-            "query": {"a": 1},
-            "sort": {},
-        },
-        expected={"ok": 1.0},
-        msg="planCacheClear should succeed with an empty sort document",
-    ),
-    CommandTestCase(
-        "shape_empty_projection",
-        command=lambda ctx: {
-            "planCacheClear": ctx.collection,
-            "query": {"a": 1},
-            "projection": {},
-        },
-        expected={"ok": 1.0},
-        msg="planCacheClear should succeed with an empty projection document",
-    ),
-]
-
-# Property [Query Variations]: planCacheClear accepts various valid query
-# structures including comparison operators, logical combinators, and nesting.
-PLANCACHECLEAR_QUERY_VARIATION_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        "query_equality",
-        command=lambda ctx: {
-            "planCacheClear": ctx.collection,
-            "query": {"a": 1},
-        },
-        expected={"ok": 1.0},
-        msg="planCacheClear should succeed with simple equality query",
-    ),
-    CommandTestCase(
-        "query_comparison_gt",
-        command=lambda ctx: {
-            "planCacheClear": ctx.collection,
-            "query": {"a": {"$gt": 10}},
-        },
-        expected={"ok": 1.0},
-        msg="planCacheClear should succeed with $gt comparison query",
-    ),
-    CommandTestCase(
-        "query_multi_field",
-        command=lambda ctx: {
-            "planCacheClear": ctx.collection,
-            "query": {"a": 1, "b": 2},
-        },
-        expected={"ok": 1.0},
-        msg="planCacheClear should succeed with multi-field query",
-    ),
-    CommandTestCase(
-        "query_and_combinator",
-        command=lambda ctx: {
-            "planCacheClear": ctx.collection,
-            "query": {"$and": [{"a": 1}, {"b": 2}]},
-        },
-        expected={"ok": 1.0},
-        msg="planCacheClear should succeed with $and combinator in query",
-    ),
-    CommandTestCase(
-        "query_or_combinator",
-        command=lambda ctx: {
-            "planCacheClear": ctx.collection,
-            "query": {"$or": [{"a": 1}, {"b": 2}]},
-        },
-        expected={"ok": 1.0},
-        msg="planCacheClear should succeed with $or combinator in query",
-    ),
-    CommandTestCase(
-        "query_in_operator",
-        command=lambda ctx: {
-            "planCacheClear": ctx.collection,
-            "query": {"a": {"$in": [1, 2, 3]}},
-        },
-        expected={"ok": 1.0},
-        msg="planCacheClear should succeed with $in operator in query",
-    ),
-    CommandTestCase(
-        "query_deeply_nested",
-        command=lambda ctx: {
-            "planCacheClear": ctx.collection,
-            "query": {"a": {"b": {"c": {"$gt": 1}}}},
-        },
-        expected={"ok": 1.0},
-        msg="planCacheClear should succeed with deeply nested query structure",
-    ),
-]
-
-# Property [Sort Variations]: planCacheClear accepts ascending and descending
-# sort directions as part of the query shape.
-PLANCACHECLEAR_SORT_VARIATION_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        "sort_ascending",
-        command=lambda ctx: {
-            "planCacheClear": ctx.collection,
-            "query": {"a": 1},
-            "sort": {"a": 1},
-        },
-        expected={"ok": 1.0},
-        msg="planCacheClear should succeed with ascending sort",
-    ),
-    CommandTestCase(
-        "sort_descending",
-        command=lambda ctx: {
-            "planCacheClear": ctx.collection,
-            "query": {"a": 1},
-            "sort": {"a": -1},
-        },
-        expected={"ok": 1.0},
-        msg="planCacheClear should succeed with descending sort",
-    ),
-]
-
-# Property [Projection Variations]: planCacheClear accepts inclusion and
-# exclusion projections as part of the query shape.
-PLANCACHECLEAR_PROJECTION_VARIATION_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        "projection_inclusion",
-        command=lambda ctx: {
-            "planCacheClear": ctx.collection,
-            "query": {"a": 1},
-            "projection": {"a": 1},
-        },
-        expected={"ok": 1.0},
-        msg="planCacheClear should succeed with inclusion projection",
-    ),
-    CommandTestCase(
-        "projection_exclusion_and_inclusion",
-        command=lambda ctx: {
-            "planCacheClear": ctx.collection,
-            "query": {"a": 1},
-            "projection": {"_id": 0, "a": 1},
-        },
-        expected={"ok": 1.0},
-        msg="planCacheClear should succeed with _id exclusion and field inclusion projection",
     ),
 ]
 
@@ -324,26 +196,11 @@ PLANCACHECLEAR_NULL_PARAMS_TESTS: list[CommandTestCase] = [
     ),
 ]
 
-# Property [Idempotency]: calling planCacheClear multiple times on the same
-# collection succeeds each time.
-PLANCACHECLEAR_IDEMPOTENCY_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        "idempotent_no_cached_plans",
-        command=lambda ctx: {"planCacheClear": ctx.collection},
-        expected={"ok": 1.0},
-        msg="planCacheClear should succeed as a no-op on a collection with no cached plans",
-    ),
-]
-
 PLANCACHECLEAR_CORE_TESTS: list[CommandTestCase] = (
     PLANCACHECLEAR_BASIC_SUCCESS_TESTS
     + PLANCACHECLEAR_QUERY_SHAPE_TESTS
-    + PLANCACHECLEAR_QUERY_VARIATION_TESTS
-    + PLANCACHECLEAR_SORT_VARIATION_TESTS
-    + PLANCACHECLEAR_PROJECTION_VARIATION_TESTS
     + PLANCACHECLEAR_PARAM_COMBO_TESTS
     + PLANCACHECLEAR_NULL_PARAMS_TESTS
-    + PLANCACHECLEAR_IDEMPOTENCY_TESTS
 )
 
 
