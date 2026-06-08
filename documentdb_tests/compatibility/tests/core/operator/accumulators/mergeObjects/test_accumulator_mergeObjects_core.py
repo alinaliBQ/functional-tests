@@ -318,6 +318,31 @@ MERGE_OBJECTS_GROUPED_TESTS: list[AccumulatorTestCase] = [
         expected=[{"_id": "A", "result": {"x": 2, "y": 3}}],
         msg="$mergeObjects should apply last-wins within a group",
     ),
+    AccumulatorTestCase(
+        "grouped_compound_id",
+        docs=[
+            {"r": "us", "d": "sales", "v": {"x": 1}},
+            {"r": "us", "d": "sales", "v": {"y": 2}},
+            {"r": "us", "d": "eng", "v": {"x": 10}},
+            {"r": "eu", "d": "sales", "v": {"z": 99}},
+        ],
+        pipeline=[
+            {"$sort": {"r": 1, "d": 1}},
+            {
+                "$group": {
+                    "_id": {"r": "$r", "d": "$d"},
+                    "result": {"$mergeObjects": "$v"},
+                }
+            },
+            {"$sort": {"_id.r": 1, "_id.d": 1}},
+        ],
+        expected=[
+            {"_id": {"r": "eu", "d": "sales"}, "result": {"z": 99}},
+            {"_id": {"r": "us", "d": "eng"}, "result": {"x": 10}},
+            {"_id": {"r": "us", "d": "sales"}, "result": {"x": 1, "y": 2}},
+        ],
+        msg="$mergeObjects should merge documents independently per compound group key",
+    ),
 ]
 
 MERGE_OBJECTS_CORE_TESTS = (
