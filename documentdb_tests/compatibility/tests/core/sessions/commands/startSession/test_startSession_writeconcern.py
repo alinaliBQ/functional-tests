@@ -27,6 +27,16 @@ from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.property_checks import Eq
 
+# Property [writeConcern Null Acceptance]: null writeConcern is treated as omitted.
+STARTSESSION_WC_NULL_ACCEPTANCE_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        "wc_null_accepted",
+        command=lambda ctx: {"startSession": 1, "writeConcern": None},
+        expected={"ok": Eq(1.0)},
+        msg="startSession should accept null writeConcern as omitted",
+    ),
+]
+
 # Property [writeConcern Type Rejection]: non-document writeConcern values produce a type error.
 STARTSESSION_WC_TYPE_REJECTION_TESTS: list[CommandTestCase] = [
     CommandTestCase(
@@ -82,16 +92,6 @@ STARTSESSION_WC_DOC_REJECTION_TESTS: list[CommandTestCase] = [
         command=lambda ctx: {"startSession": 1, "writeConcern": {"j": True}},
         error_code=INVALID_OPTIONS_ERROR,
         msg="startSession should reject writeConcern with j:true",
-    ),
-]
-
-# Property [writeConcern Null Acceptance]: null writeConcern is treated as omitted.
-STARTSESSION_WC_NULL_ACCEPTANCE_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        "wc_null_accepted",
-        command=lambda ctx: {"startSession": 1, "writeConcern": None},
-        expected={"ok": Eq(1.0)},
-        msg="startSession should accept null writeConcern as omitted",
     ),
 ]
 

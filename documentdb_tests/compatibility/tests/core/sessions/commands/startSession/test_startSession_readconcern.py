@@ -19,22 +19,6 @@ from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.property_checks import Eq
 
-# Property [readConcern Type Rejection]: non-document readConcern values produce a type error.
-STARTSESSION_RC_TYPE_REJECTION_TESTS: list[CommandTestCase] = [
-    CommandTestCase(
-        f"rc_type_reject_{tid}",
-        command=lambda ctx, v=val: {"startSession": 1, "readConcern": v},
-        error_code=TYPE_MISMATCH_ERROR,
-        msg=f"startSession should reject {tid} readConcern with type mismatch error",
-    )
-    for tid, val in [
-        ("string", "local"),
-        ("int32", 1),
-        ("bool", True),
-        ("array", []),
-    ]
-]
-
 # Property [readConcern Document Acceptance]: valid document readConcern values are accepted.
 STARTSESSION_RC_DOC_ACCEPTANCE_TESTS: list[CommandTestCase] = [
     CommandTestCase(
@@ -61,6 +45,22 @@ STARTSESSION_RC_DOC_ACCEPTANCE_TESTS: list[CommandTestCase] = [
         expected={"ok": Eq(1.0)},
         msg="startSession should accept readConcern with null level",
     ),
+]
+
+# Property [readConcern Type Rejection]: non-document readConcern values produce a type error.
+STARTSESSION_RC_TYPE_REJECTION_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
+        f"rc_type_reject_{tid}",
+        command=lambda ctx, v=val: {"startSession": 1, "readConcern": v},
+        error_code=TYPE_MISMATCH_ERROR,
+        msg=f"startSession should reject {tid} readConcern with type mismatch error",
+    )
+    for tid, val in [
+        ("string", "local"),
+        ("int32", 1),
+        ("bool", True),
+        ("array", []),
+    ]
 ]
 
 # Property [readConcern Level Rejection]: unsupported readConcern levels are rejected.
