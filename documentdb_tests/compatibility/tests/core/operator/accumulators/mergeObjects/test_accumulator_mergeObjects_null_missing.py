@@ -16,8 +16,11 @@ from documentdb_tests.framework.parametrize import pytest_params
 MERGE_OBJECTS_NULL_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
         "null_all",
-        docs=[{"v": None}, {"v": None}],
-        pipeline=[{"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}}],
+        docs=[{"s": 1, "v": None}, {"s": 2, "v": None}],
+        pipeline=[
+            {"$sort": {"s": 1}},
+            {"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}},
+        ],
         expected=[{"_id": None, "result": {}}],
         msg="$mergeObjects should return empty document when all values are null",
     ),
@@ -30,36 +33,57 @@ MERGE_OBJECTS_NULL_TESTS: list[AccumulatorTestCase] = [
     ),
     AccumulatorTestCase(
         "null_with_object",
-        docs=[{"v": None}, {"v": {"a": 1}}, {"v": {"b": 2}}],
-        pipeline=[{"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}}],
+        docs=[{"s": 1, "v": None}, {"s": 2, "v": {"a": 1}}, {"s": 3, "v": {"b": 2}}],
+        pipeline=[
+            {"$sort": {"s": 1}},
+            {"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}},
+        ],
         expected=[{"_id": None, "result": {"a": 1, "b": 2}}],
         msg="$mergeObjects should ignore null and merge remaining objects",
     ),
     AccumulatorTestCase(
         "null_first",
-        docs=[{"v": None}, {"v": {"a": 1}}],
-        pipeline=[{"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}}],
+        docs=[{"s": 1, "v": None}, {"s": 2, "v": {"a": 1}}],
+        pipeline=[
+            {"$sort": {"s": 1}},
+            {"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}},
+        ],
         expected=[{"_id": None, "result": {"a": 1}}],
         msg="$mergeObjects should ignore null in first position",
     ),
     AccumulatorTestCase(
         "null_last",
-        docs=[{"v": {"a": 1}}, {"v": None}],
-        pipeline=[{"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}}],
+        docs=[{"s": 1, "v": {"a": 1}}, {"s": 2, "v": None}],
+        pipeline=[
+            {"$sort": {"s": 1}},
+            {"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}},
+        ],
         expected=[{"_id": None, "result": {"a": 1}}],
         msg="$mergeObjects should ignore null in last position",
     ),
     AccumulatorTestCase(
         "null_middle",
-        docs=[{"v": {"a": 1}}, {"v": None}, {"v": {"b": 2}}],
-        pipeline=[{"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}}],
+        docs=[{"s": 1, "v": {"a": 1}}, {"s": 2, "v": None}, {"s": 3, "v": {"b": 2}}],
+        pipeline=[
+            {"$sort": {"s": 1}},
+            {"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}},
+        ],
         expected=[{"_id": None, "result": {"a": 1, "b": 2}}],
         msg="$mergeObjects should ignore null in middle position",
     ),
     AccumulatorTestCase(
         "null_multiple_interspersed",
-        docs=[{"v": None}, {"v": {"a": 1}}, {"v": None}, {"v": {"b": 2}}, {"v": None}],
-        pipeline=[{"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}}],
+        docs=[
+            {"s": 1, "v": None},
+            {"s": 2, "v": {"a": 1}},
+            {"s": 3, "v": None},
+            {"s": 4, "v": {"b": 2}},
+            {"s": 5, "v": None},
+        ],
+        pipeline=[
+            {"$sort": {"s": 1}},
+            {"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}},
+        ],
         expected=[{"_id": None, "result": {"a": 1, "b": 2}}],
         msg="$mergeObjects should ignore multiple interspersed nulls",
     ),
@@ -70,8 +94,11 @@ MERGE_OBJECTS_NULL_TESTS: list[AccumulatorTestCase] = [
 MERGE_OBJECTS_MISSING_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
         "missing_all",
-        docs=[{"x": 1}, {"x": 2}],
-        pipeline=[{"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}}],
+        docs=[{"s": 1, "x": 1}, {"s": 2, "x": 2}],
+        pipeline=[
+            {"$sort": {"s": 1}},
+            {"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}},
+        ],
         expected=[{"_id": None, "result": {}}],
         msg="$mergeObjects should return empty document when all documents have missing field",
     ),
@@ -84,22 +111,31 @@ MERGE_OBJECTS_MISSING_TESTS: list[AccumulatorTestCase] = [
     ),
     AccumulatorTestCase(
         "missing_with_object",
-        docs=[{"x": 1}, {"v": {"a": 1}}, {"v": {"b": 2}}],
-        pipeline=[{"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}}],
+        docs=[{"s": 1, "x": 1}, {"s": 2, "v": {"a": 1}}, {"s": 3, "v": {"b": 2}}],
+        pipeline=[
+            {"$sort": {"s": 1}},
+            {"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}},
+        ],
         expected=[{"_id": None, "result": {"a": 1, "b": 2}}],
         msg="$mergeObjects should ignore missing and merge remaining objects",
     ),
     AccumulatorTestCase(
         "missing_first",
-        docs=[{"x": 1}, {"v": {"a": 1}}],
-        pipeline=[{"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}}],
+        docs=[{"s": 1, "x": 1}, {"s": 2, "v": {"a": 1}}],
+        pipeline=[
+            {"$sort": {"s": 1}},
+            {"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}},
+        ],
         expected=[{"_id": None, "result": {"a": 1}}],
         msg="$mergeObjects should ignore missing field in first document",
     ),
     AccumulatorTestCase(
         "missing_last",
-        docs=[{"v": {"a": 1}}, {"x": 1}],
-        pipeline=[{"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}}],
+        docs=[{"s": 1, "v": {"a": 1}}, {"s": 2, "x": 1}],
+        pipeline=[
+            {"$sort": {"s": 1}},
+            {"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}},
+        ],
         expected=[{"_id": None, "result": {"a": 1}}],
         msg="$mergeObjects should ignore missing field in last document",
     ),
@@ -110,27 +146,34 @@ MERGE_OBJECTS_MISSING_TESTS: list[AccumulatorTestCase] = [
 MERGE_OBJECTS_NULL_MISSING_MIX_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
         "null_and_missing_mix",
-        docs=[{"v": None}, {"x": 1}],
-        pipeline=[{"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}}],
+        docs=[{"s": 1, "v": None}, {"s": 2, "x": 1}],
+        pipeline=[
+            {"$sort": {"s": 1}},
+            {"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}},
+        ],
         expected=[{"_id": None, "result": {}}],
         msg="$mergeObjects should return empty document when group has only null and missing",
     ),
     AccumulatorTestCase(
         "null_and_missing_with_object",
-        docs=[{"v": None}, {"x": 1}, {"v": {"a": 1}}],
-        pipeline=[{"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}}],
+        docs=[{"s": 1, "v": None}, {"s": 2, "x": 1}, {"s": 3, "v": {"a": 1}}],
+        pipeline=[
+            {"$sort": {"s": 1}},
+            {"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}},
+        ],
         expected=[{"_id": None, "result": {"a": 1}}],
         msg="$mergeObjects should ignore both null and missing, merging only objects",
     ),
     AccumulatorTestCase(
         "null_and_missing_multi_group",
         docs=[
-            {"cat": "A", "v": None},
-            {"cat": "A", "v": {"a": 1}},
-            {"cat": "B"},
-            {"cat": "B", "v": {"b": 2}},
+            {"s": 1, "cat": "A", "v": None},
+            {"s": 2, "cat": "A", "v": {"a": 1}},
+            {"s": 3, "cat": "B"},
+            {"s": 4, "cat": "B", "v": {"b": 2}},
         ],
         pipeline=[
+            {"$sort": {"s": 1}},
             {"$group": {"_id": "$cat", "result": {"$mergeObjects": "$v"}}},
             {"$sort": {"_id": 1}},
         ],
@@ -161,14 +204,18 @@ MERGE_OBJECTS_REMOVE_TESTS: list[AccumulatorTestCase] = [
     ),
     AccumulatorTestCase(
         "remove_with_object",
-        docs=[{"v": {"a": 1}, "flag": True}, {"v": {"b": 2}, "flag": False}],
+        docs=[
+            {"s": 1, "v": {"a": 1}, "flag": True},
+            {"s": 2, "v": {"b": 2}, "flag": False},
+        ],
         pipeline=[
+            {"$sort": {"s": 1}},
             {
                 "$group": {
                     "_id": None,
                     "result": {"$mergeObjects": {"$cond": ["$flag", "$v", "$$REMOVE"]}},
                 }
-            }
+            },
         ],
         expected=[{"_id": None, "result": {"a": 1}}],
         msg="$mergeObjects should ignore $$REMOVE and merge only non-removed objects",
@@ -180,15 +227,21 @@ MERGE_OBJECTS_REMOVE_TESTS: list[AccumulatorTestCase] = [
 MERGE_OBJECTS_CONSTANT_NULL_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
         "constant_null",
-        docs=[{"x": 1}, {"x": 2}],
-        pipeline=[{"$group": {"_id": None, "result": {"$mergeObjects": None}}}],
+        docs=[{"s": 1, "x": 1}, {"s": 2, "x": 2}],
+        pipeline=[
+            {"$sort": {"s": 1}},
+            {"$group": {"_id": None, "result": {"$mergeObjects": None}}},
+        ],
         expected=[{"_id": None, "result": {}}],
         msg="$mergeObjects should return empty document for a constant null expression",
     ),
     AccumulatorTestCase(
         "literal_null_expr",
-        docs=[{"x": 1}, {"x": 2}],
-        pipeline=[{"$group": {"_id": None, "result": {"$mergeObjects": {"$literal": None}}}}],
+        docs=[{"s": 1, "x": 1}, {"s": 2, "x": 2}],
+        pipeline=[
+            {"$sort": {"s": 1}},
+            {"$group": {"_id": None, "result": {"$mergeObjects": {"$literal": None}}}},
+        ],
         expected=[{"_id": None, "result": {}}],
         msg="$mergeObjects should return empty document when expression evaluates to null",
     ),
@@ -225,3 +278,14 @@ def test_accumulator_mergeObjects_null_missing(collection, test_case: Accumulato
         {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
     )
     assertSuccess(result, test_case.expected, msg=test_case.msg)
+    actual_docs = result["cursor"]["firstBatch"]
+    for actual, exp in zip(actual_docs, test_case.expected):
+        if "result" in exp and isinstance(exp["result"], dict):
+            actual_keys = list(actual["result"].keys())
+            expected_keys = list(exp["result"].keys())
+            if actual_keys != expected_keys:
+                raise AssertionError(
+                    f"[KEY_ORDER_MISMATCH] {test_case.msg}\n"
+                    f"Expected key order: {expected_keys}\n"
+                    f"Actual key order:   {actual_keys}"
+                )

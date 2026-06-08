@@ -16,8 +16,12 @@ from documentdb_tests.framework.parametrize import pytest_params
 MERGE_OBJECTS_EXPRESSION_TYPE_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
         "expr_type_nested_field_path",
-        docs=[{"data": {"inner": {"a": 1}}}, {"data": {"inner": {"b": 2}}}],
+        docs=[
+            {"s": 1, "data": {"inner": {"a": 1}}},
+            {"s": 2, "data": {"inner": {"b": 2}}},
+        ],
         pipeline=[
+            {"$sort": {"s": 1}},
             {"$group": {"_id": None, "result": {"$mergeObjects": "$data.inner"}}},
         ],
         expected=[{"_id": None, "result": {"a": 1, "b": 2}}],
@@ -25,15 +29,19 @@ MERGE_OBJECTS_EXPRESSION_TYPE_TESTS: list[AccumulatorTestCase] = [
     ),
     AccumulatorTestCase(
         "expr_type_literal",
-        docs=[{"x": 1}, {"x": 2}],
-        pipeline=[{"$group": {"_id": None, "result": {"$mergeObjects": {"$literal": {"a": 1}}}}}],
+        docs=[{"s": 1, "x": 1}, {"s": 2, "x": 2}],
+        pipeline=[
+            {"$sort": {"s": 1}},
+            {"$group": {"_id": None, "result": {"$mergeObjects": {"$literal": {"a": 1}}}}},
+        ],
         expected=[{"_id": None, "result": {"a": 1}}],
         msg="$mergeObjects should accept a $literal expression",
     ),
     AccumulatorTestCase(
         "expr_type_sysvar_remove",
-        docs=[{"x": 1}, {"x": 2}],
+        docs=[{"s": 1, "x": 1}, {"s": 2, "x": 2}],
         pipeline=[
+            {"$sort": {"s": 1}},
             {"$group": {"_id": None, "result": {"$mergeObjects": "$$REMOVE"}}},
         ],
         expected=[{"_id": None, "result": {}}],
@@ -61,36 +69,42 @@ MERGE_OBJECTS_EXPRESSION_TYPE_TESTS: list[AccumulatorTestCase] = [
     ),
     AccumulatorTestCase(
         "expr_type_ifnull",
-        docs=[{"v": {"a": 1}}, {"v": {"b": 2}}],
+        docs=[{"s": 1, "v": {"a": 1}}, {"s": 2, "v": {"b": 2}}],
         pipeline=[
+            {"$sort": {"s": 1}},
             {
                 "$group": {
                     "_id": None,
                     "result": {"$mergeObjects": {"$ifNull": ["$v", {}]}},
                 }
-            }
+            },
         ],
         expected=[{"_id": None, "result": {"a": 1, "b": 2}}],
         msg="$mergeObjects should accept $ifNull as its operand expression",
     ),
     AccumulatorTestCase(
         "expr_type_cond",
-        docs=[{"v": {"a": 1}, "flag": True}, {"v": {"b": 2}, "flag": True}],
+        docs=[
+            {"s": 1, "v": {"a": 1}, "flag": True},
+            {"s": 2, "v": {"b": 2}, "flag": True},
+        ],
         pipeline=[
+            {"$sort": {"s": 1}},
             {
                 "$group": {
                     "_id": None,
                     "result": {"$mergeObjects": {"$cond": ["$flag", "$v", {"z": 0}]}},
                 }
-            }
+            },
         ],
         expected=[{"_id": None, "result": {"a": 1, "b": 2}}],
         msg="$mergeObjects should accept a $cond expression",
     ),
     AccumulatorTestCase(
         "expr_type_object_with_field_ref",
-        docs=[{"v": 1}, {"v": 2}],
+        docs=[{"s": 1, "v": 1}, {"s": 2, "v": 2}],
         pipeline=[
+            {"$sort": {"s": 1}},
             {"$group": {"_id": None, "result": {"$mergeObjects": {"a": "$v"}}}},
         ],
         expected=[{"_id": None, "result": {"a": 2}}],
@@ -98,8 +112,9 @@ MERGE_OBJECTS_EXPRESSION_TYPE_TESTS: list[AccumulatorTestCase] = [
     ),
     AccumulatorTestCase(
         "expr_type_object_with_operator",
-        docs=[{"v": -5}, {"v": -10}],
+        docs=[{"s": 1, "v": -5}, {"s": 2, "v": -10}],
         pipeline=[
+            {"$sort": {"s": 1}},
             {
                 "$group": {
                     "_id": None,
@@ -112,8 +127,9 @@ MERGE_OBJECTS_EXPRESSION_TYPE_TESTS: list[AccumulatorTestCase] = [
     ),
     AccumulatorTestCase(
         "expr_type_let",
-        docs=[{"v": {"a": 1}}, {"v": {"b": 2}}],
+        docs=[{"s": 1, "v": {"a": 1}}, {"s": 2, "v": {"b": 2}}],
         pipeline=[
+            {"$sort": {"s": 1}},
             {
                 "$group": {
                     "_id": None,
@@ -132,10 +148,11 @@ MERGE_OBJECTS_FIELD_LOOKUP_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
         "field_lookup_numeric_key_path",
         docs=[
-            {"v": {"0": {"b": {"x": 1}}}},
-            {"v": {"0": {"b": {"y": 2}}}},
+            {"s": 1, "v": {"0": {"b": {"x": 1}}}},
+            {"s": 2, "v": {"0": {"b": {"y": 2}}}},
         ],
         pipeline=[
+            {"$sort": {"s": 1}},
             {"$group": {"_id": None, "result": {"$mergeObjects": "$v.0.b"}}},
         ],
         expected=[{"_id": None, "result": {"x": 1, "y": 2}}],
@@ -144,10 +161,11 @@ MERGE_OBJECTS_FIELD_LOOKUP_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
         "field_lookup_nested_object_path",
         docs=[
-            {"data": {"inner": {"obj": {"x": 1}}}},
-            {"data": {"inner": {"obj": {"y": 2}}}},
+            {"s": 1, "data": {"inner": {"obj": {"x": 1}}}},
+            {"s": 2, "data": {"inner": {"obj": {"y": 2}}}},
         ],
         pipeline=[
+            {"$sort": {"s": 1}},
             {"$group": {"_id": None, "result": {"$mergeObjects": "$data.inner.obj"}}},
         ],
         expected=[{"_id": None, "result": {"x": 1, "y": 2}}],
@@ -155,8 +173,9 @@ MERGE_OBJECTS_FIELD_LOOKUP_TESTS: list[AccumulatorTestCase] = [
     ),
     AccumulatorTestCase(
         "field_lookup_nonexistent_returns_empty",
-        docs=[{"v": {"a": 1}}, {"v": {"b": 2}}],
+        docs=[{"s": 1, "v": {"a": 1}}, {"s": 2, "v": {"b": 2}}],
         pipeline=[
+            {"$sort": {"s": 1}},
             {"$group": {"_id": None, "result": {"$mergeObjects": "$nonexistent"}}},
         ],
         expected=[{"_id": None, "result": {}}],
@@ -169,26 +188,33 @@ MERGE_OBJECTS_FIELD_LOOKUP_TESTS: list[AccumulatorTestCase] = [
 MERGE_OBJECTS_CONSTANT_OBJECT_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
         "constant_object_returned",
-        docs=[{"x": 1}, {"x": 2}],
-        pipeline=[{"$group": {"_id": None, "result": {"$mergeObjects": {"a": 1, "b": 2}}}}],
+        docs=[{"s": 1, "x": 1}, {"s": 2, "x": 2}],
+        pipeline=[
+            {"$sort": {"s": 1}},
+            {"$group": {"_id": None, "result": {"$mergeObjects": {"a": 1, "b": 2}}}},
+        ],
         expected=[{"_id": None, "result": {"a": 1, "b": 2}}],
         msg="$mergeObjects should accept constant object and return it",
     ),
     AccumulatorTestCase(
         "constant_empty_object_returned",
-        docs=[{"x": 1}, {"x": 2}],
-        pipeline=[{"$group": {"_id": None, "result": {"$mergeObjects": {}}}}],
+        docs=[{"s": 1, "x": 1}, {"s": 2, "x": 2}],
+        pipeline=[
+            {"$sort": {"s": 1}},
+            {"$group": {"_id": None, "result": {"$mergeObjects": {}}}},
+        ],
         expected=[{"_id": None, "result": {}}],
         msg="$mergeObjects should accept constant empty object and return empty document",
     ),
     AccumulatorTestCase(
         "constant_object_multi_group",
         docs=[
-            {"cat": "A", "x": 1},
-            {"cat": "A", "x": 2},
-            {"cat": "B", "x": 3},
+            {"s": 1, "cat": "A", "x": 1},
+            {"s": 2, "cat": "A", "x": 2},
+            {"s": 3, "cat": "B", "x": 3},
         ],
         pipeline=[
+            {"$sort": {"s": 1}},
             {"$group": {"_id": "$cat", "result": {"$mergeObjects": {"val": "$x"}}}},
             {"$sort": {"_id": 1}},
         ],
@@ -217,3 +243,14 @@ def test_accumulator_mergeObjects_input_forms(collection, test_case: Accumulator
         {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
     )
     assertSuccess(result, test_case.expected, msg=test_case.msg)
+    actual_docs = result["cursor"]["firstBatch"]
+    for actual, exp in zip(actual_docs, test_case.expected):
+        if "result" in exp and isinstance(exp["result"], dict):
+            actual_keys = list(actual["result"].keys())
+            expected_keys = list(exp["result"].keys())
+            if actual_keys != expected_keys:
+                raise AssertionError(
+                    f"[KEY_ORDER_MISMATCH] {test_case.msg}\n"
+                    f"Expected key order: {expected_keys}\n"
+                    f"Actual key order:   {actual_keys}"
+                )

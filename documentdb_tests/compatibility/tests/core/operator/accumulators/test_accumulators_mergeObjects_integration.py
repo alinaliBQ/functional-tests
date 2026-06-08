@@ -342,3 +342,22 @@ def test_accumulators_mergeObjects_integration(collection, test_case: Accumulato
         ignore_doc_order=True,
         ignore_order_in=["tags"],
     )
+    _MERGE_FIELDS = {"merged", "merged_meta", "merged_cfg"}
+    actual_docs = result["cursor"]["firstBatch"]
+    for actual in actual_docs:
+        exp = next(
+            (e for e in test_case.expected if e.get("_id") == actual.get("_id")),
+            None,
+        )
+        if exp is None:
+            continue
+        for field in _MERGE_FIELDS:
+            if field in exp and isinstance(exp[field], dict):
+                actual_keys = list(actual[field].keys())
+                expected_keys = list(exp[field].keys())
+                if actual_keys != expected_keys:
+                    raise AssertionError(
+                        f"[KEY_ORDER_MISMATCH] {test_case.msg} (field={field})\n"
+                        f"Expected key order: {expected_keys}\n"
+                        f"Actual key order:   {actual_keys}"
+                    )

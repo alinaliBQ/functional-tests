@@ -42,15 +42,21 @@ MERGE_OBJECTS_SINGLE_DOC_TESTS: list[AccumulatorTestCase] = [
 MERGE_OBJECTS_MANY_DOCS_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
         "many_docs_disjoint",
-        docs=[{"v": {f"k{i}": i}} for i in range(20)],
-        pipeline=[{"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}}],
+        docs=[{"s": i, "v": {f"k{i}": i}} for i in range(20)],
+        pipeline=[
+            {"$sort": {"s": 1}},
+            {"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}},
+        ],
         expected=[{"_id": None, "result": {f"k{i}": i for i in range(20)}}],
         msg="$mergeObjects should correctly merge 20 documents with disjoint keys",
     ),
     AccumulatorTestCase(
         "many_docs_same_key",
-        docs=[{"v": {"a": i}} for i in range(10)],
-        pipeline=[{"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}}],
+        docs=[{"s": i, "v": {"a": i}} for i in range(10)],
+        pipeline=[
+            {"$sort": {"s": 1}},
+            {"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}},
+        ],
         expected=[{"_id": None, "result": {"a": 9}}],
         msg="$mergeObjects should use last value when many documents share the same key",
     ),
@@ -62,50 +68,71 @@ MERGE_OBJECTS_MANY_DOCS_TESTS: list[AccumulatorTestCase] = [
 MERGE_OBJECTS_SPECIAL_FIELD_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
         "special_unicode_keys",
-        docs=[{"v": {"\u65e5\u672c\u8a9e": 1}}, {"v": {"\u4e2d\u6587": 2}}],
-        pipeline=[{"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}}],
+        docs=[{"s": 1, "v": {"\u65e5\u672c\u8a9e": 1}}, {"s": 2, "v": {"\u4e2d\u6587": 2}}],
+        pipeline=[
+            {"$sort": {"s": 1}},
+            {"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}},
+        ],
         expected=[{"_id": None, "result": {"\u65e5\u672c\u8a9e": 1, "\u4e2d\u6587": 2}}],
         msg="$mergeObjects should preserve Unicode field names",
     ),
     AccumulatorTestCase(
         "special_dollar_prefix",
-        docs=[{"v": {"$a": 1}}, {"v": {"$b": 2}}],
-        pipeline=[{"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}}],
+        docs=[{"s": 1, "v": {"$a": 1}}, {"s": 2, "v": {"$b": 2}}],
+        pipeline=[
+            {"$sort": {"s": 1}},
+            {"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}},
+        ],
         expected=[{"_id": None, "result": {"$a": 1, "$b": 2}}],
         msg="$mergeObjects should preserve dollar-prefixed field names",
     ),
     AccumulatorTestCase(
         "special_dotted_keys",
-        docs=[{"v": {"a.b": 1}}, {"v": {"c.d": 2}}],
-        pipeline=[{"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}}],
+        docs=[{"s": 1, "v": {"a.b": 1}}, {"s": 2, "v": {"c.d": 2}}],
+        pipeline=[
+            {"$sort": {"s": 1}},
+            {"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}},
+        ],
         expected=[{"_id": None, "result": {"a.b": 1, "c.d": 2}}],
         msg="$mergeObjects should preserve dotted field names as literal keys",
     ),
     AccumulatorTestCase(
         "special_empty_string_key",
-        docs=[{"v": {"": 1}}, {"v": {"a": 2}}],
-        pipeline=[{"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}}],
+        docs=[{"s": 1, "v": {"": 1}}, {"s": 2, "v": {"a": 2}}],
+        pipeline=[
+            {"$sort": {"s": 1}},
+            {"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}},
+        ],
         expected=[{"_id": None, "result": {"": 1, "a": 2}}],
         msg="$mergeObjects should preserve empty string field names",
     ),
     AccumulatorTestCase(
         "special_numeric_string_keys",
-        docs=[{"v": {"0": "zero"}}, {"v": {"1": "one"}}],
-        pipeline=[{"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}}],
+        docs=[{"s": 1, "v": {"0": "zero"}}, {"s": 2, "v": {"1": "one"}}],
+        pipeline=[
+            {"$sort": {"s": 1}},
+            {"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}},
+        ],
         expected=[{"_id": None, "result": {"0": "zero", "1": "one"}}],
         msg="$mergeObjects should preserve numeric string field names",
     ),
     AccumulatorTestCase(
         "special_long_field_name",
-        docs=[{"v": {"a" * 200: 1}}, {"v": {"b": 2}}],
-        pipeline=[{"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}}],
+        docs=[{"s": 1, "v": {"a" * 200: 1}}, {"s": 2, "v": {"b": 2}}],
+        pipeline=[
+            {"$sort": {"s": 1}},
+            {"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}},
+        ],
         expected=[{"_id": None, "result": {"a" * 200: 1, "b": 2}}],
         msg="$mergeObjects should preserve very long field names",
     ),
     AccumulatorTestCase(
         "special_dollar_overlap",
-        docs=[{"v": {"$a": 1}}, {"v": {"$a": 99}}],
-        pipeline=[{"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}}],
+        docs=[{"s": 1, "v": {"$a": 1}}, {"s": 2, "v": {"$a": 99}}],
+        pipeline=[
+            {"$sort": {"s": 1}},
+            {"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}},
+        ],
         expected=[{"_id": None, "result": {"$a": 99}}],
         msg="$mergeObjects should apply last-wins to dollar-prefixed overlapping keys",
     ),
@@ -116,15 +143,21 @@ MERGE_OBJECTS_SPECIAL_FIELD_TESTS: list[AccumulatorTestCase] = [
 MERGE_OBJECTS_ID_FIELD_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
         "id_field_merged",
-        docs=[{"v": {"_id": 100, "a": 1}}, {"v": {"b": 2}}],
-        pipeline=[{"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}}],
+        docs=[{"s": 1, "v": {"_id": 100, "a": 1}}, {"s": 2, "v": {"b": 2}}],
+        pipeline=[
+            {"$sort": {"s": 1}},
+            {"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}},
+        ],
         expected=[{"_id": None, "result": {"_id": 100, "a": 1, "b": 2}}],
         msg="$mergeObjects should include _id from merged documents as a normal field",
     ),
     AccumulatorTestCase(
         "id_field_overwritten",
-        docs=[{"v": {"_id": 1, "a": 1}}, {"v": {"_id": 2, "b": 2}}],
-        pipeline=[{"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}}],
+        docs=[{"s": 1, "v": {"_id": 1, "a": 1}}, {"s": 2, "v": {"_id": 2, "b": 2}}],
+        pipeline=[
+            {"$sort": {"s": 1}},
+            {"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}},
+        ],
         expected=[{"_id": None, "result": {"_id": 2, "a": 1, "b": 2}}],
         msg="$mergeObjects should overwrite _id with last value, like any other field",
     ),
@@ -136,20 +169,26 @@ MERGE_OBJECTS_DEEP_NESTING_TESTS: list[AccumulatorTestCase] = [
     AccumulatorTestCase(
         "deep_nesting_preserved",
         docs=[
-            {"v": {"a": {"b": {"c": {"d": {"e": 1}}}}}},
-            {"v": {"f": 2}},
+            {"s": 1, "v": {"a": {"b": {"c": {"d": {"e": 1}}}}}},
+            {"s": 2, "v": {"f": 2}},
         ],
-        pipeline=[{"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}}],
+        pipeline=[
+            {"$sort": {"s": 1}},
+            {"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}},
+        ],
         expected=[{"_id": None, "result": {"a": {"b": {"c": {"d": {"e": 1}}}}, "f": 2}}],
         msg="$mergeObjects should preserve deeply nested document structure",
     ),
     AccumulatorTestCase(
         "deep_nesting_overwrite",
         docs=[
-            {"v": {"a": {"b": {"c": 1}}}},
-            {"v": {"a": {"x": 2}}},
+            {"s": 1, "v": {"a": {"b": {"c": 1}}}},
+            {"s": 2, "v": {"a": {"x": 2}}},
         ],
-        pipeline=[{"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}}],
+        pipeline=[
+            {"$sort": {"s": 1}},
+            {"$group": {"_id": None, "result": {"$mergeObjects": "$v"}}},
+        ],
         expected=[{"_id": None, "result": {"a": {"x": 2}}}],
         msg="$mergeObjects should replace entire nested structure on overwrite",
     ),
@@ -229,3 +268,14 @@ def test_accumulator_mergeObjects_edge_cases(collection, test_case: AccumulatorT
         {"aggregate": collection.name, "pipeline": test_case.pipeline, "cursor": {}},
     )
     assertSuccess(result, test_case.expected, msg=test_case.msg)
+    actual_docs = result["cursor"]["firstBatch"]
+    for actual, exp in zip(actual_docs, test_case.expected):
+        if "result" in exp and isinstance(exp["result"], dict):
+            actual_keys = list(actual["result"].keys())
+            expected_keys = list(exp["result"].keys())
+            if actual_keys != expected_keys:
+                raise AssertionError(
+                    f"[KEY_ORDER_MISMATCH] {test_case.msg}\n"
+                    f"Expected key order: {expected_keys}\n"
+                    f"Actual key order:   {actual_keys}"
+                )
