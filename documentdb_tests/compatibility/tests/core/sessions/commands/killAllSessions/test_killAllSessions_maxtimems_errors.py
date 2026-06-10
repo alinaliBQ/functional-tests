@@ -118,7 +118,10 @@ KILLALLSESSIONS_MAXTIMEMS_RANGE_ERROR_TESTS: list[CommandTestCase] = [
         ("int64_negative", Int64(-1)),
         ("double_negative", -1.0),
         ("decimal128_negative", Decimal128("-1")),
+        ("int32_overflow", INT32_OVERFLOW),
         ("int64_overflow", Int64(INT32_OVERFLOW)),
+        ("double_overflow", float(INT32_OVERFLOW)),
+        ("decimal128_overflow", Decimal128(str(INT32_OVERFLOW))),
         ("int64_max_overflow", Int64(9223372036854775807)),
     ]
 ]
