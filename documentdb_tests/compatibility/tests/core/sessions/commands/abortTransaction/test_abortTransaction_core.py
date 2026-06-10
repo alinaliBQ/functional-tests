@@ -39,12 +39,7 @@ from documentdb_tests.framework.executor import (
 )
 from documentdb_tests.framework.parametrize import pytest_params
 
-# ===========================================================================
-# Outside-transaction error tests (admin db)
-# ===========================================================================
-
 pytestmark = pytest.mark.admin
-
 
 # Property [No-Transaction Error]: abortTransaction outside a transaction fails.
 CORE_NO_TRANSACTION_TESTS: list[SessionCommandTestCase] = [
@@ -130,15 +125,7 @@ def test_abortTransaction_admin_db_required(collection, test):
     assertFailureCode(result, test.error_code, msg=test.msg)
 
 
-# ===========================================================================
-# In-transaction success tests (replica_set)
-# ===========================================================================
-
-
-# ---------------------------------------------------------------------------
 # Property [Abort Rollback]: aborted operations are rolled back.
-# ---------------------------------------------------------------------------
-
 ABORT_ROLLBACK_TESTS: list[AbortSessionTestCase] = [
     AbortSessionTestCase(
         "abort_insert",
@@ -237,10 +224,7 @@ def test_abortTransaction_core_rollback(collection, test):
     assertSuccess(result, test.expected, msg=test.msg)
 
 
-# ---------------------------------------------------------------------------
 # Property [Pre-Transaction Data Survival]: seed data survives abort.
-# ---------------------------------------------------------------------------
-
 PRE_TRANSACTION_TESTS: list[AbortSessionTestCase] = [
     AbortSessionTestCase(
         "pre_existing_data_survives",
@@ -260,10 +244,7 @@ def test_abortTransaction_core_pre_transaction_data(collection, test):
     assertSuccess(result, test.expected, msg=test.msg)
 
 
-# ---------------------------------------------------------------------------
 # Property [Empty Transaction]: aborting a transaction with no ops succeeds.
-# ---------------------------------------------------------------------------
-
 EMPTY_TRANSACTION_TESTS: list[AbortSessionTestCase] = [
     AbortSessionTestCase(
         "abort_empty_transaction",
@@ -281,10 +262,7 @@ def test_abortTransaction_core_empty(collection, test):
     assertNotError(result, msg=test.msg)
 
 
-# ---------------------------------------------------------------------------
 # Property [Response Structure]: abort response contains ok:1 on success.
-# ---------------------------------------------------------------------------
-
 RESPONSE_STRUCTURE_TESTS: list[AbortSessionTestCase] = [
     AbortSessionTestCase(
         "abort_response_ok",
