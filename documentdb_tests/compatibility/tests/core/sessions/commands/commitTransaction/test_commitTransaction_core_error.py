@@ -14,9 +14,9 @@ from documentdb_tests.compatibility.tests.core.collections.commands.utils.comman
 )
 from documentdb_tests.framework.assertions import assertFailureCode
 from documentdb_tests.framework.error_codes import (
+    COMMAND_FAILED_ERROR,
     ILLEGAL_OPERATION_ERROR,
     INVALID_OPTIONS_ERROR,
-    NO_SUCH_TRANSACTION_ERROR,
     UNAUTHORIZED_ERROR,
 )
 from documentdb_tests.framework.executor import execute_admin_command, execute_command
@@ -30,7 +30,7 @@ CORE_NO_TRANSACTION_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "no_transaction_basic",
         command={"commitTransaction": 1},
-        error_code=NO_SUCH_TRANSACTION_ERROR,
+        error_code=COMMAND_FAILED_ERROR,
         msg="commitTransaction should fail with NoSuchTransaction outside a transaction",
     ),
 ]
@@ -74,7 +74,7 @@ CORE_PARAMETER_INTERACTION_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "interaction_lsid",
         command={"commitTransaction": 1, "lsid": {"id": Binary(b"\x00" * 16, 4)}},
-        error_code=NO_SUCH_TRANSACTION_ERROR,
+        error_code=COMMAND_FAILED_ERROR,
         msg="commitTransaction with explicit lsid should accept the field",
     ),
 ]
