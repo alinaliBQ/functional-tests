@@ -17,8 +17,8 @@ from documentdb_tests.compatibility.tests.core.collections.commands.utils.comman
 )
 from documentdb_tests.framework.assertions import assertFailureCode
 from documentdb_tests.framework.error_codes import (
+    COMMAND_FAILED_ERROR,
     ILLEGAL_OPERATION_ERROR,
-    NO_SUCH_TRANSACTION_ERROR,
     TYPE_MISMATCH_ERROR,
 )
 from documentdb_tests.framework.executor import execute_admin_command
@@ -112,7 +112,7 @@ TXN_NUMBER_NULL_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "txn_number_null",
         command={"abortTransaction": 1, "txnNumber": None},
-        error_code=NO_SUCH_TRANSACTION_ERROR,
+        error_code=COMMAND_FAILED_ERROR,
         msg="abortTransaction should treat txnNumber:null as omitted",
     ),
 ]

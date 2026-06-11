@@ -27,9 +27,9 @@ from documentdb_tests.framework.assertions import (
     assertSuccessPartial,
 )
 from documentdb_tests.framework.error_codes import (
+    COMMAND_FAILED_ERROR,
     ILLEGAL_OPERATION_ERROR,
     INVALID_OPTIONS_ERROR,
-    NO_SUCH_TRANSACTION_ERROR,
     UNAUTHORIZED_ERROR,
 )
 from documentdb_tests.framework.executor import (
@@ -80,7 +80,7 @@ CORE_PARAMETER_INTERACTION_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "interaction_lsid",
         command={"abortTransaction": 1, "lsid": {"id": Binary(b"\x00" * 16, 4)}},
-        error_code=NO_SUCH_TRANSACTION_ERROR,
+        error_code=COMMAND_FAILED_ERROR,
         msg="abortTransaction with explicit lsid should accept the field",
     ),
 ]

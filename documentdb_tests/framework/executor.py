@@ -168,7 +168,23 @@ def execute_abort_session_command(collection, test_case) -> Any:
 
     # 5. Return abort response or readback.
     if test_case.expected_response is not None:
-        execute_command(collection, {"find": collection.name, "filter": {}})
+        # Verify that aborted data did NOT persist (the raw admin
+        # command path bypasses pymongo's session bookkeeping; we
+        # assert rollback explicitly by checking that transacted
+        # inserts are not visible after abort).
+        if not isinstance(abort_result, Exception) and test_case.ops:
+            readback = execute_command(
+                collection,
+                {"find": collection.name, "filter": test_case.readback_filter},
+            )
+            assert not isinstance(readback, Exception), f"Readback after abort failed: {readback}"
+            cursor = readback.get("cursor", {})
+            docs = cursor.get("firstBatch", [])
+            seed_count = len(test_case.docs) if test_case.docs else 0
+            assert len(docs) == seed_count, (
+                f"Aborted transaction data persisted — "
+                f"expected {seed_count} docs (seed only), got {len(docs)}"
+            )
         return abort_result
 
     return execute_command(
