@@ -16,8 +16,8 @@ from documentdb_tests.compatibility.tests.core.collections.commands.utils.comman
 )
 from documentdb_tests.framework.assertions import assertFailureCode
 from documentdb_tests.framework.error_codes import (
+    COMMAND_FAILED_ERROR,
     INVALID_OPTIONS_ERROR,
-    NO_SUCH_TRANSACTION_ERROR,
     TYPE_MISMATCH_ERROR,
 )
 from documentdb_tests.framework.executor import execute_admin_command
@@ -99,7 +99,7 @@ AUTOCOMMIT_NULL_TESTS: list[CommandTestCase] = [
     CommandTestCase(
         "autocommit_null",
         command={"commitTransaction": 1, "autocommit": None},
-        error_code=NO_SUCH_TRANSACTION_ERROR,
+        error_code=COMMAND_FAILED_ERROR,
         msg="commitTransaction should treat autocommit:null as omitted",
     ),
 ]
