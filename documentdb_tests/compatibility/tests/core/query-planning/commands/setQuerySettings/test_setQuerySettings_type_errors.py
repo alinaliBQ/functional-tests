@@ -8,12 +8,14 @@ and the indexHints namespace and allowedIndexes sub-fields.
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any
 
 import pytest
 from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
-from pymongo.collection import Collection
 
+from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
+    AdminCommandTestCase,
+    CommandContext,
+)
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
     FAILED_TO_PARSE_ERROR,
@@ -21,351 +23,259 @@ from documentdb_tests.framework.error_codes import (
     TYPE_MISMATCH_ERROR,
 )
 from documentdb_tests.framework.executor import execute_admin_command
+from documentdb_tests.framework.parametrize import pytest_params
+
+# -- helpers ------------------------------------------------------------------
+
+
+def _default_settings(ctx: CommandContext) -> dict:
+    """Build the standard indexHints settings block."""
+    return {
+        "indexHints": [
+            {
+                "ns": {"db": ctx.database, "coll": ctx.collection},
+                "allowedIndexes": ["_id_"],
+            }
+        ],
+    }
+
+
+def _default_query(ctx: CommandContext) -> dict:
+    """Build a minimal valid query shape."""
+    return {
+        "find": ctx.collection,
+        "filter": {"x": 1},
+        "$db": ctx.database,
+    }
+
 
 # Property [Primary Argument Type Rejection]: the setQuerySettings field must
 # be a document (query shape) or string (hash). All other BSON types are
 # rejected with TYPE_MISMATCH_ERROR.
-_PRIMARY_ARG_INVALID_TYPES: list[tuple[str, Any]] = [
-    ("null", None),
-    ("int32", 42),
-    ("int64", Int64(42)),
-    ("double", 3.14),
-    ("decimal128", Decimal128("1")),
-    ("bool_true", True),
-    ("bool_false", False),
-    ("array", [1, 2, 3]),
-    ("objectid", ObjectId()),
-    ("datetime", datetime(2024, 1, 1, tzinfo=timezone.utc)),
-    ("timestamp", Timestamp(0, 0)),
-    ("binary", Binary(b"\x00")),
-    ("regex", Regex(".*")),
-    ("code", Code("function(){}")),
-    ("minkey", MinKey()),
-    ("maxkey", MaxKey()),
+SET_QUERY_SETTINGS_PRIMARY_ARG_TYPE_TESTS: list[AdminCommandTestCase] = [
+    AdminCommandTestCase(
+        f"primary_arg_{tid}",
+        command=lambda ctx, v=value: {
+            "setQuerySettings": v,
+            "settings": _default_settings(ctx),
+        },
+        error_code=TYPE_MISMATCH_ERROR,
+        msg=f"setQuerySettings should reject {tid} as the primary argument",
+    )
+    for tid, value in [
+        ("null", None),
+        ("int32", 42),
+        ("int64", Int64(42)),
+        ("double", 3.14),
+        ("decimal128", Decimal128("1")),
+        ("bool_true", True),
+        ("bool_false", False),
+        ("array", [1, 2, 3]),
+        ("objectid", ObjectId()),
+        ("datetime", datetime(2024, 1, 1, tzinfo=timezone.utc)),
+        ("timestamp", Timestamp(0, 0)),
+        ("binary", Binary(b"\x00")),
+        ("regex", Regex(".*")),
+        ("code", Code("function(){}")),
+        ("minkey", MinKey()),
+        ("maxkey", MaxKey()),
+    ]
 ]
 
 # Property [queryFramework Type Rejection]: the queryFramework field must be a
 # string. Non-string BSON types are rejected with TYPE_MISMATCH_ERROR.
-_QUERY_FRAMEWORK_INVALID_TYPES: list[tuple[str, Any]] = [
-    ("int32", 42),
-    ("int64", Int64(42)),
-    ("double", 3.14),
-    ("decimal128", Decimal128("1")),
-    ("bool_true", True),
-    ("bool_false", False),
-    ("array", [1]),
-    ("object", {"k": "v"}),
-    ("objectid", ObjectId()),
-    ("datetime", datetime(2024, 1, 1, tzinfo=timezone.utc)),
-    ("timestamp", Timestamp(0, 0)),
-    ("binary", Binary(b"\x00")),
-    ("regex", Regex(".*")),
-    ("code", Code("function(){}")),
-    ("minkey", MinKey()),
-    ("maxkey", MaxKey()),
+SET_QUERY_SETTINGS_QUERY_FRAMEWORK_TYPE_TESTS: list[AdminCommandTestCase] = [
+    AdminCommandTestCase(
+        f"query_framework_{tid}",
+        command=lambda ctx, v=value: {
+            "setQuerySettings": _default_query(ctx),
+            "settings": {**_default_settings(ctx), "queryFramework": v},
+        },
+        error_code=TYPE_MISMATCH_ERROR,
+        msg=f"setQuerySettings should reject {tid} as queryFramework",
+    )
+    for tid, value in [
+        ("int32", 42),
+        ("int64", Int64(42)),
+        ("double", 3.14),
+        ("decimal128", Decimal128("1")),
+        ("bool_true", True),
+        ("bool_false", False),
+        ("array", [1]),
+        ("object", {"k": "v"}),
+        ("objectid", ObjectId()),
+        ("datetime", datetime(2024, 1, 1, tzinfo=timezone.utc)),
+        ("timestamp", Timestamp(0, 0)),
+        ("binary", Binary(b"\x00")),
+        ("regex", Regex(".*")),
+        ("code", Code("function(){}")),
+        ("minkey", MinKey()),
+        ("maxkey", MaxKey()),
+    ]
 ]
 
 # Property [reject Type Rejection]: the reject field must be a boolean.
 # Non-boolean BSON types are rejected with TYPE_MISMATCH_ERROR.
-_REJECT_INVALID_TYPES: list[tuple[str, Any]] = [
-    ("null", None),
-    ("int32", 42),
-    ("int64", Int64(42)),
-    ("double", 3.14),
-    ("decimal128", Decimal128("1")),
-    ("string", "true"),
-    ("array", [True]),
-    ("object", {"k": "v"}),
-    ("objectid", ObjectId()),
-    ("datetime", datetime(2024, 1, 1, tzinfo=timezone.utc)),
-    ("timestamp", Timestamp(0, 0)),
-    ("binary", Binary(b"\x00")),
-    ("regex", Regex(".*")),
-    ("code", Code("function(){}")),
-    ("minkey", MinKey()),
-    ("maxkey", MaxKey()),
-]
-
-# Property [indexHints.ns.db Type Rejection]: the ns.db field must be a string.
-_NS_DB_INVALID_TYPES: list[tuple[str, Any]] = [
-    ("int32", 42),
-    ("bool", True),
-    ("array", ["test"]),
-    ("object", {"k": "v"}),
-]
-
-# Property [indexHints.ns.coll Type Rejection]: the ns.coll field must be a string.
-_NS_COLL_INVALID_TYPES: list[tuple[str, Any]] = [
-    ("int32", 42),
-    ("bool", True),
-]
-
-# Property [indexHints.allowedIndexes Type Rejection]: allowedIndexes must be an array.
-_ALLOWED_INDEXES_INVALID_TYPES: list[tuple[str, Any]] = [
-    ("string", "_id_"),
-    ("int32", 42),
-]
-
-
-@pytest.mark.admin
-@pytest.mark.replica_set
-@pytest.mark.parametrize(
-    "tid, value",
-    _PRIMARY_ARG_INVALID_TYPES,
-    ids=[t[0] for t in _PRIMARY_ARG_INVALID_TYPES],
-)
-def test_setQuerySettings_primary_arg_type_rejection(collection: Collection, tid: str, value: Any):
-    """Test setQuerySettings rejects invalid BSON types for the primary argument."""
-    result = execute_admin_command(
-        collection,
-        {
-            "setQuerySettings": value,
-            "settings": {
-                "indexHints": [
-                    {
-                        "ns": {"db": collection.database.name, "coll": collection.name},
-                        "allowedIndexes": ["_id_"],
-                    }
-                ],
-            },
+SET_QUERY_SETTINGS_REJECT_TYPE_TESTS: list[AdminCommandTestCase] = [
+    AdminCommandTestCase(
+        f"reject_{tid}",
+        command=lambda ctx, v=value: {
+            "setQuerySettings": _default_query(ctx),
+            "settings": {**_default_settings(ctx), "reject": v},
         },
-    )
-    assertResult(
-        result,
-        error_code=TYPE_MISMATCH_ERROR,
-        msg=f"setQuerySettings should reject {tid} as the primary argument",
-    )
-
-
-@pytest.mark.admin
-@pytest.mark.replica_set
-@pytest.mark.parametrize(
-    "tid, value",
-    _QUERY_FRAMEWORK_INVALID_TYPES,
-    ids=[t[0] for t in _QUERY_FRAMEWORK_INVALID_TYPES],
-)
-def test_setQuerySettings_query_framework_type_rejection(
-    collection: Collection, tid: str, value: Any
-):
-    """Test setQuerySettings rejects invalid BSON types for queryFramework."""
-    result = execute_admin_command(
-        collection,
-        {
-            "setQuerySettings": {
-                "find": collection.name,
-                "filter": {"x": 1},
-                "$db": collection.database.name,
-            },
-            "settings": {
-                "indexHints": [
-                    {
-                        "ns": {"db": collection.database.name, "coll": collection.name},
-                        "allowedIndexes": ["_id_"],
-                    }
-                ],
-                "queryFramework": value,
-            },
-        },
-    )
-    assertResult(
-        result,
-        error_code=TYPE_MISMATCH_ERROR,
-        msg=f"setQuerySettings should reject {tid} as queryFramework",
-    )
-
-
-@pytest.mark.admin
-@pytest.mark.replica_set
-@pytest.mark.parametrize(
-    "tid, value",
-    _REJECT_INVALID_TYPES,
-    ids=[t[0] for t in _REJECT_INVALID_TYPES],
-)
-def test_setQuerySettings_reject_type_rejection(collection: Collection, tid: str, value: Any):
-    """Test setQuerySettings rejects invalid BSON types for reject field."""
-    result = execute_admin_command(
-        collection,
-        {
-            "setQuerySettings": {
-                "find": collection.name,
-                "filter": {"x": 1},
-                "$db": collection.database.name,
-            },
-            "settings": {
-                "indexHints": [
-                    {
-                        "ns": {"db": collection.database.name, "coll": collection.name},
-                        "allowedIndexes": ["_id_"],
-                    }
-                ],
-                "reject": value,
-            },
-        },
-    )
-    assertResult(
-        result,
         error_code=TYPE_MISMATCH_ERROR,
         msg=f"setQuerySettings should reject {tid} as reject field",
     )
+    for tid, value in [
+        ("null", None),
+        ("int32", 42),
+        ("int64", Int64(42)),
+        ("double", 3.14),
+        ("decimal128", Decimal128("1")),
+        ("string", "true"),
+        ("array", [True]),
+        ("object", {"k": "v"}),
+        ("objectid", ObjectId()),
+        ("datetime", datetime(2024, 1, 1, tzinfo=timezone.utc)),
+        ("timestamp", Timestamp(0, 0)),
+        ("binary", Binary(b"\x00")),
+        ("regex", Regex(".*")),
+        ("code", Code("function(){}")),
+        ("minkey", MinKey()),
+        ("maxkey", MaxKey()),
+    ]
+]
 
-
-@pytest.mark.admin
-@pytest.mark.replica_set
-@pytest.mark.parametrize(
-    "tid, value",
-    _NS_DB_INVALID_TYPES,
-    ids=[t[0] for t in _NS_DB_INVALID_TYPES],
-)
-def test_setQuerySettings_ns_db_type_rejection(collection: Collection, tid: str, value: Any):
-    """Test setQuerySettings rejects invalid BSON types for indexHints.ns.db."""
-    result = execute_admin_command(
-        collection,
-        {
-            "setQuerySettings": {
-                "find": collection.name,
-                "filter": {"x": 1},
-                "$db": collection.database.name,
-            },
+# Property [indexHints.ns.db Type Rejection]: the ns.db field must be a string.
+SET_QUERY_SETTINGS_NS_DB_TYPE_TESTS: list[AdminCommandTestCase] = [
+    AdminCommandTestCase(
+        f"ns_db_{tid}",
+        command=lambda ctx, v=value: {
+            "setQuerySettings": _default_query(ctx),
             "settings": {
                 "indexHints": [
                     {
-                        "ns": {"db": value, "coll": collection.name},
+                        "ns": {"db": v, "coll": ctx.collection},
                         "allowedIndexes": ["_id_"],
                     }
                 ],
             },
         },
-    )
-    assertResult(
-        result,
         error_code=TYPE_MISMATCH_ERROR,
         msg=f"setQuerySettings should reject {tid} as indexHints.ns.db",
     )
+    for tid, value in [
+        ("int32", 42),
+        ("bool", True),
+        ("array", ["test"]),
+        ("object", {"k": "v"}),
+    ]
+]
 
-
-@pytest.mark.admin
-@pytest.mark.replica_set
-@pytest.mark.parametrize(
-    "tid, value",
-    _NS_COLL_INVALID_TYPES,
-    ids=[t[0] for t in _NS_COLL_INVALID_TYPES],
-)
-def test_setQuerySettings_ns_coll_type_rejection(collection: Collection, tid: str, value: Any):
-    """Test setQuerySettings rejects invalid BSON types for indexHints.ns.coll."""
-    result = execute_admin_command(
-        collection,
-        {
-            "setQuerySettings": {
-                "find": collection.name,
-                "filter": {"x": 1},
-                "$db": collection.database.name,
-            },
+# Property [indexHints.ns.coll Type Rejection]: the ns.coll field must be a string.
+SET_QUERY_SETTINGS_NS_COLL_TYPE_TESTS: list[AdminCommandTestCase] = [
+    AdminCommandTestCase(
+        f"ns_coll_{tid}",
+        command=lambda ctx, v=value: {
+            "setQuerySettings": _default_query(ctx),
             "settings": {
                 "indexHints": [
                     {
-                        "ns": {"db": collection.database.name, "coll": value},
+                        "ns": {"db": ctx.database, "coll": v},
                         "allowedIndexes": ["_id_"],
                     }
                 ],
             },
         },
-    )
-    assertResult(
-        result,
         error_code=TYPE_MISMATCH_ERROR,
         msg=f"setQuerySettings should reject {tid} as indexHints.ns.coll",
     )
+    for tid, value in [
+        ("int32", 42),
+        ("bool", True),
+    ]
+]
 
-
-@pytest.mark.admin
-@pytest.mark.replica_set
-@pytest.mark.parametrize(
-    "tid, value",
-    _ALLOWED_INDEXES_INVALID_TYPES,
-    ids=[t[0] for t in _ALLOWED_INDEXES_INVALID_TYPES],
-)
-def test_setQuerySettings_allowed_indexes_type_rejection(
-    collection: Collection, tid: str, value: Any
-):
-    """Test setQuerySettings rejects invalid BSON types for indexHints.allowedIndexes."""
-    result = execute_admin_command(
-        collection,
-        {
-            "setQuerySettings": {
-                "find": collection.name,
-                "filter": {"x": 1},
-                "$db": collection.database.name,
-            },
+# Property [indexHints.allowedIndexes Type Rejection]: allowedIndexes must be an array.
+SET_QUERY_SETTINGS_ALLOWED_INDEXES_TYPE_TESTS: list[AdminCommandTestCase] = [
+    AdminCommandTestCase(
+        f"allowed_indexes_{tid}",
+        command=lambda ctx, v=value: {
+            "setQuerySettings": _default_query(ctx),
             "settings": {
                 "indexHints": [
                     {
-                        "ns": {"db": collection.database.name, "coll": collection.name},
-                        "allowedIndexes": value,
+                        "ns": {"db": ctx.database, "coll": ctx.collection},
+                        "allowedIndexes": v,
                     }
                 ],
             },
         },
-    )
-    assertResult(
-        result,
         error_code=TYPE_MISMATCH_ERROR,
         msg=f"setQuerySettings should reject {tid} as indexHints.allowedIndexes",
     )
+    for tid, value in [
+        ("string", "_id_"),
+        ("int32", 42),
+    ]
+]
 
-
-@pytest.mark.admin
-@pytest.mark.replica_set
-def test_setQuerySettings_allowed_indexes_null_missing(collection: Collection):
-    """Test setQuerySettings rejects null allowedIndexes as missing required field."""
-    result = execute_admin_command(
-        collection,
-        {
-            "setQuerySettings": {
-                "find": collection.name,
-                "filter": {"x": 1},
-                "$db": collection.database.name,
-            },
+# Property [allowedIndexes null]: null allowedIndexes treated as missing required field.
+SET_QUERY_SETTINGS_ALLOWED_INDEXES_EDGE_TESTS: list[AdminCommandTestCase] = [
+    AdminCommandTestCase(
+        "allowed_indexes_null_missing",
+        command=lambda ctx: {
+            "setQuerySettings": _default_query(ctx),
             "settings": {
                 "indexHints": [
                     {
-                        "ns": {"db": collection.database.name, "coll": collection.name},
+                        "ns": {"db": ctx.database, "coll": ctx.collection},
                         "allowedIndexes": None,
                     }
                 ],
             },
         },
-    )
-    assertResult(
-        result,
         error_code=MISSING_FIELD_ERROR,
         msg="setQuerySettings should reject null allowedIndexes as missing field",
-    )
-
-
-@pytest.mark.admin
-@pytest.mark.replica_set
-def test_setQuerySettings_allowed_indexes_non_string_element(collection: Collection):
-    """Test setQuerySettings rejects non-string elements in allowedIndexes array."""
-    result = execute_admin_command(
-        collection,
-        {
-            "setQuerySettings": {
-                "find": collection.name,
-                "filter": {"x": 1},
-                "$db": collection.database.name,
-            },
+    ),
+    AdminCommandTestCase(
+        "allowed_indexes_non_string_element",
+        command=lambda ctx: {
+            "setQuerySettings": _default_query(ctx),
             "settings": {
                 "indexHints": [
                     {
-                        "ns": {"db": collection.database.name, "coll": collection.name},
+                        "ns": {"db": ctx.database, "coll": ctx.collection},
                         "allowedIndexes": [42],
                     }
                 ],
             },
         },
-    )
-    assertResult(
-        result,
         error_code=FAILED_TO_PARSE_ERROR,
         msg="setQuerySettings should reject non-string elements in allowedIndexes",
+    ),
+]
+
+SET_QUERY_SETTINGS_TYPE_ERROR_TESTS: list[AdminCommandTestCase] = (
+    SET_QUERY_SETTINGS_PRIMARY_ARG_TYPE_TESTS
+    + SET_QUERY_SETTINGS_QUERY_FRAMEWORK_TYPE_TESTS
+    + SET_QUERY_SETTINGS_REJECT_TYPE_TESTS
+    + SET_QUERY_SETTINGS_NS_DB_TYPE_TESTS
+    + SET_QUERY_SETTINGS_NS_COLL_TYPE_TESTS
+    + SET_QUERY_SETTINGS_ALLOWED_INDEXES_TYPE_TESTS
+    + SET_QUERY_SETTINGS_ALLOWED_INDEXES_EDGE_TESTS
+)
+
+
+@pytest.mark.admin
+@pytest.mark.replica_set
+@pytest.mark.parametrize("test", pytest_params(SET_QUERY_SETTINGS_TYPE_ERROR_TESTS))
+def test_setQuerySettings_type_errors(collection, test):
+    """Test setQuerySettings BSON type rejection."""
+    ctx = CommandContext.from_collection(collection)
+    result = execute_admin_command(collection, test.build_command(ctx))
+    assertResult(
+        result,
+        error_code=test.error_code,
+        msg=test.msg,
     )

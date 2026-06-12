@@ -1,4 +1,4 @@
-"""Shared test case for collection command tests."""
+"""Shared test case for collection and admin command tests."""
 
 from __future__ import annotations
 
@@ -118,3 +118,31 @@ class CommandTestCase(BaseTestCase):
         if self.expected is None or isinstance(self.expected, (dict, list)):
             return self.expected
         return self.expected(ctx)
+
+
+@dataclass(frozen=True)
+class AdminCommandTestCase(CommandTestCase):
+    """Test case for admin-level commands (e.g. setQuerySettings).
+
+    Admin commands run against the ``admin`` database via
+    ``execute_admin_command`` rather than against a specific collection's
+    database.  They often need post-test cleanup (e.g. removing query
+    settings that were created).
+
+    Attributes:
+        setup: Optional callable ``(Collection) -> None`` executed before
+            the command. Use for any prerequisite admin operations.
+        cleanup: Optional callable ``(CommandContext) -> list[dict]``
+            returning admin commands to run after the test.  Each dict
+            is passed to ``execute_admin_command`` inside a try/except
+            so cleanup failures are silently ignored.
+    """
+
+    setup: Callable[[Collection], Any] | None = None
+    cleanup: Callable[[CommandContext], list[dict[str, Any]]] | None = None
+
+    def build_cleanup(self, ctx: CommandContext) -> list[dict[str, Any]]:
+        """Resolve cleanup commands from the callable, or return empty list."""
+        if self.cleanup is None:
+            return []
+        return self.cleanup(ctx)
