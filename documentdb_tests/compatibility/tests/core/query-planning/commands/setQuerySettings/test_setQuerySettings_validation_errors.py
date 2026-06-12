@@ -16,6 +16,7 @@ from documentdb_tests.framework.error_codes import (
     INVALID_NAMESPACE_ERROR,
     MISSING_FIELD_ERROR,
     QUERYSETTINGS_EMPTY_SETTINGS_ERROR,
+    QUERYSETTINGS_IDHACK_QUERY_ERROR,
     QUERYSETTINGS_INTERNAL_DB_ERROR,
     QUERYSETTINGS_NS_COLL_MISSING_ERROR,
     QUERYSETTINGS_NS_DB_MISSING_ERROR,
@@ -27,6 +28,7 @@ from documentdb_tests.framework.error_codes import (
 from documentdb_tests.framework.executor import execute_admin_command
 
 
+# Property [Query Shape Validation]: rejects malformed or unknown query shape documents.
 @pytest.mark.admin
 @pytest.mark.replica_set
 def test_setQuerySettings_query_shape_missing_db(collection: Collection):
@@ -113,6 +115,7 @@ def test_setQuerySettings_query_shape_unknown_command(collection: Collection):
     )
 
 
+# Property [Hash String Validation]: rejects invalid hash string formats.
 @pytest.mark.admin
 @pytest.mark.replica_set
 def test_setQuerySettings_empty_hash_string(collection: Collection):
@@ -138,6 +141,7 @@ def test_setQuerySettings_empty_hash_string(collection: Collection):
     )
 
 
+# Property [indexHints Structure Validation]: rejects indexHints missing required sub-fields.
 @pytest.mark.admin
 @pytest.mark.replica_set
 def test_setQuerySettings_indexHints_missing_ns(collection: Collection):
@@ -224,6 +228,7 @@ def test_setQuerySettings_indexHints_ns_missing_coll(collection: Collection):
     )
 
 
+# Property [Settings Value Validation]: rejects invalid field values in settings document.
 @pytest.mark.admin
 @pytest.mark.replica_set
 def test_setQuerySettings_invalid_query_framework_value(collection: Collection):
@@ -276,6 +281,7 @@ def test_setQuerySettings_reject_false_only(collection: Collection):
     )
 
 
+# Property [Settings Presence]: rejects missing or empty settings document.
 @pytest.mark.admin
 @pytest.mark.replica_set
 def test_setQuerySettings_missing_settings(collection: Collection):
@@ -319,6 +325,7 @@ def test_setQuerySettings_empty_settings(collection: Collection):
     )
 
 
+# Property [Unrecognized Fields]: rejects unknown top-level command fields.
 @pytest.mark.admin
 @pytest.mark.replica_set
 def test_setQuerySettings_unrecognized_top_level_field(collection: Collection):
@@ -349,6 +356,7 @@ def test_setQuerySettings_unrecognized_top_level_field(collection: Collection):
     )
 
 
+# Property [Database Restrictions]: rejects query shapes targeting internal databases.
 @pytest.mark.admin
 @pytest.mark.replica_set
 def test_setQuerySettings_system_collection(collection: Collection):
@@ -404,4 +412,63 @@ def test_setQuerySettings_local_database(collection: Collection):
         result,
         error_code=QUERYSETTINGS_INTERNAL_DB_ERROR,
         msg="setQuerySettings should reject query shapes on local database",
+    )
+
+
+# Property [indexHints Value Validation]: rejects empty allowedIndexes and IDHACK queries.
+@pytest.mark.admin
+@pytest.mark.replica_set
+def test_setQuerySettings_indexHints_empty_allowed_rejected(collection: Collection):
+    """Test setQuerySettings rejects indexHints with empty allowedIndexes."""
+    result = execute_admin_command(
+        collection,
+        {
+            "setQuerySettings": {
+                "find": collection.name,
+                "filter": {"a4": 1},
+                "$db": collection.database.name,
+            },
+            "settings": {
+                "indexHints": [
+                    {
+                        "ns": {"db": collection.database.name, "coll": collection.name},
+                        "allowedIndexes": [],
+                    }
+                ],
+            },
+        },
+    )
+    assertResult(
+        result,
+        error_code=QUERYSETTINGS_REJECT_ONLY_ERROR,
+        msg="setQuerySettings should reject indexHints with empty allowedIndexes",
+    )
+
+
+@pytest.mark.admin
+@pytest.mark.replica_set
+def test_setQuerySettings_idhack_query_rejected(collection: Collection):
+    """Test setQuerySettings rejects queries eligible for IDHACK optimization."""
+    result = execute_admin_command(
+        collection,
+        {
+            "setQuerySettings": {
+                "find": collection.name,
+                "filter": {"_id": 1},
+                "$db": collection.database.name,
+            },
+            "settings": {
+                "indexHints": [
+                    {
+                        "ns": {"db": collection.database.name, "coll": collection.name},
+                        "allowedIndexes": ["_id_"],
+                    }
+                ],
+            },
+        },
+    )
+    assertResult(
+        result,
+        error_code=QUERYSETTINGS_IDHACK_QUERY_ERROR,
+        msg="setQuerySettings should reject IDHACK-eligible queries",
     )

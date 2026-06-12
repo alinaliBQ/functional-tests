@@ -13,17 +13,10 @@ from pymongo.collection import Collection
 from documentdb_tests.framework.assertions import assertSuccessPartial
 from documentdb_tests.framework.executor import execute_admin_command
 
-
-def _cleanup(collection: Collection, queries: list[dict]) -> None:
-    """Remove all query settings created during the test."""
-    admin = collection.database.client.admin
-    for q in queries:
-        try:
-            admin.command({"removeQuerySettings": q})
-        except Exception:
-            pass
+from .utils.setQuerySettings_common import cleanup_query_settings
 
 
+# Property [Command Shape Acceptance]: accepts find, distinct, and aggregate shapes.
 @pytest.mark.admin
 @pytest.mark.replica_set
 def test_setQuerySettings_find_shape(collection: Collection):
@@ -55,7 +48,7 @@ def test_setQuerySettings_find_shape(collection: Collection):
             msg="should accept valid find shape",
         )
     finally:
-        _cleanup(collection, [query])
+        cleanup_query_settings(collection, [query])
 
 
 @pytest.mark.admin
@@ -89,7 +82,7 @@ def test_setQuerySettings_distinct_shape(collection: Collection):
             msg="should accept valid distinct shape",
         )
     finally:
-        _cleanup(collection, [query])
+        cleanup_query_settings(collection, [query])
 
 
 @pytest.mark.admin
@@ -122,9 +115,10 @@ def test_setQuerySettings_aggregate_shape(collection: Collection):
             msg="should accept valid aggregate shape",
         )
     finally:
-        _cleanup(collection, [query])
+        cleanup_query_settings(collection, [query])
 
 
+# Property [Find Shape Variations]: setQuerySettings accepts find shapes with various field combos.
 @pytest.mark.admin
 @pytest.mark.replica_set
 def test_setQuerySettings_find_filter_only(collection: Collection):
@@ -155,7 +149,7 @@ def test_setQuerySettings_find_filter_only(collection: Collection):
             msg="should accept find with filter only",
         )
     finally:
-        _cleanup(collection, [query])
+        cleanup_query_settings(collection, [query])
 
 
 @pytest.mark.admin
@@ -189,7 +183,7 @@ def test_setQuerySettings_find_filter_sort(collection: Collection):
             msg="should accept find with filter+sort",
         )
     finally:
-        _cleanup(collection, [query])
+        cleanup_query_settings(collection, [query])
 
 
 @pytest.mark.admin
@@ -223,7 +217,7 @@ def test_setQuerySettings_find_filter_projection(collection: Collection):
             msg="should accept find with filter+projection",
         )
     finally:
-        _cleanup(collection, [query])
+        cleanup_query_settings(collection, [query])
 
 
 @pytest.mark.admin
@@ -258,7 +252,7 @@ def test_setQuerySettings_find_filter_sort_projection(collection: Collection):
             msg="should accept find with all fields",
         )
     finally:
-        _cleanup(collection, [query])
+        cleanup_query_settings(collection, [query])
 
 
 @pytest.mark.admin
@@ -292,7 +286,7 @@ def test_setQuerySettings_find_with_collation(collection: Collection):
             msg="should accept find with collation",
         )
     finally:
-        _cleanup(collection, [query])
+        cleanup_query_settings(collection, [query])
 
 
 @pytest.mark.admin
@@ -326,7 +320,7 @@ def test_setQuerySettings_find_with_let(collection: Collection):
             msg="should accept find with let",
         )
     finally:
-        _cleanup(collection, [query])
+        cleanup_query_settings(collection, [query])
 
 
 @pytest.mark.admin
@@ -360,9 +354,10 @@ def test_setQuerySettings_find_with_limit(collection: Collection):
             msg="should accept find with limit",
         )
     finally:
-        _cleanup(collection, [query])
+        cleanup_query_settings(collection, [query])
 
 
+# Property [Distinct Shape Variations]: setQuerySettings accepts distinct shapes with query combos.
 @pytest.mark.admin
 @pytest.mark.replica_set
 def test_setQuerySettings_distinct_key_only(collection: Collection):
@@ -393,7 +388,7 @@ def test_setQuerySettings_distinct_key_only(collection: Collection):
             msg="should accept distinct key only",
         )
     finally:
-        _cleanup(collection, [query])
+        cleanup_query_settings(collection, [query])
 
 
 @pytest.mark.admin
@@ -427,9 +422,10 @@ def test_setQuerySettings_distinct_complex_query(collection: Collection):
             msg="should accept distinct complex query",
         )
     finally:
-        _cleanup(collection, [query])
+        cleanup_query_settings(collection, [query])
 
 
+# Property [Aggregate Shape Variations]: setQuerySettings accepts aggregate pipeline shapes.
 @pytest.mark.admin
 @pytest.mark.replica_set
 def test_setQuerySettings_aggregate_match_only(collection: Collection):
@@ -460,7 +456,7 @@ def test_setQuerySettings_aggregate_match_only(collection: Collection):
             msg="should accept aggregate $match only",
         )
     finally:
-        _cleanup(collection, [query])
+        cleanup_query_settings(collection, [query])
 
 
 @pytest.mark.admin
@@ -493,7 +489,7 @@ def test_setQuerySettings_aggregate_match_group(collection: Collection):
             msg="should accept aggregate $match+$group",
         )
     finally:
-        _cleanup(collection, [query])
+        cleanup_query_settings(collection, [query])
 
 
 @pytest.mark.admin
@@ -526,9 +522,10 @@ def test_setQuerySettings_aggregate_match_sort_limit(collection: Collection):
             msg="should accept aggregate $match+$sort+$limit",
         )
     finally:
-        _cleanup(collection, [query])
+        cleanup_query_settings(collection, [query])
 
 
+# Property [$db Field Variations]: setQuerySettings accepts non-existent and special-char db names.
 @pytest.mark.admin
 @pytest.mark.replica_set
 def test_setQuerySettings_db_nonexistent(collection: Collection):
@@ -562,7 +559,7 @@ def test_setQuerySettings_db_nonexistent(collection: Collection):
             msg="should accept non-existent $db",
         )
     finally:
-        _cleanup(collection, [query])
+        cleanup_query_settings(collection, [query])
 
 
 @pytest.mark.admin
@@ -595,4 +592,4 @@ def test_setQuerySettings_db_special_characters(collection: Collection):
             msg="should accept $db with special chars",
         )
     finally:
-        _cleanup(collection, [query])
+        cleanup_query_settings(collection, [query])

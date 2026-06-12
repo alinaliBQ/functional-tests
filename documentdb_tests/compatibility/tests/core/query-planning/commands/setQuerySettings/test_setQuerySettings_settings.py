@@ -10,24 +10,13 @@ from __future__ import annotations
 import pytest
 from pymongo.collection import Collection
 
-from documentdb_tests.framework.assertions import assertResult, assertSuccessPartial
-from documentdb_tests.framework.error_codes import (
-    QUERYSETTINGS_IDHACK_QUERY_ERROR,
-    QUERYSETTINGS_REJECT_ONLY_ERROR,
-)
+from documentdb_tests.framework.assertions import assertSuccessPartial
 from documentdb_tests.framework.executor import execute_admin_command
 
-
-def _cleanup(collection: Collection, queries: list[dict]) -> None:
-    """Remove all query settings created during the test."""
-    admin = collection.database.client.admin
-    for q in queries:
-        try:
-            admin.command({"removeQuerySettings": q})
-        except Exception:
-            pass
+from .utils.setQuerySettings_common import cleanup_query_settings
 
 
+# Property [indexHints Acceptance]: setQuerySettings accepts valid indexHints configurations.
 @pytest.mark.admin
 @pytest.mark.replica_set
 def test_setQuerySettings_indexHints_single_index(collection: Collection):
@@ -54,7 +43,7 @@ def test_setQuerySettings_indexHints_single_index(collection: Collection):
         )
         assertSuccessPartial(result, {"ok": 1.0}, msg="should accept indexHints with single index")
     finally:
-        _cleanup(collection, [query])
+        cleanup_query_settings(collection, [query])
 
 
 @pytest.mark.admin
@@ -87,7 +76,7 @@ def test_setQuerySettings_indexHints_multiple_indexes(collection: Collection):
             msg="should accept multiple indexes",
         )
     finally:
-        _cleanup(collection, [query])
+        cleanup_query_settings(collection, [query])
 
 
 @pytest.mark.admin
@@ -116,38 +105,10 @@ def test_setQuerySettings_indexHints_key_pattern(collection: Collection):
         )
         assertSuccessPartial(result, {"ok": 1.0}, msg="should accept indexHints with key pattern")
     finally:
-        _cleanup(collection, [query])
+        cleanup_query_settings(collection, [query])
 
 
-@pytest.mark.admin
-@pytest.mark.replica_set
-def test_setQuerySettings_indexHints_empty_allowed_rejected(collection: Collection):
-    """Test setQuerySettings rejects indexHints with empty allowedIndexes as empty settings."""
-    result = execute_admin_command(
-        collection,
-        {
-            "setQuerySettings": {
-                "find": collection.name,
-                "filter": {"a4": 1},
-                "$db": collection.database.name,
-            },
-            "settings": {
-                "indexHints": [
-                    {
-                        "ns": {"db": collection.database.name, "coll": collection.name},
-                        "allowedIndexes": [],
-                    }
-                ],
-            },
-        },
-    )
-    assertResult(
-        result,
-        error_code=QUERYSETTINGS_REJECT_ONLY_ERROR,
-        msg="should reject indexHints with empty allowedIndexes",
-    )
-
-
+# Property [reject Acceptance]: setQuerySettings accepts reject: true alone or with indexHints.
 @pytest.mark.admin
 @pytest.mark.replica_set
 def test_setQuerySettings_reject_true(collection: Collection):
@@ -167,7 +128,7 @@ def test_setQuerySettings_reject_true(collection: Collection):
         )
         assertSuccessPartial(result, {"ok": 1.0}, msg="should accept settings with reject: true")
     finally:
-        _cleanup(collection, [query])
+        cleanup_query_settings(collection, [query])
 
 
 @pytest.mark.admin
@@ -201,9 +162,10 @@ def test_setQuerySettings_reject_with_indexHints(collection: Collection):
             msg="should accept reject with indexHints",
         )
     finally:
-        _cleanup(collection, [query])
+        cleanup_query_settings(collection, [query])
 
 
+# Property [queryFramework Acceptance]: setQuerySettings accepts classic and sbe frameworks.
 @pytest.mark.admin
 @pytest.mark.replica_set
 def test_setQuerySettings_queryFramework_classic(collection: Collection):
@@ -231,7 +193,7 @@ def test_setQuerySettings_queryFramework_classic(collection: Collection):
         )
         assertSuccessPartial(result, {"ok": 1.0}, msg="should accept queryFramework: classic")
     finally:
-        _cleanup(collection, [query])
+        cleanup_query_settings(collection, [query])
 
 
 @pytest.mark.admin
@@ -261,9 +223,10 @@ def test_setQuerySettings_queryFramework_sbe(collection: Collection):
         )
         assertSuccessPartial(result, {"ok": 1.0}, msg="should accept queryFramework: sbe")
     finally:
-        _cleanup(collection, [query])
+        cleanup_query_settings(collection, [query])
 
 
+# Property [comment Acceptance]: setQuerySettings accepts the comment field.
 @pytest.mark.admin
 @pytest.mark.replica_set
 def test_setQuerySettings_with_comment_string(collection: Collection):
@@ -291,9 +254,10 @@ def test_setQuerySettings_with_comment_string(collection: Collection):
         )
         assertSuccessPartial(result, {"ok": 1.0}, msg="should accept command with comment string")
     finally:
-        _cleanup(collection, [query])
+        cleanup_query_settings(collection, [query])
 
 
+# Property [Update Behavior]: setQuerySettings can update existing settings by query or hash.
 @pytest.mark.admin
 @pytest.mark.replica_set
 def test_setQuerySettings_update_existing_settings(collection: Collection):
@@ -336,7 +300,7 @@ def test_setQuerySettings_update_existing_settings(collection: Collection):
         )
         assertSuccessPartial(result, {"ok": 1.0}, msg="update setQuerySettings should succeed")
     finally:
-        _cleanup(collection, [query])
+        cleanup_query_settings(collection, [query])
 
 
 @pytest.mark.admin
@@ -382,38 +346,10 @@ def test_setQuerySettings_update_via_hash(collection: Collection):
         )
         assertSuccessPartial(result, {"ok": 1.0}, msg="update via hash should succeed")
     finally:
-        _cleanup(collection, [query])
+        cleanup_query_settings(collection, [query])
 
 
-@pytest.mark.admin
-@pytest.mark.replica_set
-def test_setQuerySettings_idhack_query_rejected(collection: Collection):
-    """Test setQuerySettings rejects queries eligible for IDHACK optimization."""
-    result = execute_admin_command(
-        collection,
-        {
-            "setQuerySettings": {
-                "find": collection.name,
-                "filter": {"_id": 1},
-                "$db": collection.database.name,
-            },
-            "settings": {
-                "indexHints": [
-                    {
-                        "ns": {"db": collection.database.name, "coll": collection.name},
-                        "allowedIndexes": ["_id_"],
-                    }
-                ],
-            },
-        },
-    )
-    assertResult(
-        result,
-        error_code=QUERYSETTINGS_IDHACK_QUERY_ERROR,
-        msg="setQuerySettings should reject IDHACK-eligible queries",
-    )
-
-
+# Property [Combined Settings]: setQuerySettings accepts all settings fields together.
 @pytest.mark.admin
 @pytest.mark.replica_set
 def test_setQuerySettings_all_settings_combined(collection: Collection):
@@ -442,4 +378,4 @@ def test_setQuerySettings_all_settings_combined(collection: Collection):
         )
         assertSuccessPartial(result, {"ok": 1.0}, msg="should accept all settings combined")
     finally:
-        _cleanup(collection, [query])
+        cleanup_query_settings(collection, [query])
