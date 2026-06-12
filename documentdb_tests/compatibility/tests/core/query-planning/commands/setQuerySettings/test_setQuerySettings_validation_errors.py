@@ -8,8 +8,11 @@ queryFramework values, and system collection restrictions.
 from __future__ import annotations
 
 import pytest
-from pymongo.collection import Collection
 
+from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
+    AdminCommandTestCase,
+    CommandContext,
+)
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
     BAD_VALUE_ERROR,
@@ -26,134 +29,92 @@ from documentdb_tests.framework.error_codes import (
     UNSUPPORTED_FORMAT_ERROR,
 )
 from documentdb_tests.framework.executor import execute_admin_command
+from documentdb_tests.framework.parametrize import pytest_params
+
+# -- helpers ------------------------------------------------------------------
+
+
+def _default_settings(ctx: CommandContext) -> dict:
+    """Build the standard indexHints settings block."""
+    return {
+        "indexHints": [
+            {
+                "ns": {"db": ctx.database, "coll": ctx.collection},
+                "allowedIndexes": ["_id_"],
+            }
+        ],
+    }
+
+
+def _default_query(ctx: CommandContext) -> dict:
+    """Build a minimal valid query shape."""
+    return {
+        "find": ctx.collection,
+        "filter": {"x": 1},
+        "$db": ctx.database,
+    }
 
 
 # Property [Query Shape Validation]: rejects malformed or unknown query shape documents.
-@pytest.mark.admin
-@pytest.mark.replica_set
-def test_setQuerySettings_query_shape_missing_db(collection: Collection):
-    """Test setQuerySettings rejects a query shape document missing $db field."""
-    result = execute_admin_command(
-        collection,
-        {
+# Property [Hash String Validation]: rejects invalid hash string formats.
+# Property [indexHints Structure Validation]: rejects indexHints missing required sub-fields.
+# Property [Settings Value Validation]: rejects invalid field values in settings document.
+# Property [Settings Presence]: rejects missing or empty settings document.
+# Property [Unrecognized Fields]: rejects unknown top-level command fields.
+# Property [Database Restrictions]: rejects query shapes targeting internal databases.
+# Property [indexHints Value Validation]: rejects empty allowedIndexes and IDHACK queries.
+SET_QUERY_SETTINGS_VALIDATION_ERROR_TESTS: list[AdminCommandTestCase] = [
+    AdminCommandTestCase(
+        "query_shape_missing_db",
+        command=lambda ctx: {
             "setQuerySettings": {
-                "find": collection.name,
+                "find": ctx.collection,
                 "filter": {"x": 1},
             },
-            "settings": {
-                "indexHints": [
-                    {
-                        "ns": {"db": collection.database.name, "coll": collection.name},
-                        "allowedIndexes": ["_id_"],
-                    }
-                ],
-            },
+            "settings": _default_settings(ctx),
         },
-    )
-    assertResult(
-        result,
         error_code=MISSING_FIELD_ERROR,
         msg="setQuerySettings should reject query shape missing $db field",
-    )
-
-
-@pytest.mark.admin
-@pytest.mark.replica_set
-def test_setQuerySettings_query_shape_empty_db(collection: Collection):
-    """Test setQuerySettings rejects a query shape with empty string $db."""
-    result = execute_admin_command(
-        collection,
-        {
+    ),
+    AdminCommandTestCase(
+        "query_shape_empty_db",
+        command=lambda ctx: {
             "setQuerySettings": {
-                "find": collection.name,
+                "find": ctx.collection,
                 "filter": {"x": 1},
                 "$db": "",
             },
-            "settings": {
-                "indexHints": [
-                    {
-                        "ns": {"db": collection.database.name, "coll": collection.name},
-                        "allowedIndexes": ["_id_"],
-                    }
-                ],
-            },
+            "settings": _default_settings(ctx),
         },
-    )
-    assertResult(
-        result,
         error_code=INVALID_NAMESPACE_ERROR,
         msg="setQuerySettings should reject query shape with empty $db",
-    )
-
-
-@pytest.mark.admin
-@pytest.mark.replica_set
-def test_setQuerySettings_query_shape_unknown_command(collection: Collection):
-    """Test setQuerySettings rejects a query shape with an unknown command type."""
-    result = execute_admin_command(
-        collection,
-        {
+    ),
+    AdminCommandTestCase(
+        "query_shape_unknown_command",
+        command=lambda ctx: {
             "setQuerySettings": {
-                "unknownCommand": collection.name,
+                "unknownCommand": ctx.collection,
                 "filter": {"x": 1},
-                "$db": collection.database.name,
+                "$db": ctx.database,
             },
-            "settings": {
-                "indexHints": [
-                    {
-                        "ns": {"db": collection.database.name, "coll": collection.name},
-                        "allowedIndexes": ["_id_"],
-                    }
-                ],
-            },
+            "settings": _default_settings(ctx),
         },
-    )
-    assertResult(
-        result,
         error_code=QUERYSETTINGS_UNKNOWN_COMMAND_SHAPE_ERROR,
         msg="setQuerySettings should reject unknown command type in query shape",
-    )
-
-
-# Property [Hash String Validation]: rejects invalid hash string formats.
-@pytest.mark.admin
-@pytest.mark.replica_set
-def test_setQuerySettings_empty_hash_string(collection: Collection):
-    """Test setQuerySettings rejects an empty hash string."""
-    result = execute_admin_command(
-        collection,
-        {
+    ),
+    AdminCommandTestCase(
+        "empty_hash_string",
+        command=lambda ctx: {
             "setQuerySettings": "",
-            "settings": {
-                "indexHints": [
-                    {
-                        "ns": {"db": collection.database.name, "coll": collection.name},
-                        "allowedIndexes": ["_id_"],
-                    }
-                ],
-            },
+            "settings": _default_settings(ctx),
         },
-    )
-    assertResult(
-        result,
         error_code=UNSUPPORTED_FORMAT_ERROR,
         msg="setQuerySettings should reject empty hash string",
-    )
-
-
-# Property [indexHints Structure Validation]: rejects indexHints missing required sub-fields.
-@pytest.mark.admin
-@pytest.mark.replica_set
-def test_setQuerySettings_indexHints_missing_ns(collection: Collection):
-    """Test setQuerySettings rejects indexHints entry missing ns field."""
-    result = execute_admin_command(
-        collection,
-        {
-            "setQuerySettings": {
-                "find": collection.name,
-                "filter": {"x": 1},
-                "$db": collection.database.name,
-            },
+    ),
+    AdminCommandTestCase(
+        "indexHints_missing_ns",
+        command=lambda ctx: {
+            "setQuerySettings": _default_query(ctx),
             "settings": {
                 "indexHints": [
                     {
@@ -162,208 +123,89 @@ def test_setQuerySettings_indexHints_missing_ns(collection: Collection):
                 ],
             },
         },
-    )
-    assertResult(
-        result,
         error_code=MISSING_FIELD_ERROR,
         msg="setQuerySettings should reject indexHints missing ns field",
-    )
-
-
-@pytest.mark.admin
-@pytest.mark.replica_set
-def test_setQuerySettings_indexHints_ns_missing_db(collection: Collection):
-    """Test setQuerySettings rejects indexHints.ns missing db field."""
-    result = execute_admin_command(
-        collection,
-        {
-            "setQuerySettings": {
-                "find": collection.name,
-                "filter": {"x": 1},
-                "$db": collection.database.name,
-            },
+    ),
+    AdminCommandTestCase(
+        "indexHints_ns_missing_db",
+        command=lambda ctx: {
+            "setQuerySettings": _default_query(ctx),
             "settings": {
                 "indexHints": [
                     {
-                        "ns": {"coll": collection.name},
+                        "ns": {"coll": ctx.collection},
                         "allowedIndexes": ["_id_"],
                     }
                 ],
             },
         },
-    )
-    assertResult(
-        result,
         error_code=QUERYSETTINGS_NS_DB_MISSING_ERROR,
         msg="setQuerySettings should reject indexHints.ns missing db field",
-    )
-
-
-@pytest.mark.admin
-@pytest.mark.replica_set
-def test_setQuerySettings_indexHints_ns_missing_coll(collection: Collection):
-    """Test setQuerySettings rejects indexHints.ns missing coll field."""
-    result = execute_admin_command(
-        collection,
-        {
-            "setQuerySettings": {
-                "find": collection.name,
-                "filter": {"x": 1},
-                "$db": collection.database.name,
-            },
+    ),
+    AdminCommandTestCase(
+        "indexHints_ns_missing_coll",
+        command=lambda ctx: {
+            "setQuerySettings": _default_query(ctx),
             "settings": {
                 "indexHints": [
                     {
-                        "ns": {"db": collection.database.name},
+                        "ns": {"db": ctx.database},
                         "allowedIndexes": ["_id_"],
                     }
                 ],
             },
         },
-    )
-    assertResult(
-        result,
         error_code=QUERYSETTINGS_NS_COLL_MISSING_ERROR,
         msg="setQuerySettings should reject indexHints.ns missing coll field",
-    )
-
-
-# Property [Settings Value Validation]: rejects invalid field values in settings document.
-@pytest.mark.admin
-@pytest.mark.replica_set
-def test_setQuerySettings_invalid_query_framework_value(collection: Collection):
-    """Test setQuerySettings rejects an invalid queryFramework string value."""
-    result = execute_admin_command(
-        collection,
-        {
-            "setQuerySettings": {
-                "find": collection.name,
-                "filter": {"x": 1},
-                "$db": collection.database.name,
-            },
-            "settings": {
-                "indexHints": [
-                    {
-                        "ns": {"db": collection.database.name, "coll": collection.name},
-                        "allowedIndexes": ["_id_"],
-                    }
-                ],
-                "queryFramework": "invalidFramework",
-            },
+    ),
+    AdminCommandTestCase(
+        "invalid_query_framework_value",
+        command=lambda ctx: {
+            "setQuerySettings": _default_query(ctx),
+            "settings": {**_default_settings(ctx), "queryFramework": "invalidFramework"},
         },
-    )
-    assertResult(
-        result,
         error_code=BAD_VALUE_ERROR,
         msg="setQuerySettings should reject invalid queryFramework string",
-    )
-
-
-@pytest.mark.admin
-@pytest.mark.replica_set
-def test_setQuerySettings_reject_false_only(collection: Collection):
-    """Test setQuerySettings rejects settings with only reject: false and no other settings."""
-    result = execute_admin_command(
-        collection,
-        {
-            "setQuerySettings": {
-                "find": collection.name,
-                "filter": {"x": 1},
-                "$db": collection.database.name,
-            },
+    ),
+    AdminCommandTestCase(
+        "reject_false_only",
+        command=lambda ctx: {
+            "setQuerySettings": _default_query(ctx),
             "settings": {"reject": False},
         },
-    )
-    assertResult(
-        result,
         error_code=QUERYSETTINGS_REJECT_ONLY_ERROR,
         msg="setQuerySettings should reject settings with only reject: false",
-    )
-
-
-# Property [Settings Presence]: rejects missing or empty settings document.
-@pytest.mark.admin
-@pytest.mark.replica_set
-def test_setQuerySettings_missing_settings(collection: Collection):
-    """Test setQuerySettings rejects command missing the settings field entirely."""
-    result = execute_admin_command(
-        collection,
-        {
-            "setQuerySettings": {
-                "find": collection.name,
-                "filter": {"x": 1},
-                "$db": collection.database.name,
-            },
+    ),
+    AdminCommandTestCase(
+        "missing_settings",
+        command=lambda ctx: {
+            "setQuerySettings": _default_query(ctx),
         },
-    )
-    assertResult(
-        result,
         error_code=MISSING_FIELD_ERROR,
         msg="setQuerySettings should reject missing settings field",
-    )
-
-
-@pytest.mark.admin
-@pytest.mark.replica_set
-def test_setQuerySettings_empty_settings(collection: Collection):
-    """Test setQuerySettings rejects empty settings document."""
-    result = execute_admin_command(
-        collection,
-        {
-            "setQuerySettings": {
-                "find": collection.name,
-                "filter": {"x": 1},
-                "$db": collection.database.name,
-            },
+    ),
+    AdminCommandTestCase(
+        "empty_settings",
+        command=lambda ctx: {
+            "setQuerySettings": _default_query(ctx),
             "settings": {},
         },
-    )
-    assertResult(
-        result,
         error_code=QUERYSETTINGS_EMPTY_SETTINGS_ERROR,
         msg="setQuerySettings should reject empty settings document",
-    )
-
-
-# Property [Unrecognized Fields]: rejects unknown top-level command fields.
-@pytest.mark.admin
-@pytest.mark.replica_set
-def test_setQuerySettings_unrecognized_top_level_field(collection: Collection):
-    """Test setQuerySettings rejects unrecognized top-level fields."""
-    result = execute_admin_command(
-        collection,
-        {
-            "setQuerySettings": {
-                "find": collection.name,
-                "filter": {"x": 1},
-                "$db": collection.database.name,
-            },
-            "settings": {
-                "indexHints": [
-                    {
-                        "ns": {"db": collection.database.name, "coll": collection.name},
-                        "allowedIndexes": ["_id_"],
-                    }
-                ],
-            },
+    ),
+    AdminCommandTestCase(
+        "unrecognized_top_level_field",
+        command=lambda ctx: {
+            "setQuerySettings": _default_query(ctx),
+            "settings": _default_settings(ctx),
             "unknownField": 1,
         },
-    )
-    assertResult(
-        result,
         error_code=UNRECOGNIZED_COMMAND_FIELD_ERROR,
         msg="setQuerySettings should reject unrecognized top-level field",
-    )
-
-
-# Property [Database Restrictions]: rejects query shapes targeting internal databases.
-@pytest.mark.admin
-@pytest.mark.replica_set
-def test_setQuerySettings_system_collection(collection: Collection):
-    """Test setQuerySettings rejects query shapes targeting internal databases."""
-    result = execute_admin_command(
-        collection,
-        {
+    ),
+    AdminCommandTestCase(
+        "system_collection",
+        command=lambda ctx: {
             "setQuerySettings": {
                 "find": "system.users",
                 "filter": {},
@@ -378,21 +220,12 @@ def test_setQuerySettings_system_collection(collection: Collection):
                 ],
             },
         },
-    )
-    assertResult(
-        result,
         error_code=QUERYSETTINGS_INTERNAL_DB_ERROR,
         msg="setQuerySettings should reject query shapes on internal databases",
-    )
-
-
-@pytest.mark.admin
-@pytest.mark.replica_set
-def test_setQuerySettings_local_database(collection: Collection):
-    """Test setQuerySettings rejects query shapes targeting local database."""
-    result = execute_admin_command(
-        collection,
-        {
+    ),
+    AdminCommandTestCase(
+        "local_database",
+        command=lambda ctx: {
             "setQuerySettings": {
                 "find": "oplog.rs",
                 "filter": {},
@@ -407,68 +240,54 @@ def test_setQuerySettings_local_database(collection: Collection):
                 ],
             },
         },
-    )
-    assertResult(
-        result,
         error_code=QUERYSETTINGS_INTERNAL_DB_ERROR,
         msg="setQuerySettings should reject query shapes on local database",
-    )
-
-
-# Property [indexHints Value Validation]: rejects empty allowedIndexes and IDHACK queries.
-@pytest.mark.admin
-@pytest.mark.replica_set
-def test_setQuerySettings_indexHints_empty_allowed_rejected(collection: Collection):
-    """Test setQuerySettings rejects indexHints with empty allowedIndexes."""
-    result = execute_admin_command(
-        collection,
-        {
+    ),
+    AdminCommandTestCase(
+        "indexHints_empty_allowed_rejected",
+        command=lambda ctx: {
             "setQuerySettings": {
-                "find": collection.name,
+                "find": ctx.collection,
                 "filter": {"a4": 1},
-                "$db": collection.database.name,
+                "$db": ctx.database,
             },
             "settings": {
                 "indexHints": [
                     {
-                        "ns": {"db": collection.database.name, "coll": collection.name},
+                        "ns": {"db": ctx.database, "coll": ctx.collection},
                         "allowedIndexes": [],
                     }
                 ],
             },
         },
-    )
-    assertResult(
-        result,
         error_code=QUERYSETTINGS_REJECT_ONLY_ERROR,
         msg="setQuerySettings should reject indexHints with empty allowedIndexes",
-    )
+    ),
+    AdminCommandTestCase(
+        "idhack_query_rejected",
+        command=lambda ctx: {
+            "setQuerySettings": {
+                "find": ctx.collection,
+                "filter": {"_id": 1},
+                "$db": ctx.database,
+            },
+            "settings": _default_settings(ctx),
+        },
+        error_code=QUERYSETTINGS_IDHACK_QUERY_ERROR,
+        msg="setQuerySettings should reject IDHACK-eligible queries",
+    ),
+]
 
 
 @pytest.mark.admin
 @pytest.mark.replica_set
-def test_setQuerySettings_idhack_query_rejected(collection: Collection):
-    """Test setQuerySettings rejects queries eligible for IDHACK optimization."""
-    result = execute_admin_command(
-        collection,
-        {
-            "setQuerySettings": {
-                "find": collection.name,
-                "filter": {"_id": 1},
-                "$db": collection.database.name,
-            },
-            "settings": {
-                "indexHints": [
-                    {
-                        "ns": {"db": collection.database.name, "coll": collection.name},
-                        "allowedIndexes": ["_id_"],
-                    }
-                ],
-            },
-        },
-    )
+@pytest.mark.parametrize("test", pytest_params(SET_QUERY_SETTINGS_VALIDATION_ERROR_TESTS))
+def test_setQuerySettings_validation_errors(collection, test):
+    """Test setQuerySettings structural and validation error rejection."""
+    ctx = CommandContext.from_collection(collection)
+    result = execute_admin_command(collection, test.build_command(ctx))
     assertResult(
         result,
-        error_code=QUERYSETTINGS_IDHACK_QUERY_ERROR,
-        msg="setQuerySettings should reject IDHACK-eligible queries",
+        error_code=test.error_code,
+        msg=test.msg,
     )

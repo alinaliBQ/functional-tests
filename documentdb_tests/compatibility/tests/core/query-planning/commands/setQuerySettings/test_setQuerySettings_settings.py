@@ -8,264 +8,272 @@ fields, as well as allowedIndexes variations and update behavior.
 from __future__ import annotations
 
 import pytest
-from pymongo.collection import Collection
 
+from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
+    AdminCommandTestCase,
+    CommandContext,
+)
 from documentdb_tests.framework.assertions import assertSuccessPartial
 from documentdb_tests.framework.executor import execute_admin_command
+from documentdb_tests.framework.parametrize import pytest_params
 
 from .utils.setQuerySettings_common import cleanup_query_settings
 
+# -- helpers ------------------------------------------------------------------
+
+
+def _index_hints(ctx: CommandContext, allowed=None):
+    """Build a standard indexHints array for the fixture collection."""
+    return [
+        {
+            "ns": {"db": ctx.database, "coll": ctx.collection},
+            "allowedIndexes": allowed or ["_id_"],
+        }
+    ]
+
 
 # Property [indexHints Acceptance]: setQuerySettings accepts valid indexHints configurations.
-@pytest.mark.admin
-@pytest.mark.replica_set
-def test_setQuerySettings_indexHints_single_index(collection: Collection):
-    """Test setQuerySettings accepts indexHints with a single named index."""
-    query = {
-        "find": collection.name,
-        "filter": {"a1": 1},
-        "$db": collection.database.name,
-    }
-    try:
-        result = execute_admin_command(
-            collection,
-            {
-                "setQuerySettings": query,
-                "settings": {
-                    "indexHints": [
-                        {
-                            "ns": {"db": collection.database.name, "coll": collection.name},
-                            "allowedIndexes": ["_id_"],
-                        }
-                    ],
-                },
-            },
-        )
-        assertSuccessPartial(result, {"ok": 1.0}, msg="should accept indexHints with single index")
-    finally:
-        cleanup_query_settings(collection, [query])
-
-
-@pytest.mark.admin
-@pytest.mark.replica_set
-def test_setQuerySettings_indexHints_multiple_indexes(collection: Collection):
-    """Test setQuerySettings accepts indexHints with multiple allowedIndexes entries."""
-    query = {
-        "find": collection.name,
-        "filter": {"a2": 1},
-        "$db": collection.database.name,
-    }
-    try:
-        result = execute_admin_command(
-            collection,
-            {
-                "setQuerySettings": query,
-                "settings": {
-                    "indexHints": [
-                        {
-                            "ns": {"db": collection.database.name, "coll": collection.name},
-                            "allowedIndexes": ["_id_", {"a2": 1}],
-                        }
-                    ],
-                },
-            },
-        )
-        assertSuccessPartial(
-            result,
-            {"ok": 1.0},
-            msg="should accept multiple indexes",
-        )
-    finally:
-        cleanup_query_settings(collection, [query])
-
-
-@pytest.mark.admin
-@pytest.mark.replica_set
-def test_setQuerySettings_indexHints_key_pattern(collection: Collection):
-    """Test setQuerySettings accepts indexHints with index key pattern instead of name."""
-    query = {
-        "find": collection.name,
-        "filter": {"a3": 1},
-        "$db": collection.database.name,
-    }
-    try:
-        result = execute_admin_command(
-            collection,
-            {
-                "setQuerySettings": query,
-                "settings": {
-                    "indexHints": [
-                        {
-                            "ns": {"db": collection.database.name, "coll": collection.name},
-                            "allowedIndexes": [{"a3": 1}],
-                        }
-                    ],
-                },
-            },
-        )
-        assertSuccessPartial(result, {"ok": 1.0}, msg="should accept indexHints with key pattern")
-    finally:
-        cleanup_query_settings(collection, [query])
-
-
 # Property [reject Acceptance]: setQuerySettings accepts reject: true alone or with indexHints.
-@pytest.mark.admin
-@pytest.mark.replica_set
-def test_setQuerySettings_reject_true(collection: Collection):
-    """Test setQuerySettings accepts settings with reject: true."""
-    query = {
-        "find": collection.name,
-        "filter": {"a5": 1},
-        "$db": collection.database.name,
-    }
-    try:
-        result = execute_admin_command(
-            collection,
-            {
-                "setQuerySettings": query,
-                "settings": {"reject": True},
-            },
-        )
-        assertSuccessPartial(result, {"ok": 1.0}, msg="should accept settings with reject: true")
-    finally:
-        cleanup_query_settings(collection, [query])
-
-
-@pytest.mark.admin
-@pytest.mark.replica_set
-def test_setQuerySettings_reject_with_indexHints(collection: Collection):
-    """Test setQuerySettings accepts settings with both reject and indexHints."""
-    query = {
-        "find": collection.name,
-        "filter": {"a6": 1},
-        "$db": collection.database.name,
-    }
-    try:
-        result = execute_admin_command(
-            collection,
-            {
-                "setQuerySettings": query,
-                "settings": {
-                    "indexHints": [
-                        {
-                            "ns": {"db": collection.database.name, "coll": collection.name},
-                            "allowedIndexes": ["_id_"],
-                        }
-                    ],
-                    "reject": True,
-                },
-            },
-        )
-        assertSuccessPartial(
-            result,
-            {"ok": 1.0},
-            msg="should accept reject with indexHints",
-        )
-    finally:
-        cleanup_query_settings(collection, [query])
-
-
 # Property [queryFramework Acceptance]: setQuerySettings accepts classic and sbe frameworks.
-@pytest.mark.admin
-@pytest.mark.replica_set
-def test_setQuerySettings_queryFramework_classic(collection: Collection):
-    """Test setQuerySettings accepts queryFramework: classic."""
-    query = {
-        "find": collection.name,
-        "filter": {"a7": 1},
-        "$db": collection.database.name,
-    }
-    try:
-        result = execute_admin_command(
-            collection,
-            {
-                "setQuerySettings": query,
-                "settings": {
-                    "indexHints": [
-                        {
-                            "ns": {"db": collection.database.name, "coll": collection.name},
-                            "allowedIndexes": ["_id_"],
-                        }
-                    ],
-                    "queryFramework": "classic",
-                },
-            },
-        )
-        assertSuccessPartial(result, {"ok": 1.0}, msg="should accept queryFramework: classic")
-    finally:
-        cleanup_query_settings(collection, [query])
-
-
-@pytest.mark.admin
-@pytest.mark.replica_set
-def test_setQuerySettings_queryFramework_sbe(collection: Collection):
-    """Test setQuerySettings accepts queryFramework: sbe."""
-    query = {
-        "find": collection.name,
-        "filter": {"a8": 1},
-        "$db": collection.database.name,
-    }
-    try:
-        result = execute_admin_command(
-            collection,
-            {
-                "setQuerySettings": query,
-                "settings": {
-                    "indexHints": [
-                        {
-                            "ns": {"db": collection.database.name, "coll": collection.name},
-                            "allowedIndexes": ["_id_"],
-                        }
-                    ],
-                    "queryFramework": "sbe",
-                },
-            },
-        )
-        assertSuccessPartial(result, {"ok": 1.0}, msg="should accept queryFramework: sbe")
-    finally:
-        cleanup_query_settings(collection, [query])
-
-
 # Property [comment Acceptance]: setQuerySettings accepts the comment field.
+# Property [Combined Settings]: setQuerySettings accepts all settings fields together.
+SET_QUERY_SETTINGS_SETTINGS_TESTS: list[AdminCommandTestCase] = [
+    AdminCommandTestCase(
+        "indexHints_single_index",
+        command=lambda ctx: {
+            "setQuerySettings": {
+                "find": ctx.collection,
+                "filter": {"a1": 1},
+                "$db": ctx.database,
+            },
+            "settings": {"indexHints": _index_hints(ctx)},
+        },
+        expected={"ok": 1.0},
+        cleanup=lambda ctx: [
+            {
+                "removeQuerySettings": {
+                    "find": ctx.collection,
+                    "filter": {"a1": 1},
+                    "$db": ctx.database,
+                }
+            }
+        ],
+        msg="should accept indexHints with single index",
+    ),
+    AdminCommandTestCase(
+        "indexHints_multiple_indexes",
+        command=lambda ctx: {
+            "setQuerySettings": {
+                "find": ctx.collection,
+                "filter": {"a2": 1},
+                "$db": ctx.database,
+            },
+            "settings": {"indexHints": _index_hints(ctx, ["_id_", {"a2": 1}])},
+        },
+        expected={"ok": 1.0},
+        cleanup=lambda ctx: [
+            {
+                "removeQuerySettings": {
+                    "find": ctx.collection,
+                    "filter": {"a2": 1},
+                    "$db": ctx.database,
+                }
+            }
+        ],
+        msg="should accept multiple indexes",
+    ),
+    AdminCommandTestCase(
+        "indexHints_key_pattern",
+        command=lambda ctx: {
+            "setQuerySettings": {
+                "find": ctx.collection,
+                "filter": {"a3": 1},
+                "$db": ctx.database,
+            },
+            "settings": {"indexHints": _index_hints(ctx, [{"a3": 1}])},
+        },
+        expected={"ok": 1.0},
+        cleanup=lambda ctx: [
+            {
+                "removeQuerySettings": {
+                    "find": ctx.collection,
+                    "filter": {"a3": 1},
+                    "$db": ctx.database,
+                }
+            }
+        ],
+        msg="should accept indexHints with key pattern",
+    ),
+    AdminCommandTestCase(
+        "reject_true",
+        command=lambda ctx: {
+            "setQuerySettings": {
+                "find": ctx.collection,
+                "filter": {"a5": 1},
+                "$db": ctx.database,
+            },
+            "settings": {"reject": True},
+        },
+        expected={"ok": 1.0},
+        cleanup=lambda ctx: [
+            {
+                "removeQuerySettings": {
+                    "find": ctx.collection,
+                    "filter": {"a5": 1},
+                    "$db": ctx.database,
+                }
+            }
+        ],
+        msg="should accept settings with reject: true",
+    ),
+    AdminCommandTestCase(
+        "reject_with_indexHints",
+        command=lambda ctx: {
+            "setQuerySettings": {
+                "find": ctx.collection,
+                "filter": {"a6": 1},
+                "$db": ctx.database,
+            },
+            "settings": {"indexHints": _index_hints(ctx), "reject": True},
+        },
+        expected={"ok": 1.0},
+        cleanup=lambda ctx: [
+            {
+                "removeQuerySettings": {
+                    "find": ctx.collection,
+                    "filter": {"a6": 1},
+                    "$db": ctx.database,
+                }
+            }
+        ],
+        msg="should accept reject with indexHints",
+    ),
+    AdminCommandTestCase(
+        "queryFramework_classic",
+        command=lambda ctx: {
+            "setQuerySettings": {
+                "find": ctx.collection,
+                "filter": {"a7": 1},
+                "$db": ctx.database,
+            },
+            "settings": {"indexHints": _index_hints(ctx), "queryFramework": "classic"},
+        },
+        expected={"ok": 1.0},
+        cleanup=lambda ctx: [
+            {
+                "removeQuerySettings": {
+                    "find": ctx.collection,
+                    "filter": {"a7": 1},
+                    "$db": ctx.database,
+                }
+            }
+        ],
+        msg="should accept queryFramework: classic",
+    ),
+    AdminCommandTestCase(
+        "queryFramework_sbe",
+        command=lambda ctx: {
+            "setQuerySettings": {
+                "find": ctx.collection,
+                "filter": {"a8": 1},
+                "$db": ctx.database,
+            },
+            "settings": {"indexHints": _index_hints(ctx), "queryFramework": "sbe"},
+        },
+        expected={"ok": 1.0},
+        cleanup=lambda ctx: [
+            {
+                "removeQuerySettings": {
+                    "find": ctx.collection,
+                    "filter": {"a8": 1},
+                    "$db": ctx.database,
+                }
+            }
+        ],
+        msg="should accept queryFramework: sbe",
+    ),
+    AdminCommandTestCase(
+        "with_comment_string",
+        command=lambda ctx: {
+            "setQuerySettings": {
+                "find": ctx.collection,
+                "filter": {"a9": 1},
+                "$db": ctx.database,
+            },
+            "settings": {"indexHints": _index_hints(ctx)},
+            "comment": "test comment for setQuerySettings",
+        },
+        expected={"ok": 1.0},
+        cleanup=lambda ctx: [
+            {
+                "removeQuerySettings": {
+                    "find": ctx.collection,
+                    "filter": {"a9": 1},
+                    "$db": ctx.database,
+                }
+            }
+        ],
+        msg="should accept command with comment string",
+    ),
+    AdminCommandTestCase(
+        "all_settings_combined",
+        command=lambda ctx: {
+            "setQuerySettings": {
+                "find": ctx.collection,
+                "filter": {"a12": 1},
+                "$db": ctx.database,
+            },
+            "settings": {
+                "indexHints": _index_hints(ctx),
+                "queryFramework": "classic",
+                "reject": True,
+            },
+        },
+        expected={"ok": 1.0},
+        cleanup=lambda ctx: [
+            {
+                "removeQuerySettings": {
+                    "find": ctx.collection,
+                    "filter": {"a12": 1},
+                    "$db": ctx.database,
+                }
+            }
+        ],
+        msg="should accept all settings combined",
+    ),
+]
+
+
 @pytest.mark.admin
 @pytest.mark.replica_set
-def test_setQuerySettings_with_comment_string(collection: Collection):
-    """Test setQuerySettings accepts a comment field with string value."""
-    query = {
-        "find": collection.name,
-        "filter": {"a9": 1},
-        "$db": collection.database.name,
-    }
+@pytest.mark.parametrize("test", pytest_params(SET_QUERY_SETTINGS_SETTINGS_TESTS))
+def test_setQuerySettings_settings(collection, test):
+    """Test setQuerySettings accepts valid settings configurations."""
+    ctx = CommandContext.from_collection(collection)
     try:
-        result = execute_admin_command(
-            collection,
-            {
-                "setQuerySettings": query,
-                "settings": {
-                    "indexHints": [
-                        {
-                            "ns": {"db": collection.database.name, "coll": collection.name},
-                            "allowedIndexes": ["_id_"],
-                        }
-                    ],
-                },
-                "comment": "test comment for setQuerySettings",
-            },
-        )
-        assertSuccessPartial(result, {"ok": 1.0}, msg="should accept command with comment string")
+        result = execute_admin_command(collection, test.build_command(ctx))
+        assertSuccessPartial(result, test.build_expected(ctx), msg=test.msg)
     finally:
-        cleanup_query_settings(collection, [query])
+        for cmd in test.build_cleanup(ctx):
+            try:
+                execute_admin_command(collection, cmd)
+            except Exception:
+                pass
+
+
+# -- Update Behavior tests (multi-step, kept as individual functions) ---------
 
 
 # Property [Update Behavior]: setQuerySettings can update existing settings by query or hash.
 @pytest.mark.admin
 @pytest.mark.replica_set
-def test_setQuerySettings_update_existing_settings(collection: Collection):
+def test_setQuerySettings_update_existing_settings(collection):
     """Test setQuerySettings can update settings for an existing query shape."""
+    ctx = CommandContext.from_collection(collection)
     query = {
-        "find": collection.name,
+        "find": ctx.collection,
         "filter": {"a10": 1},
-        "$db": collection.database.name,
+        "$db": ctx.database,
     }
     try:
         # Setup: create initial settings (no assertion — setup only)
@@ -273,14 +281,7 @@ def test_setQuerySettings_update_existing_settings(collection: Collection):
             collection,
             {
                 "setQuerySettings": query,
-                "settings": {
-                    "indexHints": [
-                        {
-                            "ns": {"db": collection.database.name, "coll": collection.name},
-                            "allowedIndexes": ["_id_"],
-                        }
-                    ],
-                },
+                "settings": {"indexHints": _index_hints(ctx)},
             },
         )
 
@@ -288,14 +289,7 @@ def test_setQuerySettings_update_existing_settings(collection: Collection):
             collection,
             {
                 "setQuerySettings": query,
-                "settings": {
-                    "indexHints": [
-                        {
-                            "ns": {"db": collection.database.name, "coll": collection.name},
-                            "allowedIndexes": ["_id_", {"a10": 1}],
-                        }
-                    ],
-                },
+                "settings": {"indexHints": _index_hints(ctx, ["_id_", {"a10": 1}])},
             },
         )
         assertSuccessPartial(result, {"ok": 1.0}, msg="update setQuerySettings should succeed")
@@ -305,12 +299,13 @@ def test_setQuerySettings_update_existing_settings(collection: Collection):
 
 @pytest.mark.admin
 @pytest.mark.replica_set
-def test_setQuerySettings_update_via_hash(collection: Collection):
+def test_setQuerySettings_update_via_hash(collection):
     """Test setQuerySettings can update settings using the query shape hash."""
+    ctx = CommandContext.from_collection(collection)
     query = {
-        "find": collection.name,
+        "find": ctx.collection,
         "filter": {"a11": 1},
-        "$db": collection.database.name,
+        "$db": ctx.database,
     }
     try:
         # Setup: create initial settings and capture hash (no assertion — setup only)
@@ -318,14 +313,7 @@ def test_setQuerySettings_update_via_hash(collection: Collection):
             collection,
             {
                 "setQuerySettings": query,
-                "settings": {
-                    "indexHints": [
-                        {
-                            "ns": {"db": collection.database.name, "coll": collection.name},
-                            "allowedIndexes": ["_id_"],
-                        }
-                    ],
-                },
+                "settings": {"indexHints": _index_hints(ctx)},
             },
         )
 
@@ -334,48 +322,9 @@ def test_setQuerySettings_update_via_hash(collection: Collection):
             collection,
             {
                 "setQuerySettings": query_hash,
-                "settings": {
-                    "indexHints": [
-                        {
-                            "ns": {"db": collection.database.name, "coll": collection.name},
-                            "allowedIndexes": ["_id_", {"a11": 1}],
-                        }
-                    ],
-                },
+                "settings": {"indexHints": _index_hints(ctx, ["_id_", {"a11": 1}])},
             },
         )
         assertSuccessPartial(result, {"ok": 1.0}, msg="update via hash should succeed")
-    finally:
-        cleanup_query_settings(collection, [query])
-
-
-# Property [Combined Settings]: setQuerySettings accepts all settings fields together.
-@pytest.mark.admin
-@pytest.mark.replica_set
-def test_setQuerySettings_all_settings_combined(collection: Collection):
-    """Test setQuerySettings accepts all settings fields combined."""
-    query = {
-        "find": collection.name,
-        "filter": {"a12": 1},
-        "$db": collection.database.name,
-    }
-    try:
-        result = execute_admin_command(
-            collection,
-            {
-                "setQuerySettings": query,
-                "settings": {
-                    "indexHints": [
-                        {
-                            "ns": {"db": collection.database.name, "coll": collection.name},
-                            "allowedIndexes": ["_id_"],
-                        }
-                    ],
-                    "queryFramework": "classic",
-                    "reject": True,
-                },
-            },
-        )
-        assertSuccessPartial(result, {"ok": 1.0}, msg="should accept all settings combined")
     finally:
         cleanup_query_settings(collection, [query])

@@ -130,16 +130,24 @@ class AdminCommandTestCase(CommandTestCase):
     settings that were created).
 
     Attributes:
-        setup: Optional callable ``(Collection) -> None`` executed before
-            the command. Use for any prerequisite admin operations.
+        setup_commands: Optional callable ``(CommandContext) -> list[dict]``
+            returning admin commands to execute **before** the main
+            command.  Use for prerequisite operations such as creating
+            a query setting before testing removal.
         cleanup: Optional callable ``(CommandContext) -> list[dict]``
             returning admin commands to run after the test.  Each dict
             is passed to ``execute_admin_command`` inside a try/except
             so cleanup failures are silently ignored.
     """
 
-    setup: Callable[[Collection], Any] | None = None
+    setup_commands: Callable[[CommandContext], list[dict[str, Any]]] | None = None
     cleanup: Callable[[CommandContext], list[dict[str, Any]]] | None = None
+
+    def build_setup(self, ctx: CommandContext) -> list[dict[str, Any]]:
+        """Resolve setup commands from the callable, or return empty list."""
+        if self.setup_commands is None:
+            return []
+        return self.setup_commands(ctx)
 
     def build_cleanup(self, ctx: CommandContext) -> list[dict[str, Any]]:
         """Resolve cleanup commands from the callable, or return empty list."""

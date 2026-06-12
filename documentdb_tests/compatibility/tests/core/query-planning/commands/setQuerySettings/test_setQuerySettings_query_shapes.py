@@ -8,588 +8,365 @@ field combinations, and $db field variations.
 from __future__ import annotations
 
 import pytest
-from pymongo.collection import Collection
 
+from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
+    AdminCommandTestCase,
+    CommandContext,
+)
 from documentdb_tests.framework.assertions import assertSuccessPartial
 from documentdb_tests.framework.executor import execute_admin_command
+from documentdb_tests.framework.parametrize import pytest_params
 
-from .utils.setQuerySettings_common import cleanup_query_settings
+# -- helpers ------------------------------------------------------------------
+
+
+def _index_hints(ctx: CommandContext, db=None, coll=None):
+    """Build a standard indexHints array, optionally overriding db/coll."""
+    return [
+        {
+            "ns": {"db": db or ctx.database, "coll": coll or ctx.collection},
+            "allowedIndexes": ["_id_"],
+        }
+    ]
+
+
+def _settings(ctx: CommandContext, db=None, coll=None):
+    """Build a standard settings block with indexHints."""
+    return {"indexHints": _index_hints(ctx, db=db, coll=coll)}
+
+
+def _cleanup(query: dict):
+    """Return a cleanup callable that removes the given query shape."""
+    return lambda ctx: [{"removeQuerySettings": query}]
+
+
+# -- test case helpers --------------------------------------------------------
+
+
+def _find_case(tid, query_fn, msg):
+    """Build an AdminCommandTestCase for a find query shape."""
+    return AdminCommandTestCase(
+        tid,
+        command=lambda ctx, qf=query_fn: {
+            "setQuerySettings": qf(ctx),
+            "settings": _settings(ctx),
+        },
+        expected={"ok": 1.0},
+        cleanup=lambda ctx, qf=query_fn: [{"removeQuerySettings": qf(ctx)}],
+        msg=msg,
+    )
 
 
 # Property [Command Shape Acceptance]: accepts find, distinct, and aggregate shapes.
-@pytest.mark.admin
-@pytest.mark.replica_set
-def test_setQuerySettings_find_shape(collection: Collection):
-    """Test setQuerySettings accepts a valid find query shape."""
-    query = {
-        "find": collection.name,
-        "filter": {"x": 1},
-        "sort": {"x": 1},
-        "$db": collection.database.name,
-    }
-    try:
-        result = execute_admin_command(
-            collection,
-            {
-                "setQuerySettings": query,
-                "settings": {
-                    "indexHints": [
-                        {
-                            "ns": {"db": collection.database.name, "coll": collection.name},
-                            "allowedIndexes": ["_id_"],
-                        }
-                    ],
-                },
-            },
-        )
-        assertSuccessPartial(
-            result,
-            {"ok": 1.0},
-            msg="should accept valid find shape",
-        )
-    finally:
-        cleanup_query_settings(collection, [query])
-
-
-@pytest.mark.admin
-@pytest.mark.replica_set
-def test_setQuerySettings_distinct_shape(collection: Collection):
-    """Test setQuerySettings accepts a valid distinct query shape."""
-    query = {
-        "distinct": collection.name,
-        "key": "x",
-        "query": {"x": {"$gt": 0}},
-        "$db": collection.database.name,
-    }
-    try:
-        result = execute_admin_command(
-            collection,
-            {
-                "setQuerySettings": query,
-                "settings": {
-                    "indexHints": [
-                        {
-                            "ns": {"db": collection.database.name, "coll": collection.name},
-                            "allowedIndexes": ["_id_"],
-                        }
-                    ],
-                },
-            },
-        )
-        assertSuccessPartial(
-            result,
-            {"ok": 1.0},
-            msg="should accept valid distinct shape",
-        )
-    finally:
-        cleanup_query_settings(collection, [query])
-
-
-@pytest.mark.admin
-@pytest.mark.replica_set
-def test_setQuerySettings_aggregate_shape(collection: Collection):
-    """Test setQuerySettings accepts a valid aggregate query shape."""
-    query = {
-        "aggregate": collection.name,
-        "pipeline": [{"$match": {"x": 1}}],
-        "$db": collection.database.name,
-    }
-    try:
-        result = execute_admin_command(
-            collection,
-            {
-                "setQuerySettings": query,
-                "settings": {
-                    "indexHints": [
-                        {
-                            "ns": {"db": collection.database.name, "coll": collection.name},
-                            "allowedIndexes": ["_id_"],
-                        }
-                    ],
-                },
-            },
-        )
-        assertSuccessPartial(
-            result,
-            {"ok": 1.0},
-            msg="should accept valid aggregate shape",
-        )
-    finally:
-        cleanup_query_settings(collection, [query])
-
-
 # Property [Find Shape Variations]: setQuerySettings accepts find shapes with various field combos.
-@pytest.mark.admin
-@pytest.mark.replica_set
-def test_setQuerySettings_find_filter_only(collection: Collection):
-    """Test setQuerySettings accepts find shape with only filter, no sort or projection."""
-    query = {
-        "find": collection.name,
-        "filter": {"a": 1},
-        "$db": collection.database.name,
-    }
-    try:
-        result = execute_admin_command(
-            collection,
-            {
-                "setQuerySettings": query,
-                "settings": {
-                    "indexHints": [
-                        {
-                            "ns": {"db": collection.database.name, "coll": collection.name},
-                            "allowedIndexes": ["_id_"],
-                        }
-                    ],
-                },
-            },
-        )
-        assertSuccessPartial(
-            result,
-            {"ok": 1.0},
-            msg="should accept find with filter only",
-        )
-    finally:
-        cleanup_query_settings(collection, [query])
-
-
-@pytest.mark.admin
-@pytest.mark.replica_set
-def test_setQuerySettings_find_filter_sort(collection: Collection):
-    """Test setQuerySettings accepts find shape with filter and sort."""
-    query = {
-        "find": collection.name,
-        "filter": {"b": 1},
-        "sort": {"b": 1},
-        "$db": collection.database.name,
-    }
-    try:
-        result = execute_admin_command(
-            collection,
-            {
-                "setQuerySettings": query,
-                "settings": {
-                    "indexHints": [
-                        {
-                            "ns": {"db": collection.database.name, "coll": collection.name},
-                            "allowedIndexes": ["_id_"],
-                        }
-                    ],
-                },
-            },
-        )
-        assertSuccessPartial(
-            result,
-            {"ok": 1.0},
-            msg="should accept find with filter+sort",
-        )
-    finally:
-        cleanup_query_settings(collection, [query])
-
-
-@pytest.mark.admin
-@pytest.mark.replica_set
-def test_setQuerySettings_find_filter_projection(collection: Collection):
-    """Test setQuerySettings accepts find shape with filter and projection."""
-    query = {
-        "find": collection.name,
-        "filter": {"c": 1},
-        "projection": {"c": 1},
-        "$db": collection.database.name,
-    }
-    try:
-        result = execute_admin_command(
-            collection,
-            {
-                "setQuerySettings": query,
-                "settings": {
-                    "indexHints": [
-                        {
-                            "ns": {"db": collection.database.name, "coll": collection.name},
-                            "allowedIndexes": ["_id_"],
-                        }
-                    ],
-                },
-            },
-        )
-        assertSuccessPartial(
-            result,
-            {"ok": 1.0},
-            msg="should accept find with filter+projection",
-        )
-    finally:
-        cleanup_query_settings(collection, [query])
-
-
-@pytest.mark.admin
-@pytest.mark.replica_set
-def test_setQuerySettings_find_filter_sort_projection(collection: Collection):
-    """Test setQuerySettings accepts find shape with filter, sort, and projection."""
-    query = {
-        "find": collection.name,
-        "filter": {"d": 1},
-        "sort": {"d": 1},
-        "projection": {"d": 1},
-        "$db": collection.database.name,
-    }
-    try:
-        result = execute_admin_command(
-            collection,
-            {
-                "setQuerySettings": query,
-                "settings": {
-                    "indexHints": [
-                        {
-                            "ns": {"db": collection.database.name, "coll": collection.name},
-                            "allowedIndexes": ["_id_"],
-                        }
-                    ],
-                },
-            },
-        )
-        assertSuccessPartial(
-            result,
-            {"ok": 1.0},
-            msg="should accept find with all fields",
-        )
-    finally:
-        cleanup_query_settings(collection, [query])
-
-
-@pytest.mark.admin
-@pytest.mark.replica_set
-def test_setQuerySettings_find_with_collation(collection: Collection):
-    """Test setQuerySettings accepts find shape with collation."""
-    query = {
-        "find": collection.name,
-        "filter": {"e": "abc"},
-        "collation": {"locale": "en", "strength": 2},
-        "$db": collection.database.name,
-    }
-    try:
-        result = execute_admin_command(
-            collection,
-            {
-                "setQuerySettings": query,
-                "settings": {
-                    "indexHints": [
-                        {
-                            "ns": {"db": collection.database.name, "coll": collection.name},
-                            "allowedIndexes": ["_id_"],
-                        }
-                    ],
-                },
-            },
-        )
-        assertSuccessPartial(
-            result,
-            {"ok": 1.0},
-            msg="should accept find with collation",
-        )
-    finally:
-        cleanup_query_settings(collection, [query])
-
-
-@pytest.mark.admin
-@pytest.mark.replica_set
-def test_setQuerySettings_find_with_let(collection: Collection):
-    """Test setQuerySettings accepts find shape with let variables."""
-    query = {
-        "find": collection.name,
-        "filter": {"$expr": {"$eq": ["$f", "$$target"]}},
-        "let": {"target": 1},
-        "$db": collection.database.name,
-    }
-    try:
-        result = execute_admin_command(
-            collection,
-            {
-                "setQuerySettings": query,
-                "settings": {
-                    "indexHints": [
-                        {
-                            "ns": {"db": collection.database.name, "coll": collection.name},
-                            "allowedIndexes": ["_id_"],
-                        }
-                    ],
-                },
-            },
-        )
-        assertSuccessPartial(
-            result,
-            {"ok": 1.0},
-            msg="should accept find with let",
-        )
-    finally:
-        cleanup_query_settings(collection, [query])
-
-
-@pytest.mark.admin
-@pytest.mark.replica_set
-def test_setQuerySettings_find_with_limit(collection: Collection):
-    """Test setQuerySettings accepts find shape containing limit."""
-    query = {
-        "find": collection.name,
-        "filter": {"g": 1},
-        "limit": 10,
-        "$db": collection.database.name,
-    }
-    try:
-        result = execute_admin_command(
-            collection,
-            {
-                "setQuerySettings": query,
-                "settings": {
-                    "indexHints": [
-                        {
-                            "ns": {"db": collection.database.name, "coll": collection.name},
-                            "allowedIndexes": ["_id_"],
-                        }
-                    ],
-                },
-            },
-        )
-        assertSuccessPartial(
-            result,
-            {"ok": 1.0},
-            msg="should accept find with limit",
-        )
-    finally:
-        cleanup_query_settings(collection, [query])
-
-
 # Property [Distinct Shape Variations]: setQuerySettings accepts distinct shapes with query combos.
-@pytest.mark.admin
-@pytest.mark.replica_set
-def test_setQuerySettings_distinct_key_only(collection: Collection):
-    """Test setQuerySettings accepts distinct shape with key only, no query filter."""
-    query = {
-        "distinct": collection.name,
-        "key": "j",
-        "$db": collection.database.name,
-    }
-    try:
-        result = execute_admin_command(
-            collection,
-            {
-                "setQuerySettings": query,
-                "settings": {
-                    "indexHints": [
-                        {
-                            "ns": {"db": collection.database.name, "coll": collection.name},
-                            "allowedIndexes": ["_id_"],
-                        }
-                    ],
-                },
-            },
-        )
-        assertSuccessPartial(
-            result,
-            {"ok": 1.0},
-            msg="should accept distinct key only",
-        )
-    finally:
-        cleanup_query_settings(collection, [query])
-
-
-@pytest.mark.admin
-@pytest.mark.replica_set
-def test_setQuerySettings_distinct_complex_query(collection: Collection):
-    """Test setQuerySettings accepts distinct shape with complex query filter."""
-    query = {
-        "distinct": collection.name,
-        "key": "k",
-        "query": {"$and": [{"k": {"$gt": 0}}, {"k": {"$lt": 100}}]},
-        "$db": collection.database.name,
-    }
-    try:
-        result = execute_admin_command(
-            collection,
-            {
-                "setQuerySettings": query,
-                "settings": {
-                    "indexHints": [
-                        {
-                            "ns": {"db": collection.database.name, "coll": collection.name},
-                            "allowedIndexes": ["_id_"],
-                        }
-                    ],
-                },
-            },
-        )
-        assertSuccessPartial(
-            result,
-            {"ok": 1.0},
-            msg="should accept distinct complex query",
-        )
-    finally:
-        cleanup_query_settings(collection, [query])
-
-
 # Property [Aggregate Shape Variations]: setQuerySettings accepts aggregate pipeline shapes.
-@pytest.mark.admin
-@pytest.mark.replica_set
-def test_setQuerySettings_aggregate_match_only(collection: Collection):
-    """Test setQuerySettings accepts aggregate shape with single $match stage."""
-    query = {
-        "aggregate": collection.name,
-        "pipeline": [{"$match": {"l": 1}}],
-        "$db": collection.database.name,
-    }
-    try:
-        result = execute_admin_command(
-            collection,
-            {
-                "setQuerySettings": query,
-                "settings": {
-                    "indexHints": [
-                        {
-                            "ns": {"db": collection.database.name, "coll": collection.name},
-                            "allowedIndexes": ["_id_"],
-                        }
-                    ],
-                },
-            },
-        )
-        assertSuccessPartial(
-            result,
-            {"ok": 1.0},
-            msg="should accept aggregate $match only",
-        )
-    finally:
-        cleanup_query_settings(collection, [query])
-
-
-@pytest.mark.admin
-@pytest.mark.replica_set
-def test_setQuerySettings_aggregate_match_group(collection: Collection):
-    """Test setQuerySettings accepts aggregate shape with $match and $group pipeline."""
-    query = {
-        "aggregate": collection.name,
-        "pipeline": [{"$match": {"m": 1}}, {"$group": {"_id": "$m", "count": {"$sum": 1}}}],
-        "$db": collection.database.name,
-    }
-    try:
-        result = execute_admin_command(
-            collection,
-            {
-                "setQuerySettings": query,
-                "settings": {
-                    "indexHints": [
-                        {
-                            "ns": {"db": collection.database.name, "coll": collection.name},
-                            "allowedIndexes": ["_id_"],
-                        }
-                    ],
-                },
-            },
-        )
-        assertSuccessPartial(
-            result,
-            {"ok": 1.0},
-            msg="should accept aggregate $match+$group",
-        )
-    finally:
-        cleanup_query_settings(collection, [query])
-
-
-@pytest.mark.admin
-@pytest.mark.replica_set
-def test_setQuerySettings_aggregate_match_sort_limit(collection: Collection):
-    """Test setQuerySettings accepts aggregate shape with $match, $sort, and $limit."""
-    query = {
-        "aggregate": collection.name,
-        "pipeline": [{"$match": {"n": 1}}, {"$sort": {"n": 1}}, {"$limit": 5}],
-        "$db": collection.database.name,
-    }
-    try:
-        result = execute_admin_command(
-            collection,
-            {
-                "setQuerySettings": query,
-                "settings": {
-                    "indexHints": [
-                        {
-                            "ns": {"db": collection.database.name, "coll": collection.name},
-                            "allowedIndexes": ["_id_"],
-                        }
-                    ],
-                },
-            },
-        )
-        assertSuccessPartial(
-            result,
-            {"ok": 1.0},
-            msg="should accept aggregate $match+$sort+$limit",
-        )
-    finally:
-        cleanup_query_settings(collection, [query])
-
-
 # Property [$db Field Variations]: setQuerySettings accepts non-existent and special-char db names.
-@pytest.mark.admin
-@pytest.mark.replica_set
-def test_setQuerySettings_db_nonexistent(collection: Collection):
-    """Test setQuerySettings accepts $db pointing to a non-existent database."""
-    query = {
-        "find": collection.name,
-        "filter": {"o": 1},
-        "$db": "nonexistent_db_for_query_settings_test",
-    }
-    try:
-        result = execute_admin_command(
-            collection,
-            {
-                "setQuerySettings": query,
-                "settings": {
-                    "indexHints": [
-                        {
-                            "ns": {
-                                "db": "nonexistent_db_for_query_settings_test",
-                                "coll": collection.name,
-                            },
-                            "allowedIndexes": ["_id_"],
-                        }
-                    ],
-                },
+SET_QUERY_SETTINGS_QUERY_SHAPE_TESTS: list[AdminCommandTestCase] = [
+    # -- Command shape acceptance --
+    _find_case(
+        "find_shape",
+        lambda ctx: {
+            "find": ctx.collection,
+            "filter": {"x": 1},
+            "sort": {"x": 1},
+            "$db": ctx.database,
+        },
+        msg="should accept valid find shape",
+    ),
+    AdminCommandTestCase(
+        "distinct_shape",
+        command=lambda ctx: {
+            "setQuerySettings": {
+                "distinct": ctx.collection,
+                "key": "x",
+                "query": {"x": {"$gt": 0}},
+                "$db": ctx.database,
             },
-        )
-        assertSuccessPartial(
-            result,
-            {"ok": 1.0},
-            msg="should accept non-existent $db",
-        )
-    finally:
-        cleanup_query_settings(collection, [query])
+            "settings": _settings(ctx),
+        },
+        expected={"ok": 1.0},
+        cleanup=lambda ctx: [
+            {
+                "removeQuerySettings": {
+                    "distinct": ctx.collection,
+                    "key": "x",
+                    "query": {"x": {"$gt": 0}},
+                    "$db": ctx.database,
+                }
+            }
+        ],
+        msg="should accept valid distinct shape",
+    ),
+    AdminCommandTestCase(
+        "aggregate_shape",
+        command=lambda ctx: {
+            "setQuerySettings": {
+                "aggregate": ctx.collection,
+                "pipeline": [{"$match": {"x": 1}}],
+                "$db": ctx.database,
+            },
+            "settings": _settings(ctx),
+        },
+        expected={"ok": 1.0},
+        cleanup=lambda ctx: [
+            {
+                "removeQuerySettings": {
+                    "aggregate": ctx.collection,
+                    "pipeline": [{"$match": {"x": 1}}],
+                    "$db": ctx.database,
+                }
+            }
+        ],
+        msg="should accept valid aggregate shape",
+    ),
+    # -- Find shape variations --
+    _find_case(
+        "find_filter_only",
+        lambda ctx: {"find": ctx.collection, "filter": {"a": 1}, "$db": ctx.database},
+        msg="should accept find with filter only",
+    ),
+    _find_case(
+        "find_filter_sort",
+        lambda ctx: {
+            "find": ctx.collection,
+            "filter": {"b": 1},
+            "sort": {"b": 1},
+            "$db": ctx.database,
+        },
+        msg="should accept find with filter+sort",
+    ),
+    _find_case(
+        "find_filter_projection",
+        lambda ctx: {
+            "find": ctx.collection,
+            "filter": {"c": 1},
+            "projection": {"c": 1},
+            "$db": ctx.database,
+        },
+        msg="should accept find with filter+projection",
+    ),
+    _find_case(
+        "find_filter_sort_projection",
+        lambda ctx: {
+            "find": ctx.collection,
+            "filter": {"d": 1},
+            "sort": {"d": 1},
+            "projection": {"d": 1},
+            "$db": ctx.database,
+        },
+        msg="should accept find with all fields",
+    ),
+    _find_case(
+        "find_with_collation",
+        lambda ctx: {
+            "find": ctx.collection,
+            "filter": {"e": "abc"},
+            "collation": {"locale": "en", "strength": 2},
+            "$db": ctx.database,
+        },
+        msg="should accept find with collation",
+    ),
+    _find_case(
+        "find_with_let",
+        lambda ctx: {
+            "find": ctx.collection,
+            "filter": {"$expr": {"$eq": ["$f", "$$target"]}},
+            "let": {"target": 1},
+            "$db": ctx.database,
+        },
+        msg="should accept find with let",
+    ),
+    _find_case(
+        "find_with_limit",
+        lambda ctx: {
+            "find": ctx.collection,
+            "filter": {"g": 1},
+            "limit": 10,
+            "$db": ctx.database,
+        },
+        msg="should accept find with limit",
+    ),
+    # -- Distinct shape variations --
+    AdminCommandTestCase(
+        "distinct_key_only",
+        command=lambda ctx: {
+            "setQuerySettings": {
+                "distinct": ctx.collection,
+                "key": "j",
+                "$db": ctx.database,
+            },
+            "settings": _settings(ctx),
+        },
+        expected={"ok": 1.0},
+        cleanup=lambda ctx: [
+            {
+                "removeQuerySettings": {
+                    "distinct": ctx.collection,
+                    "key": "j",
+                    "$db": ctx.database,
+                }
+            }
+        ],
+        msg="should accept distinct key only",
+    ),
+    AdminCommandTestCase(
+        "distinct_complex_query",
+        command=lambda ctx: {
+            "setQuerySettings": {
+                "distinct": ctx.collection,
+                "key": "k",
+                "query": {"$and": [{"k": {"$gt": 0}}, {"k": {"$lt": 100}}]},
+                "$db": ctx.database,
+            },
+            "settings": _settings(ctx),
+        },
+        expected={"ok": 1.0},
+        cleanup=lambda ctx: [
+            {
+                "removeQuerySettings": {
+                    "distinct": ctx.collection,
+                    "key": "k",
+                    "query": {"$and": [{"k": {"$gt": 0}}, {"k": {"$lt": 100}}]},
+                    "$db": ctx.database,
+                }
+            }
+        ],
+        msg="should accept distinct complex query",
+    ),
+    # -- Aggregate shape variations --
+    AdminCommandTestCase(
+        "aggregate_match_only",
+        command=lambda ctx: {
+            "setQuerySettings": {
+                "aggregate": ctx.collection,
+                "pipeline": [{"$match": {"l": 1}}],
+                "$db": ctx.database,
+            },
+            "settings": _settings(ctx),
+        },
+        expected={"ok": 1.0},
+        cleanup=lambda ctx: [
+            {
+                "removeQuerySettings": {
+                    "aggregate": ctx.collection,
+                    "pipeline": [{"$match": {"l": 1}}],
+                    "$db": ctx.database,
+                }
+            }
+        ],
+        msg="should accept aggregate $match only",
+    ),
+    AdminCommandTestCase(
+        "aggregate_match_group",
+        command=lambda ctx: {
+            "setQuerySettings": {
+                "aggregate": ctx.collection,
+                "pipeline": [
+                    {"$match": {"m": 1}},
+                    {"$group": {"_id": "$m", "count": {"$sum": 1}}},
+                ],
+                "$db": ctx.database,
+            },
+            "settings": _settings(ctx),
+        },
+        expected={"ok": 1.0},
+        cleanup=lambda ctx: [
+            {
+                "removeQuerySettings": {
+                    "aggregate": ctx.collection,
+                    "pipeline": [
+                        {"$match": {"m": 1}},
+                        {"$group": {"_id": "$m", "count": {"$sum": 1}}},
+                    ],
+                    "$db": ctx.database,
+                }
+            }
+        ],
+        msg="should accept aggregate $match+$group",
+    ),
+    AdminCommandTestCase(
+        "aggregate_match_sort_limit",
+        command=lambda ctx: {
+            "setQuerySettings": {
+                "aggregate": ctx.collection,
+                "pipeline": [{"$match": {"n": 1}}, {"$sort": {"n": 1}}, {"$limit": 5}],
+                "$db": ctx.database,
+            },
+            "settings": _settings(ctx),
+        },
+        expected={"ok": 1.0},
+        cleanup=lambda ctx: [
+            {
+                "removeQuerySettings": {
+                    "aggregate": ctx.collection,
+                    "pipeline": [{"$match": {"n": 1}}, {"$sort": {"n": 1}}, {"$limit": 5}],
+                    "$db": ctx.database,
+                }
+            }
+        ],
+        msg="should accept aggregate $match+$sort+$limit",
+    ),
+    # -- $db field variations --
+    AdminCommandTestCase(
+        "db_nonexistent",
+        command=lambda ctx: {
+            "setQuerySettings": {
+                "find": ctx.collection,
+                "filter": {"o": 1},
+                "$db": "nonexistent_db_for_query_settings_test",
+            },
+            "settings": _settings(ctx, db="nonexistent_db_for_query_settings_test"),
+        },
+        expected={"ok": 1.0},
+        cleanup=lambda ctx: [
+            {
+                "removeQuerySettings": {
+                    "find": ctx.collection,
+                    "filter": {"o": 1},
+                    "$db": "nonexistent_db_for_query_settings_test",
+                }
+            }
+        ],
+        msg="should accept non-existent $db",
+    ),
+    AdminCommandTestCase(
+        "db_special_characters",
+        command=lambda ctx: {
+            "setQuerySettings": {
+                "find": ctx.collection,
+                "filter": {"p": 1},
+                "$db": "test-special-db",
+            },
+            "settings": _settings(ctx, db="test-special-db"),
+        },
+        expected={"ok": 1.0},
+        cleanup=lambda ctx: [
+            {
+                "removeQuerySettings": {
+                    "find": ctx.collection,
+                    "filter": {"p": 1},
+                    "$db": "test-special-db",
+                }
+            }
+        ],
+        msg="should accept $db with special chars",
+    ),
+]
 
 
 @pytest.mark.admin
 @pytest.mark.replica_set
-def test_setQuerySettings_db_special_characters(collection: Collection):
-    """Test setQuerySettings accepts $db with special characters like hyphens."""
-    query = {
-        "find": collection.name,
-        "filter": {"p": 1},
-        "$db": "test-special-db",
-    }
+@pytest.mark.parametrize("test", pytest_params(SET_QUERY_SETTINGS_QUERY_SHAPE_TESTS))
+def test_setQuerySettings_query_shapes(collection, test):
+    """Test setQuerySettings accepts valid query shapes."""
+    ctx = CommandContext.from_collection(collection)
     try:
-        result = execute_admin_command(
-            collection,
-            {
-                "setQuerySettings": query,
-                "settings": {
-                    "indexHints": [
-                        {
-                            "ns": {"db": "test-special-db", "coll": collection.name},
-                            "allowedIndexes": ["_id_"],
-                        }
-                    ],
-                },
-            },
-        )
-        assertSuccessPartial(
-            result,
-            {"ok": 1.0},
-            msg="should accept $db with special chars",
-        )
+        result = execute_admin_command(collection, test.build_command(ctx))
+        assertSuccessPartial(result, test.build_expected(ctx), msg=test.msg)
     finally:
-        cleanup_query_settings(collection, [query])
+        for cmd in test.build_cleanup(ctx):
+            try:
+                execute_admin_command(collection, cmd)
+            except Exception:
+                pass
