@@ -13,8 +13,8 @@ import pytest
 from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
 from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
-    AdminCommandTestCase,
     CommandContext,
+    CommandTestCase,
 )
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
@@ -52,8 +52,8 @@ def _default_query(ctx: CommandContext) -> dict:
 # Property [Primary Argument Type Rejection]: the setQuerySettings field must
 # be a document (query shape) or string (hash). All other BSON types are
 # rejected with TYPE_MISMATCH_ERROR.
-SET_QUERY_SETTINGS_PRIMARY_ARG_TYPE_TESTS: list[AdminCommandTestCase] = [
-    AdminCommandTestCase(
+SET_QUERY_SETTINGS_PRIMARY_ARG_TYPE_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
         f"primary_arg_{tid}",
         command=lambda ctx, v=value: {
             "setQuerySettings": v,
@@ -84,8 +84,8 @@ SET_QUERY_SETTINGS_PRIMARY_ARG_TYPE_TESTS: list[AdminCommandTestCase] = [
 
 # Property [queryFramework Type Rejection]: the queryFramework field must be a
 # string. Non-string BSON types are rejected with TYPE_MISMATCH_ERROR.
-SET_QUERY_SETTINGS_QUERY_FRAMEWORK_TYPE_TESTS: list[AdminCommandTestCase] = [
-    AdminCommandTestCase(
+SET_QUERY_SETTINGS_QUERY_FRAMEWORK_TYPE_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
         f"query_framework_{tid}",
         command=lambda ctx, v=value: {
             "setQuerySettings": _default_query(ctx),
@@ -116,8 +116,8 @@ SET_QUERY_SETTINGS_QUERY_FRAMEWORK_TYPE_TESTS: list[AdminCommandTestCase] = [
 
 # Property [reject Type Rejection]: the reject field must be a boolean.
 # Non-boolean BSON types are rejected with TYPE_MISMATCH_ERROR.
-SET_QUERY_SETTINGS_REJECT_TYPE_TESTS: list[AdminCommandTestCase] = [
-    AdminCommandTestCase(
+SET_QUERY_SETTINGS_REJECT_TYPE_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
         f"reject_{tid}",
         command=lambda ctx, v=value: {
             "setQuerySettings": _default_query(ctx),
@@ -147,8 +147,8 @@ SET_QUERY_SETTINGS_REJECT_TYPE_TESTS: list[AdminCommandTestCase] = [
 ]
 
 # Property [indexHints.ns.db Type Rejection]: the ns.db field must be a string.
-SET_QUERY_SETTINGS_NS_DB_TYPE_TESTS: list[AdminCommandTestCase] = [
-    AdminCommandTestCase(
+SET_QUERY_SETTINGS_NS_DB_TYPE_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
         f"ns_db_{tid}",
         command=lambda ctx, v=value: {
             "setQuerySettings": _default_query(ctx),
@@ -173,8 +173,8 @@ SET_QUERY_SETTINGS_NS_DB_TYPE_TESTS: list[AdminCommandTestCase] = [
 ]
 
 # Property [indexHints.ns.coll Type Rejection]: the ns.coll field must be a string.
-SET_QUERY_SETTINGS_NS_COLL_TYPE_TESTS: list[AdminCommandTestCase] = [
-    AdminCommandTestCase(
+SET_QUERY_SETTINGS_NS_COLL_TYPE_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
         f"ns_coll_{tid}",
         command=lambda ctx, v=value: {
             "setQuerySettings": _default_query(ctx),
@@ -197,8 +197,8 @@ SET_QUERY_SETTINGS_NS_COLL_TYPE_TESTS: list[AdminCommandTestCase] = [
 ]
 
 # Property [indexHints.allowedIndexes Type Rejection]: allowedIndexes must be an array.
-SET_QUERY_SETTINGS_ALLOWED_INDEXES_TYPE_TESTS: list[AdminCommandTestCase] = [
-    AdminCommandTestCase(
+SET_QUERY_SETTINGS_ALLOWED_INDEXES_TYPE_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
         f"allowed_indexes_{tid}",
         command=lambda ctx, v=value: {
             "setQuerySettings": _default_query(ctx),
@@ -221,8 +221,8 @@ SET_QUERY_SETTINGS_ALLOWED_INDEXES_TYPE_TESTS: list[AdminCommandTestCase] = [
 ]
 
 # Property [allowedIndexes null]: null allowedIndexes treated as missing required field.
-SET_QUERY_SETTINGS_ALLOWED_INDEXES_EDGE_TESTS: list[AdminCommandTestCase] = [
-    AdminCommandTestCase(
+SET_QUERY_SETTINGS_ALLOWED_INDEXES_EDGE_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
         "allowed_indexes_null_missing",
         command=lambda ctx: {
             "setQuerySettings": _default_query(ctx),
@@ -238,7 +238,7 @@ SET_QUERY_SETTINGS_ALLOWED_INDEXES_EDGE_TESTS: list[AdminCommandTestCase] = [
         error_code=MISSING_FIELD_ERROR,
         msg="setQuerySettings should reject null allowedIndexes as missing field",
     ),
-    AdminCommandTestCase(
+    CommandTestCase(
         "allowed_indexes_non_string_element",
         command=lambda ctx: {
             "setQuerySettings": _default_query(ctx),
@@ -256,7 +256,7 @@ SET_QUERY_SETTINGS_ALLOWED_INDEXES_EDGE_TESTS: list[AdminCommandTestCase] = [
     ),
 ]
 
-SET_QUERY_SETTINGS_TYPE_ERROR_TESTS: list[AdminCommandTestCase] = (
+SET_QUERY_SETTINGS_TYPE_ERROR_TESTS: list[CommandTestCase] = (
     SET_QUERY_SETTINGS_PRIMARY_ARG_TYPE_TESTS
     + SET_QUERY_SETTINGS_QUERY_FRAMEWORK_TYPE_TESTS
     + SET_QUERY_SETTINGS_REJECT_TYPE_TESTS

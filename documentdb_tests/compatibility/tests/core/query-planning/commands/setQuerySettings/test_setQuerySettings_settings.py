@@ -10,8 +10,8 @@ from __future__ import annotations
 import pytest
 
 from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
-    AdminCommandTestCase,
     CommandContext,
+    CommandTestCase,
 )
 from documentdb_tests.framework.assertions import assertSuccessPartial
 from documentdb_tests.framework.executor import execute_admin_command
@@ -37,8 +37,8 @@ def _index_hints(ctx: CommandContext, allowed=None):
 # Property [queryFramework Acceptance]: setQuerySettings accepts classic and sbe frameworks.
 # Property [comment Acceptance]: setQuerySettings accepts the comment field.
 # Property [Combined Settings]: setQuerySettings accepts all settings fields together.
-SET_QUERY_SETTINGS_SETTINGS_TESTS: list[AdminCommandTestCase] = [
-    AdminCommandTestCase(
+SET_QUERY_SETTINGS_SETTINGS_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
         "indexHints_single_index",
         command=lambda ctx: {
             "setQuerySettings": {
@@ -60,7 +60,7 @@ SET_QUERY_SETTINGS_SETTINGS_TESTS: list[AdminCommandTestCase] = [
         ],
         msg="should accept indexHints with single index",
     ),
-    AdminCommandTestCase(
+    CommandTestCase(
         "indexHints_multiple_indexes",
         command=lambda ctx: {
             "setQuerySettings": {
@@ -82,7 +82,7 @@ SET_QUERY_SETTINGS_SETTINGS_TESTS: list[AdminCommandTestCase] = [
         ],
         msg="should accept multiple indexes",
     ),
-    AdminCommandTestCase(
+    CommandTestCase(
         "indexHints_key_pattern",
         command=lambda ctx: {
             "setQuerySettings": {
@@ -104,7 +104,7 @@ SET_QUERY_SETTINGS_SETTINGS_TESTS: list[AdminCommandTestCase] = [
         ],
         msg="should accept indexHints with key pattern",
     ),
-    AdminCommandTestCase(
+    CommandTestCase(
         "reject_true",
         command=lambda ctx: {
             "setQuerySettings": {
@@ -126,7 +126,7 @@ SET_QUERY_SETTINGS_SETTINGS_TESTS: list[AdminCommandTestCase] = [
         ],
         msg="should accept settings with reject: true",
     ),
-    AdminCommandTestCase(
+    CommandTestCase(
         "reject_with_indexHints",
         command=lambda ctx: {
             "setQuerySettings": {
@@ -148,7 +148,7 @@ SET_QUERY_SETTINGS_SETTINGS_TESTS: list[AdminCommandTestCase] = [
         ],
         msg="should accept reject with indexHints",
     ),
-    AdminCommandTestCase(
+    CommandTestCase(
         "queryFramework_classic",
         command=lambda ctx: {
             "setQuerySettings": {
@@ -170,7 +170,7 @@ SET_QUERY_SETTINGS_SETTINGS_TESTS: list[AdminCommandTestCase] = [
         ],
         msg="should accept queryFramework: classic",
     ),
-    AdminCommandTestCase(
+    CommandTestCase(
         "queryFramework_sbe",
         command=lambda ctx: {
             "setQuerySettings": {
@@ -192,7 +192,7 @@ SET_QUERY_SETTINGS_SETTINGS_TESTS: list[AdminCommandTestCase] = [
         ],
         msg="should accept queryFramework: sbe",
     ),
-    AdminCommandTestCase(
+    CommandTestCase(
         "with_comment_string",
         command=lambda ctx: {
             "setQuerySettings": {
@@ -215,7 +215,7 @@ SET_QUERY_SETTINGS_SETTINGS_TESTS: list[AdminCommandTestCase] = [
         ],
         msg="should accept command with comment string",
     ),
-    AdminCommandTestCase(
+    CommandTestCase(
         "all_settings_combined",
         command=lambda ctx: {
             "setQuerySettings": {

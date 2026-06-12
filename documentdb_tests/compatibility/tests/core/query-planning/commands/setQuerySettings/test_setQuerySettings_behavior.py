@@ -11,8 +11,8 @@ import pytest
 from pymongo.collection import Collection
 
 from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
-    AdminCommandTestCase,
     CommandContext,
+    CommandTestCase,
 )
 from documentdb_tests.framework.assertions import assertResult, assertSuccessPartial
 from documentdb_tests.framework.error_codes import QUERYSETTINGS_QUERY_REJECTED_ERROR
@@ -54,11 +54,11 @@ def _find_query(ctx: CommandContext, field: str):
     return {"find": ctx.collection, "filter": {field: 1}, "$db": ctx.database}
 
 
-# -- Response Structure tests (single-step, fits AdminCommandTestCase) --------
+# -- Response Structure tests (single-step, fits CommandTestCase) --------
 
 # Property [Response Structure]: setQuerySettings response includes hash, query, and settings.
-SET_QUERY_SETTINGS_RESPONSE_TESTS: list[AdminCommandTestCase] = [
-    AdminCommandTestCase(
+SET_QUERY_SETTINGS_RESPONSE_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
         "response_contains_hash",
         command=lambda ctx: {
             "setQuerySettings": _find_query(ctx, "b1"),
@@ -68,7 +68,7 @@ SET_QUERY_SETTINGS_RESPONSE_TESTS: list[AdminCommandTestCase] = [
         cleanup=_cleanup_query(lambda ctx: _find_query(ctx, "b1")),
         msg="response should contain queryShapeHash",
     ),
-    AdminCommandTestCase(
+    CommandTestCase(
         "response_contains_representative_query",
         command=lambda ctx: {
             "setQuerySettings": _find_query(ctx, "b2"),
@@ -78,7 +78,7 @@ SET_QUERY_SETTINGS_RESPONSE_TESTS: list[AdminCommandTestCase] = [
         cleanup=_cleanup_query(lambda ctx: _find_query(ctx, "b2")),
         msg="response should contain representativeQuery",
     ),
-    AdminCommandTestCase(
+    CommandTestCase(
         "response_settings_echo",
         command=lambda ctx: {
             "setQuerySettings": _find_query(ctx, "b3"),
@@ -117,8 +117,8 @@ def test_setQuerySettings_response(collection, test):
 # -- removeQuerySettings tests (multi-step: setup creates setting, command removes it) ---
 
 # Property [removeQuerySettings]: settings can be removed by query or hash.
-SET_QUERY_SETTINGS_REMOVE_TESTS: list[AdminCommandTestCase] = [
-    AdminCommandTestCase(
+SET_QUERY_SETTINGS_REMOVE_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
         "removeQuerySettings_by_query",
         setup_commands=lambda ctx: _setup_setting(ctx, _find_query(ctx, "b5")),
         command=lambda ctx: {"removeQuerySettings": _find_query(ctx, "b5")},

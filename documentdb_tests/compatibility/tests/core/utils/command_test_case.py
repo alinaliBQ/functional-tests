@@ -69,6 +69,14 @@ class CommandTestCase(BaseTestCase):
             for error cases.
         ignore_order_in: Optional names of result fields whose array contents
             should be compared without regard to element order.
+        setup_commands: Optional callable ``(CommandContext) -> list[dict]``
+            returning commands to execute **before** the main command.
+            Use for prerequisite operations such as creating a query
+            setting before testing removal.
+        cleanup: Optional callable ``(CommandContext) -> list[dict]``
+            returning commands to run after the test.  Each dict is
+            passed to the executor inside a try/except so cleanup
+            failures are silently ignored.
     """
 
     target_collection: TargetCollection = field(default_factory=TargetCollection)
@@ -78,6 +86,8 @@ class CommandTestCase(BaseTestCase):
     command: dict[str, Any] | Callable[..., dict[str, Any]] | None = None
     expected: dict[str, Any] | list[dict[str, Any]] | Callable[..., dict[str, Any]] | None = None
     ignore_order_in: list[str] | None = None
+    setup_commands: Callable[[CommandContext], list[dict[str, Any]]] | None = None
+    cleanup: Callable[[CommandContext], list[dict[str, Any]]] | None = None
 
     def prepare(self, db: Database, collection: Collection) -> Collection:
         """Resolve the target collection and apply indexes/docs.
@@ -118,30 +128,6 @@ class CommandTestCase(BaseTestCase):
         if self.expected is None or isinstance(self.expected, (dict, list)):
             return self.expected
         return self.expected(ctx)
-
-
-@dataclass(frozen=True)
-class AdminCommandTestCase(CommandTestCase):
-    """Test case for admin-level commands (e.g. setQuerySettings).
-
-    Admin commands run against the ``admin`` database via
-    ``execute_admin_command`` rather than against a specific collection's
-    database.  They often need post-test cleanup (e.g. removing query
-    settings that were created).
-
-    Attributes:
-        setup_commands: Optional callable ``(CommandContext) -> list[dict]``
-            returning admin commands to execute **before** the main
-            command.  Use for prerequisite operations such as creating
-            a query setting before testing removal.
-        cleanup: Optional callable ``(CommandContext) -> list[dict]``
-            returning admin commands to run after the test.  Each dict
-            is passed to ``execute_admin_command`` inside a try/except
-            so cleanup failures are silently ignored.
-    """
-
-    setup_commands: Callable[[CommandContext], list[dict[str, Any]]] | None = None
-    cleanup: Callable[[CommandContext], list[dict[str, Any]]] | None = None
 
     def build_setup(self, ctx: CommandContext) -> list[dict[str, Any]]:
         """Resolve setup commands from the callable, or return empty list."""

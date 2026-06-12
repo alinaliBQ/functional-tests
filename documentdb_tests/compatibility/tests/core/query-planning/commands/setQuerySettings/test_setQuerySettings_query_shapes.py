@@ -10,8 +10,8 @@ from __future__ import annotations
 import pytest
 
 from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
-    AdminCommandTestCase,
     CommandContext,
+    CommandTestCase,
 )
 from documentdb_tests.framework.assertions import assertSuccessPartial
 from documentdb_tests.framework.executor import execute_admin_command
@@ -44,8 +44,8 @@ def _cleanup(query: dict):
 
 
 def _find_case(tid, query_fn, msg):
-    """Build an AdminCommandTestCase for a find query shape."""
-    return AdminCommandTestCase(
+    """Build an CommandTestCase for a find query shape."""
+    return CommandTestCase(
         tid,
         command=lambda ctx, qf=query_fn: {
             "setQuerySettings": qf(ctx),
@@ -62,7 +62,7 @@ def _find_case(tid, query_fn, msg):
 # Property [Distinct Shape Variations]: setQuerySettings accepts distinct shapes with query combos.
 # Property [Aggregate Shape Variations]: setQuerySettings accepts aggregate pipeline shapes.
 # Property [$db Field Variations]: setQuerySettings accepts non-existent and special-char db names.
-SET_QUERY_SETTINGS_QUERY_SHAPE_TESTS: list[AdminCommandTestCase] = [
+SET_QUERY_SETTINGS_QUERY_SHAPE_TESTS: list[CommandTestCase] = [
     # -- Command shape acceptance --
     _find_case(
         "find_shape",
@@ -74,7 +74,7 @@ SET_QUERY_SETTINGS_QUERY_SHAPE_TESTS: list[AdminCommandTestCase] = [
         },
         msg="should accept valid find shape",
     ),
-    AdminCommandTestCase(
+    CommandTestCase(
         "distinct_shape",
         command=lambda ctx: {
             "setQuerySettings": {
@@ -98,7 +98,7 @@ SET_QUERY_SETTINGS_QUERY_SHAPE_TESTS: list[AdminCommandTestCase] = [
         ],
         msg="should accept valid distinct shape",
     ),
-    AdminCommandTestCase(
+    CommandTestCase(
         "aggregate_shape",
         command=lambda ctx: {
             "setQuerySettings": {
@@ -188,7 +188,7 @@ SET_QUERY_SETTINGS_QUERY_SHAPE_TESTS: list[AdminCommandTestCase] = [
         msg="should accept find with limit",
     ),
     # -- Distinct shape variations --
-    AdminCommandTestCase(
+    CommandTestCase(
         "distinct_key_only",
         command=lambda ctx: {
             "setQuerySettings": {
@@ -210,7 +210,7 @@ SET_QUERY_SETTINGS_QUERY_SHAPE_TESTS: list[AdminCommandTestCase] = [
         ],
         msg="should accept distinct key only",
     ),
-    AdminCommandTestCase(
+    CommandTestCase(
         "distinct_complex_query",
         command=lambda ctx: {
             "setQuerySettings": {
@@ -235,7 +235,7 @@ SET_QUERY_SETTINGS_QUERY_SHAPE_TESTS: list[AdminCommandTestCase] = [
         msg="should accept distinct complex query",
     ),
     # -- Aggregate shape variations --
-    AdminCommandTestCase(
+    CommandTestCase(
         "aggregate_match_only",
         command=lambda ctx: {
             "setQuerySettings": {
@@ -257,7 +257,7 @@ SET_QUERY_SETTINGS_QUERY_SHAPE_TESTS: list[AdminCommandTestCase] = [
         ],
         msg="should accept aggregate $match only",
     ),
-    AdminCommandTestCase(
+    CommandTestCase(
         "aggregate_match_group",
         command=lambda ctx: {
             "setQuerySettings": {
@@ -285,7 +285,7 @@ SET_QUERY_SETTINGS_QUERY_SHAPE_TESTS: list[AdminCommandTestCase] = [
         ],
         msg="should accept aggregate $match+$group",
     ),
-    AdminCommandTestCase(
+    CommandTestCase(
         "aggregate_match_sort_limit",
         command=lambda ctx: {
             "setQuerySettings": {
@@ -308,7 +308,7 @@ SET_QUERY_SETTINGS_QUERY_SHAPE_TESTS: list[AdminCommandTestCase] = [
         msg="should accept aggregate $match+$sort+$limit",
     ),
     # -- $db field variations --
-    AdminCommandTestCase(
+    CommandTestCase(
         "db_nonexistent",
         command=lambda ctx: {
             "setQuerySettings": {
@@ -330,7 +330,7 @@ SET_QUERY_SETTINGS_QUERY_SHAPE_TESTS: list[AdminCommandTestCase] = [
         ],
         msg="should accept non-existent $db",
     ),
-    AdminCommandTestCase(
+    CommandTestCase(
         "db_special_characters",
         command=lambda ctx: {
             "setQuerySettings": {

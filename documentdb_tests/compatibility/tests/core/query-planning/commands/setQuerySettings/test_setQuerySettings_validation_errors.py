@@ -10,8 +10,8 @@ from __future__ import annotations
 import pytest
 
 from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
-    AdminCommandTestCase,
     CommandContext,
+    CommandTestCase,
 )
 from documentdb_tests.framework.assertions import assertResult
 from documentdb_tests.framework.error_codes import (
@@ -63,8 +63,8 @@ def _default_query(ctx: CommandContext) -> dict:
 # Property [Unrecognized Fields]: rejects unknown top-level command fields.
 # Property [Database Restrictions]: rejects query shapes targeting internal databases.
 # Property [indexHints Value Validation]: rejects empty allowedIndexes and IDHACK queries.
-SET_QUERY_SETTINGS_VALIDATION_ERROR_TESTS: list[AdminCommandTestCase] = [
-    AdminCommandTestCase(
+SET_QUERY_SETTINGS_VALIDATION_ERROR_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
         "query_shape_missing_db",
         command=lambda ctx: {
             "setQuerySettings": {
@@ -76,7 +76,7 @@ SET_QUERY_SETTINGS_VALIDATION_ERROR_TESTS: list[AdminCommandTestCase] = [
         error_code=MISSING_FIELD_ERROR,
         msg="setQuerySettings should reject query shape missing $db field",
     ),
-    AdminCommandTestCase(
+    CommandTestCase(
         "query_shape_empty_db",
         command=lambda ctx: {
             "setQuerySettings": {
@@ -89,7 +89,7 @@ SET_QUERY_SETTINGS_VALIDATION_ERROR_TESTS: list[AdminCommandTestCase] = [
         error_code=INVALID_NAMESPACE_ERROR,
         msg="setQuerySettings should reject query shape with empty $db",
     ),
-    AdminCommandTestCase(
+    CommandTestCase(
         "query_shape_unknown_command",
         command=lambda ctx: {
             "setQuerySettings": {
@@ -102,7 +102,7 @@ SET_QUERY_SETTINGS_VALIDATION_ERROR_TESTS: list[AdminCommandTestCase] = [
         error_code=QUERYSETTINGS_UNKNOWN_COMMAND_SHAPE_ERROR,
         msg="setQuerySettings should reject unknown command type in query shape",
     ),
-    AdminCommandTestCase(
+    CommandTestCase(
         "empty_hash_string",
         command=lambda ctx: {
             "setQuerySettings": "",
@@ -111,7 +111,7 @@ SET_QUERY_SETTINGS_VALIDATION_ERROR_TESTS: list[AdminCommandTestCase] = [
         error_code=UNSUPPORTED_FORMAT_ERROR,
         msg="setQuerySettings should reject empty hash string",
     ),
-    AdminCommandTestCase(
+    CommandTestCase(
         "indexHints_missing_ns",
         command=lambda ctx: {
             "setQuerySettings": _default_query(ctx),
@@ -126,7 +126,7 @@ SET_QUERY_SETTINGS_VALIDATION_ERROR_TESTS: list[AdminCommandTestCase] = [
         error_code=MISSING_FIELD_ERROR,
         msg="setQuerySettings should reject indexHints missing ns field",
     ),
-    AdminCommandTestCase(
+    CommandTestCase(
         "indexHints_ns_missing_db",
         command=lambda ctx: {
             "setQuerySettings": _default_query(ctx),
@@ -142,7 +142,7 @@ SET_QUERY_SETTINGS_VALIDATION_ERROR_TESTS: list[AdminCommandTestCase] = [
         error_code=QUERYSETTINGS_NS_DB_MISSING_ERROR,
         msg="setQuerySettings should reject indexHints.ns missing db field",
     ),
-    AdminCommandTestCase(
+    CommandTestCase(
         "indexHints_ns_missing_coll",
         command=lambda ctx: {
             "setQuerySettings": _default_query(ctx),
@@ -158,7 +158,7 @@ SET_QUERY_SETTINGS_VALIDATION_ERROR_TESTS: list[AdminCommandTestCase] = [
         error_code=QUERYSETTINGS_NS_COLL_MISSING_ERROR,
         msg="setQuerySettings should reject indexHints.ns missing coll field",
     ),
-    AdminCommandTestCase(
+    CommandTestCase(
         "invalid_query_framework_value",
         command=lambda ctx: {
             "setQuerySettings": _default_query(ctx),
@@ -167,7 +167,7 @@ SET_QUERY_SETTINGS_VALIDATION_ERROR_TESTS: list[AdminCommandTestCase] = [
         error_code=BAD_VALUE_ERROR,
         msg="setQuerySettings should reject invalid queryFramework string",
     ),
-    AdminCommandTestCase(
+    CommandTestCase(
         "reject_false_only",
         command=lambda ctx: {
             "setQuerySettings": _default_query(ctx),
@@ -176,7 +176,7 @@ SET_QUERY_SETTINGS_VALIDATION_ERROR_TESTS: list[AdminCommandTestCase] = [
         error_code=QUERYSETTINGS_REJECT_ONLY_ERROR,
         msg="setQuerySettings should reject settings with only reject: false",
     ),
-    AdminCommandTestCase(
+    CommandTestCase(
         "missing_settings",
         command=lambda ctx: {
             "setQuerySettings": _default_query(ctx),
@@ -184,7 +184,7 @@ SET_QUERY_SETTINGS_VALIDATION_ERROR_TESTS: list[AdminCommandTestCase] = [
         error_code=MISSING_FIELD_ERROR,
         msg="setQuerySettings should reject missing settings field",
     ),
-    AdminCommandTestCase(
+    CommandTestCase(
         "empty_settings",
         command=lambda ctx: {
             "setQuerySettings": _default_query(ctx),
@@ -193,7 +193,7 @@ SET_QUERY_SETTINGS_VALIDATION_ERROR_TESTS: list[AdminCommandTestCase] = [
         error_code=QUERYSETTINGS_EMPTY_SETTINGS_ERROR,
         msg="setQuerySettings should reject empty settings document",
     ),
-    AdminCommandTestCase(
+    CommandTestCase(
         "unrecognized_top_level_field",
         command=lambda ctx: {
             "setQuerySettings": _default_query(ctx),
@@ -203,7 +203,7 @@ SET_QUERY_SETTINGS_VALIDATION_ERROR_TESTS: list[AdminCommandTestCase] = [
         error_code=UNRECOGNIZED_COMMAND_FIELD_ERROR,
         msg="setQuerySettings should reject unrecognized top-level field",
     ),
-    AdminCommandTestCase(
+    CommandTestCase(
         "system_collection",
         command=lambda ctx: {
             "setQuerySettings": {
@@ -223,7 +223,7 @@ SET_QUERY_SETTINGS_VALIDATION_ERROR_TESTS: list[AdminCommandTestCase] = [
         error_code=QUERYSETTINGS_INTERNAL_DB_ERROR,
         msg="setQuerySettings should reject query shapes on internal databases",
     ),
-    AdminCommandTestCase(
+    CommandTestCase(
         "local_database",
         command=lambda ctx: {
             "setQuerySettings": {
@@ -243,7 +243,7 @@ SET_QUERY_SETTINGS_VALIDATION_ERROR_TESTS: list[AdminCommandTestCase] = [
         error_code=QUERYSETTINGS_INTERNAL_DB_ERROR,
         msg="setQuerySettings should reject query shapes on local database",
     ),
-    AdminCommandTestCase(
+    CommandTestCase(
         "indexHints_empty_allowed_rejected",
         command=lambda ctx: {
             "setQuerySettings": {
@@ -263,7 +263,7 @@ SET_QUERY_SETTINGS_VALIDATION_ERROR_TESTS: list[AdminCommandTestCase] = [
         error_code=QUERYSETTINGS_REJECT_ONLY_ERROR,
         msg="setQuerySettings should reject indexHints with empty allowedIndexes",
     ),
-    AdminCommandTestCase(
+    CommandTestCase(
         "idhack_query_rejected",
         command=lambda ctx: {
             "setQuerySettings": {
