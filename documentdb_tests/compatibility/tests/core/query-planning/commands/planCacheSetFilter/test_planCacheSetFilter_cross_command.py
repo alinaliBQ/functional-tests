@@ -66,6 +66,14 @@ pytestmark = pytest.mark.admin
             },
             id="findAndModify",
         ),
+        pytest.param(
+            lambda n: {
+                "distinct": n,
+                "key": "a",
+                "query": {"a": 1},
+            },
+            id="distinct",
+        ),
     ],
 )
 def test_cross_command_filter(
