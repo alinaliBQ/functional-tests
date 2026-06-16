@@ -12,7 +12,7 @@ from documentdb_tests.framework.property_checks import Gt, Gte
 pytestmark = pytest.mark.admin
 
 
-# ---------- Counter Behavior — Statistics Reflect Operations ----------
+# Property [Counter Behavior]: operations increment the corresponding event counters.
 
 
 def test_top_insert_increments_insert_count(collection):
@@ -144,7 +144,7 @@ def test_top_query_time_positive_after_query(collection):
     )
 
 
-# ---------- Cross-Lock Consistency Invariants ----------
+# Property [Cross-Lock Invariants]: aggregate lock counters are >= the sum of their components.
 
 
 def _setup_mixed_operations(collection):

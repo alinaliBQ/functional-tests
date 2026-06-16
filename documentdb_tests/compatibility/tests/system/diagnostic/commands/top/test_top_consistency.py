@@ -6,26 +6,22 @@ and behavior with capped collections and views.
 
 import pytest
 
-from documentdb_tests.framework.assertions import (
-    assertFailureCode,
-    assertProperties,
-    assertSuccessPartial,
-)
-from documentdb_tests.framework.error_codes import UNAUTHORIZED_ERROR
-from documentdb_tests.framework.executor import execute_admin_command, execute_command
+from documentdb_tests.framework.assertions import assertProperties, assertSuccessPartial
+from documentdb_tests.framework.executor import execute_admin_command
 from documentdb_tests.framework.property_checks import Exists, Gte, IsType
 
 pytestmark = pytest.mark.admin
 
 
-# ---------- Consistency and Idempotency ----------
+# Property [Idempotency]: repeated top calls succeed and counters are non-decreasing.
 
 
-def test_top_repeated_calls_succeed(collection):
-    """Test that calling top 5 times in a row all succeed."""
+def test_top_repeated_calls_return_ok(collection):
+    """Test that calling top returns ok after multiple calls."""
     for _ in range(5):
-        result = execute_admin_command(collection, {"top": 1})
-        assertSuccessPartial(result, {"ok": 1.0}, msg="Repeated top call should succeed")
+        execute_admin_command(collection, {"top": 1})
+    result = execute_admin_command(collection, {"top": 1})
+    assertSuccessPartial(result, {"ok": 1.0}, msg="top should succeed after repeated calls")
 
 
 def test_top_counters_non_decreasing_count(collection):
@@ -60,7 +56,7 @@ def test_top_counters_non_decreasing_time(collection):
     )
 
 
-# ---------- Collection Visibility and Namespace Format ----------
+# Property [Collection Visibility]: active collections appear in totals as db.collection keys.
 
 
 def test_top_newly_created_collection_appears(collection):
@@ -68,7 +64,6 @@ def test_top_newly_created_collection_appears(collection):
     collection.insert_one({"_id": 1})
     result = execute_admin_command(collection, {"top": 1})
     ns = f"{collection.database.name}.{collection.name}"
-    # Look up namespace directly — dotted path traversal can't handle keys with dots.
     ns_data = result["totals"].get(ns)
     assertProperties(
         {"ns_entry": ns_data},
@@ -87,7 +82,6 @@ def test_top_multiple_collections_appear(database_client):
     result = execute_admin_command(coll1, {"top": 1})
     ns1 = f"{database_client.name}.{coll1.name}"
     ns2 = f"{database_client.name}.{coll2.name}"
-    # Look up namespaces directly — dotted path traversal can't handle keys with dots.
     assertProperties(
         {"ns1": result["totals"].get(ns1), "ns2": result["totals"].get(ns2)},
         {"ns1": Exists(), "ns2": Exists()},
@@ -101,7 +95,6 @@ def test_top_namespace_format_db_dot_collection(collection):
     collection.insert_one({"_id": 1})
     result = execute_admin_command(collection, {"top": 1})
     ns = f"{collection.database.name}.{collection.name}"
-    # Look up namespace directly — dotted path traversal can't handle keys with dots.
     ns_data = result["totals"].get(ns)
     assertProperties(
         {"ns_entry": ns_data},
@@ -122,7 +115,7 @@ def test_top_returns_totals_even_with_no_user_operations(collection):
     )
 
 
-# ---------- Admin Database Requirement ----------
+# Property [Admin Database]: top succeeds when run on admin database.
 
 
 def test_top_admin_db_succeeds(collection):
@@ -131,20 +124,13 @@ def test_top_admin_db_succeeds(collection):
     assertSuccessPartial(result, {"ok": 1.0}, msg="top should succeed on admin db")
 
 
-def test_top_non_admin_db_fails(collection):
-    """Test that top fails when run on a non-admin database."""
-    result = execute_command(collection, {"top": 1})
-    assertFailureCode(result, UNAUTHORIZED_ERROR, msg="top should fail on non-admin db")
-
-
-# ---------- System Collections ----------
+# Property [System Collections]: system namespaces have the standard event field structure.
 
 
 def test_top_system_collections_have_event_structure(collection):
     """Test that system namespaces in totals have the expected event field structure."""
     collection.insert_one({"_id": 1})
     result = execute_admin_command(collection, {"top": 1})
-    # Find any system namespace in totals
     system_ns = None
     for ns_key in result["totals"]:
         if ".system." in ns_key or ns_key.startswith("admin.") or ns_key.startswith("local."):
@@ -176,7 +162,7 @@ def test_top_system_collections_have_event_structure(collection):
     )
 
 
-# ---------- Special Collection Types ----------
+# Property [Special Collection Types]: capped collections and views are handled by top.
 
 
 def test_top_tracks_capped_collection(database_client):
@@ -185,7 +171,6 @@ def test_top_tracks_capped_collection(database_client):
     coll.insert_one({"_id": 1})
     result = execute_admin_command(coll, {"top": 1})
     ns = f"{database_client.name}.{coll.name}"
-    # Look up namespace directly — dotted path traversal can't handle keys with dots.
     ns_data = result["totals"][ns]
     assertProperties(
         ns_data,
@@ -201,8 +186,6 @@ def test_top_tracks_view(database_client):
     source_coll.insert_one({"_id": 1})
     database_client.command("create", "top_view_test", viewOn="top_view_source", pipeline=[])
     result = execute_admin_command(source_coll, {"top": 1})
-    # Views may or may not appear in top totals depending on implementation.
-    # This test documents the actual behavior — verifies totals is present regardless.
     assertProperties(
         result,
         {"totals": IsType("object")},

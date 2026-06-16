@@ -1,7 +1,7 @@
 """Tests for top command argument handling.
 
 Validates that top accepts any BSON type as its argument value and
-handles unrecognized fields.
+accepts unrecognized fields.
 """
 
 from datetime import datetime, timezone
@@ -18,7 +18,6 @@ from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.property_checks import Eq
 
 pytestmark = pytest.mark.admin
-
 
 # Property [BSON Type Acceptance]: top accepts any non-deprecated BSON type as command value.
 ARGUMENT_TYPE_TESTS: list[DiagnosticTestCase] = [
@@ -136,5 +135,29 @@ ARGUMENT_TYPE_TESTS: list[DiagnosticTestCase] = [
 @pytest.mark.parametrize("test", pytest_params(ARGUMENT_TYPE_TESTS))
 def test_top_argument_types(collection, test):
     """Test that top accepts various BSON types as argument value."""
+    result = execute_admin_command(collection, test.command)
+    assertProperties(result, test.checks, msg=test.msg, raw_res=True)
+
+
+# Property [Unrecognized Fields]: top accepts and ignores unrecognized fields.
+UNRECOGNIZED_FIELD_TESTS: list[DiagnosticTestCase] = [
+    DiagnosticTestCase(
+        "single_unrecognized_field",
+        command={"top": 1, "unknownField": 1},
+        checks={"ok": Eq(1.0)},
+        msg="top should accept a single unrecognized field",
+    ),
+    DiagnosticTestCase(
+        "multiple_unrecognized_fields",
+        command={"top": 1, "foo": 1, "bar": "baz", "qux": []},
+        checks={"ok": Eq(1.0)},
+        msg="top should accept multiple unrecognized fields",
+    ),
+]
+
+
+@pytest.mark.parametrize("test", pytest_params(UNRECOGNIZED_FIELD_TESTS))
+def test_top_unrecognized_fields(collection, test):
+    """Test that top accepts unrecognized fields."""
     result = execute_admin_command(collection, test.command)
     assertProperties(result, test.checks, msg=test.msg, raw_res=True)
