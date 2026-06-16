@@ -1,0 +1,155 @@
+"""Tests for validate command core behavior.
+
+Validates basic functionality, counts, consistency across calls, and comment parameter.
+"""
+
+from __future__ import annotations
+
+from documentdb_tests.framework.assertions import (
+    assertFailureCode,
+    assertProperties,
+    assertSuccessPartial,
+)
+from documentdb_tests.framework.error_codes import NAMESPACE_NOT_FOUND_ERROR
+from documentdb_tests.framework.executor import execute_command
+from documentdb_tests.framework.property_checks import Eq
+
+
+def test_validate_populated_collection(collection):
+    """Test validate on a populated collection returns valid: true with correct counts."""
+    collection.insert_many([{"_id": i, "x": i} for i in range(5)])
+    result = execute_command(collection, {"validate": collection.name})
+    assertSuccessPartial(
+        result,
+        {"ok": 1.0, "valid": True, "nrecords": 5},
+        msg="Populated collection should validate with correct nrecords",
+    )
+
+
+def test_validate_empty_collection(database_client, collection):
+    """Test validate on an empty collection returns nrecords: 0, valid: true."""
+    coll_name = f"{collection.name}_empty"
+    database_client.create_collection(coll_name)
+    coll = database_client[coll_name]
+    result = execute_command(coll, {"validate": coll.name})
+    assertSuccessPartial(
+        result,
+        {"ok": 1.0, "valid": True, "nrecords": 0, "nIndexes": 1},
+        msg="Empty collection should be valid with nrecords: 0 and nIndexes: 1",
+    )
+
+
+def test_validate_non_existent_collection(collection):
+    """Test validate on a non-existent collection returns NamespaceNotFound error."""
+    result = execute_command(collection, {"validate": f"{collection.name}_nonexistent_xyz"})
+    assertFailureCode(
+        result,
+        NAMESPACE_NOT_FOUND_ERROR,
+        msg="Non-existent collection should return NamespaceNotFound error",
+    )
+
+
+def test_validate_after_insert_and_delete_all(collection):
+    """Test validate after inserting and deleting all documents shows nrecords: 0."""
+    collection.insert_many([{"_id": i} for i in range(5)])
+    collection.delete_many({})
+    result = execute_command(collection, {"validate": collection.name})
+    assertSuccessPartial(
+        result,
+        {"ok": 1.0, "valid": True, "nrecords": 0},
+        msg="After deleting all docs, nrecords should be 0",
+    )
+
+
+def test_validate_with_secondary_indexes(collection):
+    """Test validate with secondary indexes reports correct nIndexes."""
+    collection.insert_many([{"_id": i, "x": i, "y": i} for i in range(5)])
+    collection.create_index("x")
+    collection.create_index([("y", -1)])
+    result = execute_command(collection, {"validate": collection.name})
+    assertSuccessPartial(
+        result,
+        {"ok": 1.0, "nIndexes": 3},
+        msg="nIndexes should be 3 (_id + x_1 + y_-1)",
+    )
+
+
+def test_validate_consistent_across_calls(collection):
+    """Test validate returns consistent results across multiple calls."""
+    collection.insert_many([{"_id": i, "x": i} for i in range(5)])
+    result1 = execute_command(collection, {"validate": collection.name})
+    result2 = execute_command(collection, {"validate": collection.name})
+    assertProperties(
+        result1,
+        {
+            "nrecords": Eq(result2["nrecords"]),
+            "nIndexes": Eq(result2["nIndexes"]),
+            "valid": Eq(result2["valid"]),
+        },
+        raw_res=True,
+        msg="Two consecutive validates should return identical key fields",
+    )
+
+
+def test_validate_reflects_modifications(collection):
+    """Test validate reflects modifications between calls."""
+    collection.insert_many([{"_id": i} for i in range(3)])
+    execute_command(collection, {"validate": collection.name})
+    collection.insert_many([{"_id": i} for i in range(3, 8)])
+    result2 = execute_command(collection, {"validate": collection.name})
+    assertProperties(
+        result2,
+        {"nrecords": Eq(8)},
+        raw_res=True,
+        msg="Second validate should reflect updated nrecords after insert",
+    )
+
+
+def test_validate_after_dropping_indexes(collection):
+    """Test validate after dropping secondary indexes shows nIndexes: 1."""
+    collection.insert_one({"_id": 1, "x": 1})
+    collection.create_index("x")
+    collection.drop_indexes()
+    result = execute_command(collection, {"validate": collection.name})
+    assertSuccessPartial(
+        result,
+        {"ok": 1.0, "nIndexes": 1},
+        msg="After dropping secondary indexes, nIndexes should be 1 (only _id)",
+    )
+
+
+def test_validate_with_comment(collection):
+    """Test validate accepts the comment parameter."""
+    collection.insert_one({"_id": 1})
+    result = execute_command(
+        collection,
+        {"validate": collection.name, "comment": "test comment"},
+    )
+    assertSuccessPartial(
+        result,
+        {"ok": 1.0},
+        msg="validate with comment parameter should succeed",
+    )
+
+
+def test_validate_with_full_true(collection):
+    """Test validate with full: true returns valid: true on healthy collection."""
+    collection.insert_many([{"_id": i, "x": i} for i in range(5)])
+    result = execute_command(collection, {"validate": collection.name, "full": True})
+    assertSuccessPartial(
+        result,
+        {"ok": 1.0, "valid": True},
+        msg="validate with full: true should succeed on healthy collection",
+    )
+
+
+def test_validate_metadata_true(collection):
+    """Test validate with metadata: true succeeds."""
+    collection.insert_one({"_id": 1, "x": 1})
+    collection.create_index("x")
+    result = execute_command(collection, {"validate": collection.name, "metadata": True})
+    assertSuccessPartial(
+        result,
+        {"ok": 1.0},
+        msg="validate with metadata: true should succeed",
+    )
