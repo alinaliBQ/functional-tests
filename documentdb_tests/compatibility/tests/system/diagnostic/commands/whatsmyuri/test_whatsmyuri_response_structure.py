@@ -18,32 +18,33 @@ from documentdb_tests.framework.property_checks import Eq, Exists, IsType, NonEm
 pytestmark = pytest.mark.admin
 
 
+# Property [Response Structure]: whatsmyuri returns ok and a non-empty you field.
 PROPERTY_TESTS: list[DiagnosticTestCase] = [
     DiagnosticTestCase(
         id="ok_is_1",
         checks={"ok": Eq(1.0)},
-        msg="'ok' field should be 1.0",
+        msg="whatsmyuri should return ok equal to 1.0",
     ),
     DiagnosticTestCase(
         id="you_exists",
         checks={"you": Exists()},
-        msg="'you' field should always exist",
+        msg="whatsmyuri should return a you field",
     ),
     DiagnosticTestCase(
         id="you_is_string",
         checks={"you": IsType("string")},
-        msg="'you' field should be a string",
+        msg="whatsmyuri should return you as a string",
     ),
     DiagnosticTestCase(
         id="you_is_non_empty",
         checks={"you": NonEmptyStr()},
-        msg="'you' field should be a non-empty string containing the client URI",
+        msg="whatsmyuri should return a non-empty you field containing the client URI",
     ),
 ]
 
 
 @pytest.mark.parametrize("test", pytest_params(PROPERTY_TESTS))
 def test_whatsmyuri_response_properties(collection, test):
-    """Verify whatsmyuri response fields have expected types and values."""
+    """Test whatsmyuri response structure."""
     result = execute_admin_command(collection, {"whatsmyuri": 1})
     assertProperties(result, test.checks, msg=test.msg, raw_res=True)

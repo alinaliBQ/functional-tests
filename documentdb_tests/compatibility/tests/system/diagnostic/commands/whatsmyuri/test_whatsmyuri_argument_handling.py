@@ -19,126 +19,145 @@ from documentdb_tests.framework.property_checks import Eq
 pytestmark = pytest.mark.admin
 
 
+# Property [Type Acceptance]: whatsmyuri accepts all BSON types as the command field value.
 ARGUMENT_TYPE_TESTS: list[DiagnosticTestCase] = [
     DiagnosticTestCase(
-        "int_1", command={"whatsmyuri": 1}, checks={"ok": Eq(1.0)}, msg="Should accept int 1"
+        "int_1",
+        command={"whatsmyuri": 1},
+        checks={"ok": Eq(1.0)},
+        msg="whatsmyuri should accept int 1",
     ),
     DiagnosticTestCase(
-        "int_0", command={"whatsmyuri": 0}, checks={"ok": Eq(1.0)}, msg="Should accept int 0"
+        "int_0",
+        command={"whatsmyuri": 0},
+        checks={"ok": Eq(1.0)},
+        msg="whatsmyuri should accept int 0",
     ),
     DiagnosticTestCase(
-        "int_neg1", command={"whatsmyuri": -1}, checks={"ok": Eq(1.0)}, msg="Should accept int -1"
+        "int_neg1",
+        command={"whatsmyuri": -1},
+        checks={"ok": Eq(1.0)},
+        msg="whatsmyuri should accept int -1",
     ),
     DiagnosticTestCase(
-        "bool_true", command={"whatsmyuri": True}, checks={"ok": Eq(1.0)}, msg="Should accept true"
+        "bool_true",
+        command={"whatsmyuri": True},
+        checks={"ok": Eq(1.0)},
+        msg="whatsmyuri should accept true",
     ),
     DiagnosticTestCase(
         "bool_false",
         command={"whatsmyuri": False},
         checks={"ok": Eq(1.0)},
-        msg="Should accept false",
+        msg="whatsmyuri should accept false",
     ),
     DiagnosticTestCase(
         "string",
         command={"whatsmyuri": "hello"},
         checks={"ok": Eq(1.0)},
-        msg="Should accept string",
+        msg="whatsmyuri should accept string",
     ),
     DiagnosticTestCase(
-        "null", command={"whatsmyuri": None}, checks={"ok": Eq(1.0)}, msg="Should accept null"
+        "null",
+        command={"whatsmyuri": None},
+        checks={"ok": Eq(1.0)},
+        msg="whatsmyuri should accept null",
     ),
     DiagnosticTestCase(
         "empty_object",
         command={"whatsmyuri": {}},
         checks={"ok": Eq(1.0)},
-        msg="Should accept empty object",
+        msg="whatsmyuri should accept empty object",
     ),
     DiagnosticTestCase(
         "empty_array",
         command={"whatsmyuri": []},
         checks={"ok": Eq(1.0)},
-        msg="Should accept empty array",
+        msg="whatsmyuri should accept empty array",
     ),
     DiagnosticTestCase(
-        "double", command={"whatsmyuri": 1.5}, checks={"ok": Eq(1.0)}, msg="Should accept double"
+        "double",
+        command={"whatsmyuri": 1.5},
+        checks={"ok": Eq(1.0)},
+        msg="whatsmyuri should accept double",
     ),
     DiagnosticTestCase(
         "int64",
         command={"whatsmyuri": Int64(1)},
         checks={"ok": Eq(1.0)},
-        msg="Should accept int64",
+        msg="whatsmyuri should accept int64",
     ),
     DiagnosticTestCase(
         "decimal128",
         command={"whatsmyuri": Decimal128("1")},
         checks={"ok": Eq(1.0)},
-        msg="Should accept decimal128",
+        msg="whatsmyuri should accept decimal128",
     ),
     DiagnosticTestCase(
         "decimal128_nan",
         command={"whatsmyuri": Decimal128("NaN")},
         checks={"ok": Eq(1.0)},
-        msg="Should accept decimal128 NaN",
+        msg="whatsmyuri should accept decimal128 NaN",
     ),
     DiagnosticTestCase(
         "infinity",
         command={"whatsmyuri": float("inf")},
         checks={"ok": Eq(1.0)},
-        msg="Should accept infinity",
+        msg="whatsmyuri should accept infinity",
     ),
     DiagnosticTestCase(
         "date",
         command={"whatsmyuri": datetime(2024, 1, 1, tzinfo=timezone.utc)},
         checks={"ok": Eq(1.0)},
-        msg="Should accept date",
+        msg="whatsmyuri should accept date",
     ),
     DiagnosticTestCase(
         "binData",
         command={"whatsmyuri": Binary(b"")},
         checks={"ok": Eq(1.0)},
-        msg="Should accept binData",
+        msg="whatsmyuri should accept binData",
     ),
     DiagnosticTestCase(
         "objectId",
         command={"whatsmyuri": ObjectId()},
         checks={"ok": Eq(1.0)},
-        msg="Should accept objectId",
+        msg="whatsmyuri should accept objectId",
     ),
     DiagnosticTestCase(
         "regex",
         command={"whatsmyuri": Regex("test")},
         checks={"ok": Eq(1.0)},
-        msg="Should accept regex",
+        msg="whatsmyuri should accept regex",
     ),
     DiagnosticTestCase(
         "timestamp",
         command={"whatsmyuri": Timestamp(0, 0)},
         checks={"ok": Eq(1.0)},
-        msg="Should accept timestamp",
+        msg="whatsmyuri should accept timestamp",
     ),
     DiagnosticTestCase(
         "minKey",
         command={"whatsmyuri": MinKey()},
         checks={"ok": Eq(1.0)},
-        msg="Should accept minKey",
+        msg="whatsmyuri should accept minKey",
     ),
     DiagnosticTestCase(
         "maxKey",
         command={"whatsmyuri": MaxKey()},
         checks={"ok": Eq(1.0)},
-        msg="Should accept maxKey",
+        msg="whatsmyuri should accept maxKey",
     ),
     DiagnosticTestCase(
         "code",
         command={"whatsmyuri": Code("function(){}")},
         checks={"ok": Eq(1.0)},
-        msg="Should accept JavaScript code",
+        msg="whatsmyuri should accept JavaScript code",
     ),
 ]
 
 
 @pytest.mark.parametrize("test", pytest_params(ARGUMENT_TYPE_TESTS))
 def test_whatsmyuri_argument_types(collection, test):
-    """Test that whatsmyuri accepts various BSON types as argument value."""
+    """Test whatsmyuri argument type acceptance."""
     result = execute_admin_command(collection, test.command)
     assertProperties(result, test.checks, msg=test.msg, raw_res=True)

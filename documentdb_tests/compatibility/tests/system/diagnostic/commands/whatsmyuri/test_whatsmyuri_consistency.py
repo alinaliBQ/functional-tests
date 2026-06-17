@@ -13,16 +13,21 @@ pytestmark = pytest.mark.admin
 
 
 def test_whatsmyuri_idempotent(collection):
-    """Test calling whatsmyuri multiple times returns identical results."""
+    """Test whatsmyuri idempotency."""
     result1 = execute_admin_command(collection, {"whatsmyuri": 1})
     result2 = execute_admin_command(collection, {"whatsmyuri": 1})
-    assertSuccess(result2, expected=result1, msg="Should return identical results", raw_res=True)
+    assertSuccess(
+        result2,
+        expected=result1,
+        msg="whatsmyuri should return identical results across calls",
+        raw_res=True,
+    )
 
 
 def test_whatsmyuri_any_database(collection):
-    """Test whatsmyuri can be run on any database (not just admin)."""
+    """Test whatsmyuri on a non-admin database."""
     result = execute_command(collection, {"whatsmyuri": 1})
-    assertSuccessPartial(result, {"ok": 1.0}, msg="Should succeed on non-admin db")
+    assertSuccessPartial(result, {"ok": 1.0}, msg="whatsmyuri should succeed on non-admin database")
 
 
 def test_whatsmyuri_same_result_any_database(collection):
@@ -32,18 +37,18 @@ def test_whatsmyuri_same_result_any_database(collection):
     assertSuccess(
         db_result,
         expected=admin_result,
-        msg="Should return same result from any database",
+        msg="whatsmyuri should return same result from any database",
         raw_res=True,
     )
 
 
 def test_whatsmyuri_nonexistent_database(collection):
-    """Test whatsmyuri succeeds on a non-existent database."""
+    """Test whatsmyuri on a non-existent database."""
     other_db = f"{collection.name}_nonexistent_db"
     other_col = collection.database.client[other_db][collection.name]
     result = execute_command(other_col, {"whatsmyuri": 1})
     assertSuccessPartial(
         result,
         {"ok": 1.0},
-        msg="Should succeed on non-existent database",
+        msg="whatsmyuri should succeed on non-existent database",
     )
