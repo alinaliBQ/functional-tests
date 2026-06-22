@@ -121,6 +121,9 @@ def test_top_remove_increments_writeLock_count(collection):
     )
 
 
+# Property [Time Tracking]: time metrics are positive after corresponding operations.
+
+
 def test_top_insert_time_positive_after_inserts(collection):
     """Test that insert.time is positive after inserting documents."""
     collection.insert_many([{"_id": i} for i in range(10)])
@@ -147,17 +150,12 @@ def test_top_query_time_positive_after_query(collection):
 # Property [Cross-Lock Invariants]: aggregate lock counters are >= the sum of their components.
 
 
-def _setup_mixed_operations(collection):
-    """Insert, query, update, and delete on the collection to populate all counters."""
+def test_top_readLock_count_gte_queries_count(collection):
+    """Test that readLock.count >= queries.count."""
     collection.insert_many([{"_id": i, "a": i} for i in range(5)])
     list(collection.find())
     collection.update_one({"_id": 0}, {"$set": {"a": 99}})
     collection.delete_one({"_id": 4})
-
-
-def test_top_readLock_count_gte_queries_count(collection):
-    """Test that readLock.count >= queries.count."""
-    _setup_mixed_operations(collection)
     result = execute_admin_command(collection, {"top": 1})
     ns = f"{collection.database.name}.{collection.name}"
     ns_data = result["totals"][ns]
@@ -171,7 +169,10 @@ def test_top_readLock_count_gte_queries_count(collection):
 
 def test_top_readLock_time_gte_queries_time(collection):
     """Test that readLock.time >= queries.time."""
-    _setup_mixed_operations(collection)
+    collection.insert_many([{"_id": i, "a": i} for i in range(5)])
+    list(collection.find())
+    collection.update_one({"_id": 0}, {"$set": {"a": 99}})
+    collection.delete_one({"_id": 4})
     result = execute_admin_command(collection, {"top": 1})
     ns = f"{collection.database.name}.{collection.name}"
     ns_data = result["totals"][ns]
@@ -185,7 +186,10 @@ def test_top_readLock_time_gte_queries_time(collection):
 
 def test_top_writeLock_count_gte_insert_update_remove(collection):
     """Test that writeLock.count >= insert.count + update.count + remove.count."""
-    _setup_mixed_operations(collection)
+    collection.insert_many([{"_id": i, "a": i} for i in range(5)])
+    list(collection.find())
+    collection.update_one({"_id": 0}, {"$set": {"a": 99}})
+    collection.delete_one({"_id": 4})
     result = execute_admin_command(collection, {"top": 1})
     ns = f"{collection.database.name}.{collection.name}"
     ns_data = result["totals"][ns]
@@ -200,7 +204,10 @@ def test_top_writeLock_count_gte_insert_update_remove(collection):
 
 def test_top_writeLock_time_gte_insert_update_remove(collection):
     """Test that writeLock.time >= insert.time + update.time + remove.time."""
-    _setup_mixed_operations(collection)
+    collection.insert_many([{"_id": i, "a": i} for i in range(5)])
+    list(collection.find())
+    collection.update_one({"_id": 0}, {"$set": {"a": 99}})
+    collection.delete_one({"_id": 4})
     result = execute_admin_command(collection, {"top": 1})
     ns = f"{collection.database.name}.{collection.name}"
     ns_data = result["totals"][ns]

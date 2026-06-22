@@ -39,25 +39,23 @@ def test_top_response_top_level(collection, test):
 
 
 # Property [Per-Collection Event Fields]: each namespace entry has 9 event fields with time/count.
-_EVENT_NAMES = [
-    "total",
-    "readLock",
-    "writeLock",
-    "queries",
-    "getmore",
-    "insert",
-    "update",
-    "remove",
-    "commands",
-]
-
 EVENT_EXISTS_TESTS: list[DiagnosticTestCase] = [
     DiagnosticTestCase(
         id=f"event_{name}_exists",
         checks={name: IsType("object")},
         msg=f"'{name}' event field should be an object",
     )
-    for name in _EVENT_NAMES
+    for name in [
+        "total",
+        "readLock",
+        "writeLock",
+        "queries",
+        "getmore",
+        "insert",
+        "update",
+        "remove",
+        "commands",
+    ]
 ]
 
 EVENT_TIME_TESTS: list[DiagnosticTestCase] = [
@@ -66,7 +64,17 @@ EVENT_TIME_TESTS: list[DiagnosticTestCase] = [
         checks={f"{name}.time": Gte(0)},
         msg=f"'{name}.time' should be >= 0",
     )
-    for name in _EVENT_NAMES
+    for name in [
+        "total",
+        "readLock",
+        "writeLock",
+        "queries",
+        "getmore",
+        "insert",
+        "update",
+        "remove",
+        "commands",
+    ]
 ]
 
 EVENT_COUNT_TESTS: list[DiagnosticTestCase] = [
@@ -75,7 +83,17 @@ EVENT_COUNT_TESTS: list[DiagnosticTestCase] = [
         checks={f"{name}.count": Gte(0)},
         msg=f"'{name}.count' should be >= 0",
     )
-    for name in _EVENT_NAMES
+    for name in [
+        "total",
+        "readLock",
+        "writeLock",
+        "queries",
+        "getmore",
+        "insert",
+        "update",
+        "remove",
+        "commands",
+    ]
 ]
 
 EVENT_FIELD_TESTS = EVENT_EXISTS_TESTS + EVENT_TIME_TESTS + EVENT_COUNT_TESTS

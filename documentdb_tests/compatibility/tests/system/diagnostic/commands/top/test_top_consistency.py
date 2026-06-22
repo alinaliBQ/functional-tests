@@ -73,15 +73,16 @@ def test_top_newly_created_collection_appears(collection):
     )
 
 
-def test_top_multiple_collections_appear(database_client):
+def test_top_multiple_collections_appear(collection):
     """Test that multiple collections appear in top totals."""
-    coll1 = database_client.create_collection("top_multi_coll_1")
-    coll2 = database_client.create_collection("top_multi_coll_2")
+    db = collection.database
+    coll1 = db.create_collection(f"{collection.name}_multi1")
+    coll2 = db.create_collection(f"{collection.name}_multi2")
     coll1.insert_one({"_id": 1})
     coll2.insert_one({"_id": 1})
     result = execute_admin_command(coll1, {"top": 1})
-    ns1 = f"{database_client.name}.{coll1.name}"
-    ns2 = f"{database_client.name}.{coll2.name}"
+    ns1 = f"{db.name}.{coll1.name}"
+    ns2 = f"{db.name}.{coll2.name}"
     assertProperties(
         {"ns1": result["totals"].get(ns1), "ns2": result["totals"].get(ns2)},
         {"ns1": Exists(), "ns2": Exists()},
@@ -165,12 +166,13 @@ def test_top_system_collections_have_event_structure(collection):
 # Property [Special Collection Types]: capped collections and views are handled by top.
 
 
-def test_top_tracks_capped_collection(database_client):
+def test_top_tracks_capped_collection(collection):
     """Test that a capped collection appears in top totals with expected structure."""
-    coll = database_client.create_collection("top_capped_test", capped=True, size=4096)
+    db = collection.database
+    coll = db.create_collection(f"{collection.name}_capped", capped=True, size=4096)
     coll.insert_one({"_id": 1})
     result = execute_admin_command(coll, {"top": 1})
-    ns = f"{database_client.name}.{coll.name}"
+    ns = f"{db.name}.{coll.name}"
     ns_data = result["totals"][ns]
     assertProperties(
         ns_data,
@@ -180,11 +182,12 @@ def test_top_tracks_capped_collection(database_client):
     )
 
 
-def test_top_tracks_view(database_client):
+def test_top_tracks_view(collection):
     """Test whether a view namespace appears in top totals."""
-    source_coll = database_client.create_collection("top_view_source")
+    db = collection.database
+    source_coll = db.create_collection(f"{collection.name}_view_src")
     source_coll.insert_one({"_id": 1})
-    database_client.command("create", "top_view_test", viewOn="top_view_source", pipeline=[])
+    db.command("create", f"{collection.name}_view", viewOn=source_coll.name, pipeline=[])
     result = execute_admin_command(source_coll, {"top": 1})
     assertProperties(
         result,
