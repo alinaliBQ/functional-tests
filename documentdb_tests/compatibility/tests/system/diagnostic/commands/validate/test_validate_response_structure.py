@@ -1,6 +1,7 @@
 """Tests for validate command response structure.
 
-Validates presence, types, and values of response fields for healthy collections.
+Validates presence, types, and values of response fields for healthy collections,
+including keysPerIndex/indexDetails structure and full/metadata mode responses.
 """
 
 from __future__ import annotations
@@ -13,7 +14,7 @@ from documentdb_tests.compatibility.tests.system.diagnostic.utils.diagnostic_tes
 from documentdb_tests.framework.assertions import assertProperties, assertSuccessPartial
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
-from documentdb_tests.framework.property_checks import Eq, Exists, Gte, IsType
+from documentdb_tests.framework.property_checks import Eq, Exists, Gte, IsType, NotExists
 
 # Property [Response Structure]: validate returns expected field types and values for
 # healthy collections.
@@ -148,6 +149,16 @@ PROPERTY_TESTS: list[DiagnosticTestCase] = [
         checks={"nIndexes": Gte(1)},
         msg="validate should return nIndexes >= 1 (at least _id index)",
     ),
+    DiagnosticTestCase(
+        "repairMode_is_string",
+        checks={"repairMode": IsType("string")},
+        msg="validate should return repairMode as a string",
+    ),
+    DiagnosticTestCase(
+        "repairMode_none_no_repair",
+        checks={"repairMode": Eq("None")},
+        msg="validate should return repairMode: 'None' when no repair requested",
+    ),
 ]
 
 
@@ -207,3 +218,87 @@ def test_validate_ns_matches_namespace(collection):
         {"ns": expected_ns},
         msg="validate should return ns matching the actual namespace",
     )
+
+
+# Property [Detailed Structure]: validate returns correct sub-structure for
+# keysPerIndex, indexDetails, and option-specific response shapes.
+DETAILED_STRUCTURE_TESTS: list[DiagnosticTestCase] = [
+    DiagnosticTestCase(
+        "keysPerIndex_entries",
+        setup=[
+            {"insert": "", "documents": [{"_id": i, "x": i} for i in range(5)]},
+            {
+                "createIndexes": "",
+                "indexes": [{"key": {"x": 1}, "name": "x_1"}],
+            },
+        ],
+        checks={
+            "keysPerIndex._id_": IsType("int"),
+            "keysPerIndex.x_1": IsType("int"),
+        },
+        msg="keysPerIndex should have integer entries for each index",
+    ),
+    DiagnosticTestCase(
+        "indexDetails_entries",
+        setup=[
+            {"insert": "", "documents": [{"_id": i, "x": i} for i in range(5)]},
+            {
+                "createIndexes": "",
+                "indexes": [{"key": {"x": 1}, "name": "x_1"}],
+            },
+        ],
+        checks={
+            "indexDetails._id_.valid": Eq(True),
+            "indexDetails._id_.spec": IsType("object"),
+            "indexDetails.x_1.valid": Eq(True),
+            "indexDetails.x_1.spec": IsType("object"),
+        },
+        msg="indexDetails entries should have valid: true and spec as object",
+    ),
+    DiagnosticTestCase(
+        "full_true_response",
+        setup=[{"insert": "", "documents": [{"_id": 1}]}],
+        command={"full": True},
+        checks={
+            "ok": Eq(1.0),
+            "valid": Eq(True),
+            "ns": IsType("string"),
+            "nrecords": IsType("int"),
+            "nIndexes": Gte(1),
+            "keysPerIndex": IsType("object"),
+            "indexDetails": IsType("object"),
+            "repairMode": Eq("None"),
+        },
+        msg="validate with full: true should return all standard response fields",
+    ),
+    DiagnosticTestCase(
+        "metadata_true_response",
+        setup=[
+            {"insert": "", "documents": [{"_id": i, "x": i} for i in range(5)]},
+        ],
+        command={"metadata": True},
+        checks={
+            "ok": Eq(1.0),
+            "valid": Eq(True),
+            "ns": IsType("string"),
+            "nIndexes": IsType("int"),
+            "nrecords": NotExists(),
+            "nInvalidDocuments": NotExists(),
+            "nNonCompliantDocuments": NotExists(),
+        },
+        msg="validate with metadata: true should return structural fields"
+        " but omit document-count fields",
+    ),
+]
+
+
+@pytest.mark.parametrize("test", pytest_params(DETAILED_STRUCTURE_TESTS))
+def test_validate_detailed_structure(collection, test):
+    """Test validate response sub-structure for indexes and option modes."""
+    for cmd in test.setup:
+        execute_command(collection, {**cmd, next(iter(cmd)): collection.name})
+    cmd = {"validate": collection.name}
+    if test.command:
+        cmd.update(test.command)
+    result = execute_command(collection, cmd)
+    assertProperties(result, test.checks, msg=test.msg, raw_res=True)

@@ -16,7 +16,10 @@ from documentdb_tests.compatibility.tests.system.diagnostic.utils.diagnostic_tes
     DiagnosticTestCase,
 )
 from documentdb_tests.framework.assertions import assertFailureCode, assertProperties
-from documentdb_tests.framework.error_codes import INVALID_NAMESPACE_ERROR
+from documentdb_tests.framework.error_codes import (
+    INVALID_NAMESPACE_ERROR,
+    NAMESPACE_NOT_FOUND_ERROR,
+)
 from documentdb_tests.framework.executor import execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.property_checks import Eq
@@ -143,6 +146,30 @@ INVALID_TYPE_TESTS: list[DiagnosticTestCase] = [
 @pytest.mark.parametrize("test", pytest_params(INVALID_TYPE_TESTS))
 def test_validate_rejects_non_string_types(collection, test):
     """Test that validate rejects non-string BSON types for the collection name."""
+    result = execute_command(collection, test.command)
+    assertFailureCode(result, test.error_code, msg=test.msg)
+
+
+# Property [Invalid String Values]: validate rejects invalid string values for collection name.
+INVALID_STRING_TESTS: list[DiagnosticTestCase] = [
+    DiagnosticTestCase(
+        "empty_string",
+        command={"validate": ""},
+        error_code=INVALID_NAMESPACE_ERROR,
+        msg="validate should reject empty string for collection name",
+    ),
+    DiagnosticTestCase(
+        "dollar_prefix",
+        command={"validate": "$invalid"},
+        error_code=NAMESPACE_NOT_FOUND_ERROR,
+        msg="validate should return NamespaceNotFound for dollar-prefixed collection name",
+    ),
+]
+
+
+@pytest.mark.parametrize("test", pytest_params(INVALID_STRING_TESTS))
+def test_validate_rejects_invalid_string_values(collection, test):
+    """Test that validate rejects invalid string values for collection name."""
     result = execute_command(collection, test.command)
     assertFailureCode(result, test.error_code, msg=test.msg)
 

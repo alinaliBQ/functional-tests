@@ -158,8 +158,36 @@ def test_validate_document_variety(collection, test):
     assertProperties(result, test.checks, msg=test.msg, raw_res=True)
 
 
+# Property [Collection Name Edge Cases]: validate succeeds with unusual but
+# valid collection name suffixes.
+COLLECTION_NAME_TESTS: list[DiagnosticTestCase] = [
+    DiagnosticTestCase(
+        "unicode_name",
+        command={"suffix": "_\u00e9\u00e8\u00ea"},
+        checks={"ok": Eq(1.0)},
+        msg="validate should succeed with unicode collection name",
+    ),
+    DiagnosticTestCase(
+        "numeric_looking_name",
+        command={"suffix": "_12345"},
+        checks={"ok": Eq(1.0)},
+        msg="validate should succeed with numeric-looking collection name",
+    ),
+]
+
+
+@pytest.mark.parametrize("test", pytest_params(COLLECTION_NAME_TESTS))
+def test_validate_collection_name_edge_cases(database_client, collection, test):
+    """Test validate succeeds with unusual but valid collection names."""
+    coll_name = f"{collection.name}{test.command['suffix']}"
+    coll = database_client[coll_name]
+    coll.insert_one({"_id": 1})
+    result = execute_command(coll, {"validate": coll.name})
+    assertProperties(result, test.checks, msg=test.msg, raw_res=True)
+
+
 def test_validate_long_collection_name(database_client, collection):
-    """Test validate with a very long collection name succeeds."""
+    """Test validate with a collection name at the max namespace length."""
     db_name = database_client.name
     # Namespace is "db.coll" so max coll length is 255 - len(db_name) - 1.
     max_coll_len = 255 - len(db_name) - 1
@@ -169,29 +197,4 @@ def test_validate_long_collection_name(database_client, collection):
     result = execute_command(coll, {"validate": coll.name})
     assertSuccessPartial(
         result, {"ok": 1.0}, msg="validate should succeed with a long collection name"
-    )
-
-
-def test_validate_unicode_collection_name(database_client, collection):
-    """Test validate with unicode characters in collection name succeeds."""
-    # U+00E9 e-acute, U+00E8 e-grave, U+00EA e-circumflex.
-    coll_name = f"{collection.name}_\u00e9\u00e8\u00ea"
-    coll = database_client[coll_name]
-    coll.insert_one({"_id": 1})
-    result = execute_command(coll, {"validate": coll.name})
-    assertSuccessPartial(
-        result, {"ok": 1.0}, msg="validate should succeed with unicode collection name"
-    )
-
-
-def test_validate_numeric_looking_collection_name(database_client, collection):
-    """Test validate with a numeric-looking collection name succeeds."""
-    coll_name = f"{collection.name}_12345"
-    coll = database_client[coll_name]
-    coll.insert_one({"_id": 1})
-    result = execute_command(coll, {"validate": coll.name})
-    assertSuccessPartial(
-        result,
-        {"ok": 1.0},
-        msg="validate should succeed with numeric-looking collection name",
     )

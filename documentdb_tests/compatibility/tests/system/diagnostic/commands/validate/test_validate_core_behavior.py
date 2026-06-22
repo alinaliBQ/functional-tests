@@ -65,6 +65,13 @@ CORE_BEHAVIOR_TESTS: list[DiagnosticTestCase] = [
         checks={"ok": Eq(1.0)},
         msg="validate should succeed with comment parameter",
     ),
+    DiagnosticTestCase(
+        "unrecognized_field_ignored",
+        setup=[{"insert": "", "documents": [{"_id": 1}]}],
+        command={"unknownField": 1},
+        checks={"ok": Eq(1.0), "valid": Eq(True)},
+        msg="validate should ignore unrecognized fields and succeed",
+    ),
 ]
 
 
