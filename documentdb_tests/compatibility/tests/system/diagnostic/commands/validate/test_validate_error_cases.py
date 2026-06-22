@@ -82,6 +82,12 @@ INVALID_COMBINATION_TESTS: list[DiagnosticTestCase] = [
         error_code=INVALID_OPTIONS_ERROR,
         msg="validate should error with checkBSONConformance: true and repair: true",
     ),
+    DiagnosticTestCase(
+        "metadata_with_background",
+        command={"metadata": True, "background": True},
+        error_code=INVALID_OPTIONS_ERROR,
+        msg="validate should error with metadata: true and background: true",
+    ),
 ]
 
 
