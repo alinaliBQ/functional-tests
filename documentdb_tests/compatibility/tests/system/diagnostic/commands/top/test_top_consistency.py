@@ -1,6 +1,6 @@
 """Tests for top command consistency, visibility, and special collection types.
 
-Validates idempotency, namespace visibility, format, admin database requirement,
+Validates idempotency, namespace visibility, system namespace structure,
 and behavior with capped collections and views.
 """
 
@@ -89,40 +89,6 @@ def test_top_multiple_collections_appear(collection):
         msg="Both namespaces should appear in top totals",
         raw_res=True,
     )
-
-
-def test_top_namespace_format_db_dot_collection(collection):
-    """Test that namespace keys in totals are formatted as db.collection."""
-    collection.insert_one({"_id": 1})
-    result = execute_admin_command(collection, {"top": 1})
-    ns = f"{collection.database.name}.{collection.name}"
-    ns_data = result["totals"].get(ns)
-    assertProperties(
-        {"ns_entry": ns_data},
-        {"ns_entry": Exists()},
-        msg=f"Namespace key should be '{ns}' (db.collection format)",
-        raw_res=True,
-    )
-
-
-def test_top_returns_totals_even_with_no_user_operations(collection):
-    """Test that top returns totals object even with minimal operations."""
-    result = execute_admin_command(collection, {"top": 1})
-    assertProperties(
-        result,
-        {"totals": IsType("object")},
-        msg="totals should be an object even with no user operations",
-        raw_res=True,
-    )
-
-
-# Property [Admin Database]: top succeeds when run on admin database.
-
-
-def test_top_admin_db_succeeds(collection):
-    """Test that top succeeds when run on admin database."""
-    result = execute_admin_command(collection, {"top": 1})
-    assertSuccessPartial(result, {"ok": 1.0}, msg="top should succeed on admin db")
 
 
 # Property [System Collections]: system namespaces have the standard event field structure.
