@@ -12,7 +12,7 @@ from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Rege
 from documentdb_tests.compatibility.tests.system.diagnostic.utils.diagnostic_test_case import (
     DiagnosticTestCase,
 )
-from documentdb_tests.framework.assertions import assertProperties, assertSuccessPartial
+from documentdb_tests.framework.assertions import assertProperties
 from documentdb_tests.framework.executor import execute_admin_command
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.property_checks import Eq
@@ -210,20 +210,21 @@ ARGUMENT_TYPE_TESTS: list[DiagnosticTestCase] = [
     ),
 ]
 
+# Property [Extra Fields Ignored]: whatsmyuri ignores unrecognized fields.
+EXTRA_FIELD_TESTS: list[DiagnosticTestCase] = [
+    DiagnosticTestCase(
+        "extra_field_ignored",
+        command={"whatsmyuri": 1, "unknownField": 1},
+        checks={"ok": Eq(1.0)},
+        msg="whatsmyuri should succeed even with unrecognized fields",
+    ),
+]
 
-@pytest.mark.parametrize("test", pytest_params(ARGUMENT_TYPE_TESTS))
-def test_whatsmyuri_argument_types(collection, test):
-    """Test whatsmyuri argument type acceptance."""
+ALL_TESTS = ARGUMENT_TYPE_TESTS + EXTRA_FIELD_TESTS
+
+
+@pytest.mark.parametrize("test", pytest_params(ALL_TESTS))
+def test_whatsmyuri_argument_handling(collection, test):
+    """Test whatsmyuri argument handling."""
     result = execute_admin_command(collection, test.command)
     assertProperties(result, test.checks, msg=test.msg, raw_res=True)
-
-
-# Property [Extra Fields Ignored]: whatsmyuri ignores unrecognized fields.
-def test_whatsmyuri_extra_field_ignored(collection):
-    """Test whatsmyuri succeeds with unrecognized fields."""
-    result = execute_admin_command(collection, {"whatsmyuri": 1, "unknownField": 1})
-    assertSuccessPartial(
-        result,
-        {"ok": 1.0},
-        msg="whatsmyuri should succeed even with unrecognized fields",
-    )
