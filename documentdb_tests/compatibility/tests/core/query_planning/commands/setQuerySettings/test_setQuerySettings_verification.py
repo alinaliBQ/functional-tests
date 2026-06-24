@@ -24,6 +24,8 @@ from documentdb_tests.framework.parametrize import pytest_params
 
 from .utils.setQuerySettings_common import get_query_settings
 
+pytestmark = pytest.mark.no_parallel
+
 # Property [Hash Format]: queryShapeHash is a 64-character hexadecimal string.
 # Property [Hash Consistency]: same query shape produces the same hash.
 # Property [Hash Uniqueness]: different query shapes produce different hashes.

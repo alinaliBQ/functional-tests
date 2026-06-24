@@ -18,6 +18,8 @@ from documentdb_tests.framework.assertions import assertSuccessPartial
 from documentdb_tests.framework.executor import execute_admin_command, execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
+pytestmark = pytest.mark.no_parallel
+
 # Property [Reject Scope]: reject: true does not affect unrelated query shapes.
 # Property [Reject Reversal via Update]: updating reject to false re-enables the query.
 # Property [Reject Reversal via Remove]: removing the query setting re-enables the query.

@@ -19,6 +19,8 @@ from documentdb_tests.framework.assertions import assertSuccessPartial
 from documentdb_tests.framework.executor import execute_admin_command
 from documentdb_tests.framework.parametrize import pytest_params
 
+pytestmark = pytest.mark.no_parallel
+
 # Property [Command Shape Acceptance]: accepts find, distinct, and aggregate shapes.
 # Property [Find Shape Variations]: setQuerySettings accepts find shapes with various field combos.
 # Property [Distinct Shape Variations]: setQuerySettings accepts distinct shapes with query combos.

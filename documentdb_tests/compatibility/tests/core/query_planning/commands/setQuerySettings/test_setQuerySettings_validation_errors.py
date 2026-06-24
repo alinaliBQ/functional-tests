@@ -32,6 +32,8 @@ from documentdb_tests.framework.error_codes import (
 from documentdb_tests.framework.executor import execute_admin_command
 from documentdb_tests.framework.parametrize import pytest_params
 
+pytestmark = pytest.mark.no_parallel
+
 # Property [Query Shape Validation]: rejects malformed or unknown query shape documents.
 # Property [Hash String Validation]: rejects invalid hash string formats.
 # Property [indexHints Structure Validation]: rejects indexHints missing required sub-fields.

@@ -19,6 +19,8 @@ from documentdb_tests.framework.error_codes import QUERYSETTINGS_QUERY_REJECTED_
 from documentdb_tests.framework.executor import execute_admin_command, execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
+pytestmark = pytest.mark.no_parallel
+
 # Property [Reject Blocks Find]: reject: true blocks matching find queries.
 # Property [Reject Blocks Distinct]: reject: true blocks matching distinct queries.
 # Property [Reject Blocks Aggregate]: reject: true blocks matching aggregate queries.

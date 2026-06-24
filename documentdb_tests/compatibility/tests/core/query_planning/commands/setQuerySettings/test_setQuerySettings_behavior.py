@@ -21,6 +21,8 @@ from documentdb_tests.framework.parametrize import pytest_params
 
 from .utils.setQuerySettings_common import get_query_settings
 
+pytestmark = pytest.mark.no_parallel
+
 # Property [Response Structure]: setQuerySettings response includes hash, query, and settings.
 SET_QUERY_SETTINGS_RESPONSE_TESTS: list[SettingsTestCase] = [
     SettingsTestCase(
