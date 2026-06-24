@@ -89,4 +89,4 @@ def test_profile_combined_params(collection, test):
     else:
         result = execute_command(collection, test.command)
     assertProperties(result, test.checks, msg=test.msg, raw_res=True)
-    execute_command(collection, {"profile": 0, "sampleRate": 1.0, "filter": "unset"})
+    execute_command(collection, {"profile": 0, "slowms": 100, "sampleRate": 1.0, "filter": "unset"})

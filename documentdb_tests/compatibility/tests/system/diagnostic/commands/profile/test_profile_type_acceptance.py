@@ -201,6 +201,8 @@ SAMPLERATE_TYPE_ACCEPTANCE_TESTS: list[DiagnosticTestCase] = [
         checks={"sampleRate": Eq(1.0)},
         msg="sampleRate should accept Int64(1) and persist value",
     ),
+    # Decimal128("0") converts to a near-zero double (~2.225e-308), not exactly 0.0,
+    # so we use Gte(0.0) instead of Eq(0.0).
     DiagnosticTestCase(
         "samplerate_decimal128_0",
         setup=[{"profile": 0, "sampleRate": Decimal128("0")}],
