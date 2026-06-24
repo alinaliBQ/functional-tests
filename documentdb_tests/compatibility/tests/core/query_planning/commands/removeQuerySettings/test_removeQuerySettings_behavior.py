@@ -21,7 +21,7 @@ from documentdb_tests.framework.assertions import assertSuccessPartial
 from documentdb_tests.framework.executor import execute_admin_command, execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
-pytestmark = [pytest.mark.no_parallel]
+pytestmark = [pytest.mark.requires(cluster_admin=True), pytest.mark.no_parallel]
 
 # Property [Remove By Query Shape]: removeQuerySettings removes settings
 # when given the original query shape, verified via $querySettings.
@@ -223,7 +223,6 @@ REMOVEQUERYSETTINGS_SETTING_REMOVED_TESTS: list[SettingsTestCase] = [
 
 
 @pytest.mark.admin
-@pytest.mark.requires(change_streams=True)
 @pytest.mark.parametrize("test", pytest_params(REMOVEQUERYSETTINGS_SETTING_REMOVED_TESTS))
 def test_removeQuerySettings_setting_removed(collection, test):
     """Test that removeQuerySettings actually removes settings, verified via $querySettings."""
@@ -307,7 +306,6 @@ REMOVEQUERYSETTINGS_IDEMPOTENT_TESTS: list[SettingsTestCase] = [
 
 
 @pytest.mark.admin
-@pytest.mark.requires(change_streams=True)
 @pytest.mark.parametrize("test", pytest_params(REMOVEQUERYSETTINGS_IDEMPOTENT_TESTS))
 def test_removeQuerySettings_idempotent(collection, test):
     """Test removeQuerySettings is idempotent on second call."""
@@ -498,7 +496,6 @@ REMOVEQUERYSETTINGS_SHAPE_PERSISTS_TESTS: list[SettingsTestCase] = [
 
 
 @pytest.mark.admin
-@pytest.mark.requires(change_streams=True)
 @pytest.mark.parametrize("test", pytest_params(REMOVEQUERYSETTINGS_SHAPE_PERSISTS_TESTS))
 def test_removeQuerySettings_shape_persists(collection, test):
     """Test that mismatched shapes do not remove original settings."""
@@ -564,7 +561,6 @@ REMOVEQUERYSETTINGS_REJECT_REMOVAL_TESTS: list[SettingsTestCase] = [
 
 
 @pytest.mark.admin
-@pytest.mark.requires(change_streams=True)
 @pytest.mark.parametrize("test", pytest_params(REMOVEQUERYSETTINGS_REJECT_REMOVAL_TESTS))
 def test_removeQuerySettings_reject_removal(collection, test):
     """Test that removing reject: true setting restores the query."""

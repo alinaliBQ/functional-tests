@@ -17,7 +17,7 @@ from documentdb_tests.framework.assertions import assertSuccessPartial
 from documentdb_tests.framework.executor import execute_admin_command
 from documentdb_tests.framework.parametrize import pytest_params
 
-pytestmark = [pytest.mark.no_parallel]
+pytestmark = [pytest.mark.requires(cluster_admin=True), pytest.mark.no_parallel]
 
 # Property [Find Shape Acceptance]: removeQuerySettings accepts find shapes
 # with various field combinations without error.
@@ -303,7 +303,6 @@ REMOVEQUERYSETTINGS_CORE_TESTS: list[CommandTestCase] = (
 )
 
 
-@pytest.mark.requires(change_streams=True)
 @pytest.mark.parametrize("test", pytest_params(REMOVEQUERYSETTINGS_CORE_TESTS))
 def test_removeQuerySettings_core(collection, test):
     """Test removeQuerySettings command core acceptance behavior."""
