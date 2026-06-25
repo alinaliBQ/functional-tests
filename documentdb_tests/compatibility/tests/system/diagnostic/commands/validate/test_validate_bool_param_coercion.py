@@ -1,6 +1,8 @@
-"""Tests for validate command 'full' parameter type coercion.
+"""Canonical BSON type coercion matrix for validate boolean parameters.
 
-Validates that the full parameter accepts all BSON types via coercion.
+Uses 'full' as the representative parameter. All boolean parameters
+(full, metadata, checkBSONConformance, repair, fixMultikey) share the
+same coercion logic; other per-parameter files contain only wiring tests.
 """
 
 from __future__ import annotations
