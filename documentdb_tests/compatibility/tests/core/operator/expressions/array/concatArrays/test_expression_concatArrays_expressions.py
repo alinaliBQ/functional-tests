@@ -17,77 +17,71 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
 from documentdb_tests.framework.error_codes import CONCAT_ARRAYS_NOT_ARRAY_ERROR
 from documentdb_tests.framework.parametrize import pytest_params
 
-# ---------------------------------------------------------------------------
-# Field path lookups
-# ---------------------------------------------------------------------------
+# Property [Field Path]: $concatArrays resolves field-path array arguments.
 FIELD_LOOKUP_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="nested_field_path",
         expression={"$concatArrays": ["$a.b", "$a.c"]},
         doc={"a": {"b": [1, 2], "c": [3, 4]}},
         expected=[1, 2, 3, 4],
-        msg="Should resolve nested field paths",
+        msg="$concatArrays should resolve nested field paths",
     ),
     ExpressionTestCase(
         id="deeply_nested_field",
         expression={"$concatArrays": ["$a.b.c", "$a.b.d"]},
         doc={"a": {"b": {"c": [10], "d": [20]}}},
         expected=[10, 20],
-        msg="Should resolve deeply nested field paths",
+        msg="$concatArrays should resolve deeply nested field paths",
     ),
     ExpressionTestCase(
         id="nonexistent_field_null",
         expression={"$concatArrays": ["$a.nonexistent", "$b"]},
         doc={"a": {"missing": 1}, "b": [1]},
         expected=None,
-        msg="Non-existent field should propagate null",
+        msg="$concatArrays should propagate null for a non-existent field",
     ),
     ExpressionTestCase(
         id="array_index_path",
         expression={"$concatArrays": ["$a.0", [5]]},
         doc={"a": [[1, 2], [3, 4]]},
         expected=[5],
-        msg="$a.0 resolves to [] in expression context",
+        msg="$concatArrays should resolve $a.0 to an empty array in expression context",
     ),
     ExpressionTestCase(
         id="nonexistent_nested_path_empty",
         expression={"$concatArrays": ["$f.x", [3]]},
         doc={"f": [{"g": 1}, {"g": 2}]},
         expected=[3],
-        msg="Non-existent nested path resolves to empty array",
+        msg="$concatArrays should resolve a non-existent nested path to an empty array",
     ),
     ExpressionTestCase(
         id="nested_array_of_object_path",
         expression={"$concatArrays": ["$a.b.c", [3]]},
         doc={"a": {"b": [{"c": [1]}, {"c": [2]}]}},
         expected=[[1], [2], 3],
-        msg="Deep nested path resolved",
+        msg="$concatArrays should resolve a deeply nested field path",
     ),
 ]
 
-# ---------------------------------------------------------------------------
-# Composite array paths
-# ---------------------------------------------------------------------------
+# Property [Composite Path]: $concatArrays resolves composite arrays from dotted paths.
 COMPOSITE_PATH_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="composite_array",
         expression={"$concatArrays": ["$x.y", [100]]},
         doc={"x": [{"y": 10}, {"y": 20}]},
         expected=[10, 20, 100],
-        msg="Composite array path from array-of-objects",
+        msg="$concatArrays should resolve a composite array path from an array of objects",
     ),
     ExpressionTestCase(
         id="composite_path_tags",
         expression={"$concatArrays": ["$items.tags", ["d"]]},
         doc={"items": [{"tags": ["a", "b"]}, {"tags": ["c"]}]},
         expected=[["a", "b"], ["c"], "d"],
-        msg="$items.tags resolves to array of arrays",
+        msg="$concatArrays should resolve $items.tags to an array of arrays",
     ),
 ]
 
-# ---------------------------------------------------------------------------
-# $let and system variables
-# ---------------------------------------------------------------------------
+# Property [Variables]: $concatArrays works with $let and system variables like $$ROOT.
 LET_AND_VARIABLE_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="let_variable",
@@ -99,21 +93,21 @@ LET_AND_VARIABLE_TESTS: list[ExpressionTestCase] = [
         },
         doc={"arr1": [1, 2], "arr2": [3, 4]},
         expected=[1, 2, 3, 4],
-        msg="Should work with $let variables",
+        msg="$concatArrays should work with $let variables",
     ),
     ExpressionTestCase(
         id="root_variable",
         expression={"$concatArrays": ["$$ROOT.a", "$$ROOT.b"]},
         doc={"_id": 1, "a": [1], "b": [2]},
         expected=[1, 2],
-        msg="Should work with $$ROOT",
+        msg="$concatArrays should work with $$ROOT",
     ),
     ExpressionTestCase(
         id="current_variable",
         expression={"$concatArrays": ["$$CURRENT.a", "$$CURRENT.b"]},
         doc={"_id": 2, "a": [1], "b": [2]},
         expected=[1, 2],
-        msg="$$CURRENT should be equivalent to field path",
+        msg="$concatArrays should treat $$CURRENT like the field path",
     ),
     ExpressionTestCase(
         id="let_null_variable",
@@ -125,110 +119,106 @@ LET_AND_VARIABLE_TESTS: list[ExpressionTestCase] = [
         },
         doc={"_placeholder": 1},
         expected=None,
-        msg="$let null variable returns null",
+        msg="$concatArrays should return null for a null $let variable",
     ),
 ]
 
-# ---------------------------------------------------------------------------
-# Null/missing via expression
-# ---------------------------------------------------------------------------
+# Property [Null Propagation]: $concatArrays returns null when a field path is null or missing.
 NULL_MISSING_EXPR_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="missing_field",
         expression={"$concatArrays": ["$nonexistent", [1]]},
         doc={"other": 1},
         expected=None,
-        msg="Missing field should propagate null",
+        msg="$concatArrays should propagate null for a missing field",
     ),
     ExpressionTestCase(
         id="missing_input_type_is_null",
         expression={"$type": {"$concatArrays": ["$nonexistent", [1]]}},
         doc={"x": 1},
         expected="null",
-        msg="Missing field should produce null type",
+        msg="$concatArrays should produce null type for a missing field",
     ),
     ExpressionTestCase(
         id="remove_variable",
         expression={"$concatArrays": ["$$REMOVE", [1]]},
         doc={"x": 1},
         expected=None,
-        msg="$$REMOVE propagates null",
+        msg="$concatArrays should return null when an argument is $$REMOVE",
     ),
     ExpressionTestCase(
         id="field_ref_wrapped_non_array",
         expression={"$concatArrays": ["$a", [1]]},
         doc={"a": 1},
         error_code=CONCAT_ARRAYS_NOT_ARRAY_ERROR,
-        msg="Field resolving to non-array should error",
+        msg="$concatArrays should error when a field resolves to a non-array",
     ),
     ExpressionTestCase(
         id="missing_first_field",
         expression={"$concatArrays": ["$a", "$b"]},
         doc={"b": [1]},
         expected=None,
-        msg="Missing first field returns null",
+        msg="$concatArrays should return null when the first field is missing",
     ),
     ExpressionTestCase(
         id="missing_last_field",
         expression={"$concatArrays": ["$a", "$b"]},
         doc={"a": [1]},
         expected=None,
-        msg="Missing last field returns null",
+        msg="$concatArrays should return null when the last field is missing",
     ),
     ExpressionTestCase(
         id="missing_middle_field",
         expression={"$concatArrays": ["$a", "$b", "$c"]},
         doc={"a": [1], "c": [3]},
         expected=None,
-        msg="Missing middle field returns null",
+        msg="$concatArrays should return null when a middle field is missing",
     ),
     ExpressionTestCase(
         id="all_missing_fields",
         expression={"$concatArrays": ["$a", "$b"]},
         doc={"_placeholder": 1},
         expected=None,
-        msg="All missing fields returns null",
+        msg="$concatArrays should return null when all fields are missing",
     ),
     ExpressionTestCase(
         id="explicit_null_field",
         expression={"$concatArrays": ["$a", "$b"]},
         doc={"a": None, "b": [1]},
         expected=None,
-        msg="Explicit null field returns null",
+        msg="$concatArrays should return null for an explicit null field",
     ),
     ExpressionTestCase(
         id="missing_plus_null",
         expression={"$concatArrays": ["$not_a_field", "$null_val"]},
         doc={"null_val": None},
         expected=None,
-        msg="Missing + null returns null",
+        msg="$concatArrays should return null for a missing field plus null",
     ),
     ExpressionTestCase(
         id="null_precedes_non_array",
         expression={"$concatArrays": ["$arr", "$null_val", "$int_val"]},
         doc={"arr": [1, 2], "null_val": None, "int_val": 42},
         expected=None,
-        msg="Null precedes non-array type error",
+        msg="$concatArrays should error when a null precedes a non-array argument",
     ),
     ExpressionTestCase(
         id="null_result_type_is_null",
         expression={"$type": {"$concatArrays": ["$a", "$nonexistent"]}},
         doc={"a": [1]},
         expected="null",
-        msg="$type returns 'null' not 'missing'",
+        msg="$concatArrays should produce null type, not missing, for a null result",
     ),
 ]
 
-# ---------------------------------------------------------------------------
-# Self-composition
-# ---------------------------------------------------------------------------
+# Property [Nesting]: $concatArrays can be nested as an argument to itself.
 SELF_COMPOSITION_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="nested_concatArrays",
         expression={"$concatArrays": [{"$concatArrays": ["$a", "$b"]}, "$c"]},
         doc={"a": [1], "b": [2], "c": [3]},
         expected=[1, 2, 3],
-        msg="Nested $concatArrays should work",
+        msg="$concatArrays should evaluate a nested $concatArrays argument",
     ),
     ExpressionTestCase(
         id="double_nested_concatArrays",
@@ -237,7 +227,7 @@ SELF_COMPOSITION_TESTS: list[ExpressionTestCase] = [
         },
         doc={"a": [1], "b": [2], "c": [3], "d": [4]},
         expected=[1, 2, 3, 4],
-        msg="Both args are nested $concatArrays",
+        msg="$concatArrays should evaluate nested $concatArrays in both arguments",
     ),
     ExpressionTestCase(
         id="triple_depth_concatArrays",
@@ -246,27 +236,25 @@ SELF_COMPOSITION_TESTS: list[ExpressionTestCase] = [
         },
         doc={"a": [1], "b": [2], "c": [3], "d": [4]},
         expected=[1, 2, 3, 4],
-        msg="Triple nesting depth",
+        msg="$concatArrays should evaluate triple-nested $concatArrays",
     ),
 ]
 
-# ---------------------------------------------------------------------------
-# Same field referenced multiple times
-# ---------------------------------------------------------------------------
+# Property [Repeated Field]: $concatArrays repeats elements when the same field is referenced again.
 SAME_FIELD_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="same_field_twice",
         expression={"$concatArrays": ["$a", "$a"]},
         doc={"a": [1, 2, 3]},
         expected=[1, 2, 3, 1, 2, 3],
-        msg="Same field twice doubles elements",
+        msg="$concatArrays should double elements when a field is referenced twice",
     ),
     ExpressionTestCase(
         id="same_field_three_times",
         expression={"$concatArrays": ["$a", "$a", "$a"]},
         doc={"a": [1]},
         expected=[1, 1, 1],
-        msg="Same field three times triples elements",
+        msg="$concatArrays should triple elements when a field is referenced three times",
     ),
     ExpressionTestCase(
         id="self_concat_mixed_types",
@@ -284,67 +272,60 @@ SAME_FIELD_TESTS: list[ExpressionTestCase] = [
             [1, 2],
             True,
         ],
-        msg="Self-concat preserves all types",
+        msg="$concatArrays should preserve all element types when self-concatenating",
     ),
 ]
 
-# ---------------------------------------------------------------------------
-# Array expression and object expression inputs
-# ---------------------------------------------------------------------------
+# Property [Expression Inputs]: $concatArrays evaluates array expressions, rejecting non-arrays.
 EXPRESSION_INPUT_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="array_expression_input",
         expression={"$concatArrays": [["$x", "$y"], [3]]},
         doc={"x": 1, "y": 2},
         expected=[1, 2, 3],
-        msg="Array expression with field refs resolved",
+        msg="$concatArrays should resolve an array expression containing field references",
     ),
     ExpressionTestCase(
         id="object_expression_input",
         expression={"$concatArrays": [{"a": "$x"}]},
         doc={"x": 1},
         error_code=CONCAT_ARRAYS_NOT_ARRAY_ERROR,
-        msg="Object expression is not array",
+        msg="$concatArrays should reject an object expression that is not an array",
     ),
     ExpressionTestCase(
         id="literal_then_field",
         expression={"$concatArrays": [[1, 2, 3], "$a"]},
         doc={"a": [1, 2]},
         expected=[1, 2, 3, 1, 2],
-        msg="Literal + field order preserved",
+        msg="$concatArrays should preserve order for a literal followed by a field",
     ),
     ExpressionTestCase(
         id="field_then_literal",
         expression={"$concatArrays": ["$a", [1, 2, 3]]},
         doc={"a": [1, 2]},
         expected=[1, 2, 1, 2, 3],
-        msg="Field + literal order preserved",
+        msg="$concatArrays should preserve order for a field followed by a literal",
     ),
     ExpressionTestCase(
         id="four_fields_with_empty_and_literal",
         expression={"$concatArrays": ["$a", "$b", "$c", "$d", [], ["array"]]},
         doc={"a": [1, 2], "b": [3, 4], "c": [5, 6], "d": []},
         expected=[1, 2, 3, 4, 5, 6, "array"],
-        msg="Multiple fields + literals concatenated",
+        msg="$concatArrays should concatenate multiple fields and literals",
     ),
 ]
 
-# ---------------------------------------------------------------------------
-# Special object keys
-# ---------------------------------------------------------------------------
+# Property [Object Elements]: $concatArrays preserves documents with special keys as elements.
 SPECIAL_KEY_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="special_object_keys",
         expression={"$concatArrays": ["$a", "$b"]},
         doc={"a": [{"a.b": 1}], "b": [{"$x": 2}]},
         expected=[{"a.b": 1}, {"$x": 2}],
-        msg="Objects with special keys preserved",
+        msg="$concatArrays should preserve objects with special keys",
     ),
 ]
 
-# ---------------------------------------------------------------------------
-# Aggregate and test
-# ---------------------------------------------------------------------------
 ALL_EXPR_TESTS = (
     FIELD_LOOKUP_TESTS
     + COMPOSITE_PATH_TESTS

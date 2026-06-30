@@ -17,9 +17,7 @@ from documentdb_tests.framework.assertions import assertSuccess
 from documentdb_tests.framework.error_codes import ARRAY_ELEM_AT_INDEX_TYPE_ERROR
 
 
-# ---------------------------------------------------------------------------
 # Nested expressions
-# ---------------------------------------------------------------------------
 @pytest.mark.parametrize(
     "expression,expected",
     [
@@ -77,9 +75,7 @@ def test_arrayElemAt_nested_expression(collection, expression, expected):
     assert_expression_result(result, expected=expected)
 
 
-# ---------------------------------------------------------------------------
 # Field path lookups
-# ---------------------------------------------------------------------------
 @pytest.mark.parametrize(
     "document,array_ref,idx,expected",
     [
@@ -97,9 +93,7 @@ def test_arrayElemAt_field_lookup(collection, document, array_ref, idx, expected
     assert_expression_result(result, expected=expected)
 
 
-# ---------------------------------------------------------------------------
 # Field path: path through array of objects
-# ---------------------------------------------------------------------------
 def test_arrayElemAt_path_through_array_of_objects(collection):
     """Test $arrayElemAt where field path traverses array of objects."""
     result = execute_expression_with_insert(
@@ -108,9 +102,7 @@ def test_arrayElemAt_path_through_array_of_objects(collection):
     assert_expression_result(result, expected=10)
 
 
-# ---------------------------------------------------------------------------
 # Field path: composite path for index
-# ---------------------------------------------------------------------------
 def test_arrayElemAt_composite_path_for_index(collection):
     """Test $arrayElemAt with nested field path as index."""
     result = execute_expression_with_insert(
@@ -135,9 +127,7 @@ def test_arrayElemAt_composite_array_as_index(collection):
     assert_expression_result(result, error_code=ARRAY_ELEM_AT_INDEX_TYPE_ERROR)
 
 
-# ---------------------------------------------------------------------------
 # Composite path with Decimal128 indices and OOB
-# ---------------------------------------------------------------------------
 @pytest.mark.parametrize(
     "idx,expected",
     [

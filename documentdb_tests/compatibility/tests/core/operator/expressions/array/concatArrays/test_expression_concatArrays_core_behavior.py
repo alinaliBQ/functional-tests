@@ -18,207 +18,191 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
 )
 from documentdb_tests.framework.parametrize import pytest_params
 
-# ---------------------------------------------------------------------------
-# Success: basic concatenation
-# ---------------------------------------------------------------------------
+# Property [Concatenation]: $concatArrays joins multiple arrays into one in argument order.
 BASIC_TESTS: list[ConcatArraysTest] = [
     ConcatArraysTest(
         id="two_int_arrays",
         arrays=[[1, 2], [3, 4]],
         expected=[1, 2, 3, 4],
-        msg="Should concatenate two int arrays",
+        msg="$concatArrays should concatenate two int arrays",
     ),
     ConcatArraysTest(
         id="two_string_arrays",
         arrays=[["a", "b"], ["c", "d"]],
         expected=["a", "b", "c", "d"],
-        msg="Should concatenate two string arrays",
+        msg="$concatArrays should concatenate two string arrays",
     ),
     ConcatArraysTest(
         id="three_arrays",
         arrays=[[1, 2], [3, 4], [5, 6]],
         expected=[1, 2, 3, 4, 5, 6],
-        msg="Should concatenate three arrays",
+        msg="$concatArrays should concatenate three arrays",
     ),
     ConcatArraysTest(
         id="mixed_type_elements",
         arrays=[[1, "two"], [True, None, {"a": 1}]],
         expected=[1, "two", True, None, {"a": 1}],
-        msg="Should concatenate arrays with mixed types",
+        msg="$concatArrays should concatenate arrays with mixed types",
     ),
 ]
 
-# ---------------------------------------------------------------------------
-# Success: empty arrays
-# ---------------------------------------------------------------------------
+# Property [Empty Arrays]: $concatArrays treats empty arrays as contributing no elements.
 EMPTY_TESTS: list[ConcatArraysTest] = [
     ConcatArraysTest(
         id="both_empty",
         arrays=[[], []],
         expected=[],
-        msg="Should return empty array for two empty arrays",
+        msg="$concatArrays should return empty array for two empty arrays",
     ),
     ConcatArraysTest(
         id="first_empty",
         arrays=[[], [1, 2]],
         expected=[1, 2],
-        msg="Should return second array when first is empty",
+        msg="$concatArrays should return second array when first is empty",
     ),
     ConcatArraysTest(
         id="second_empty",
         arrays=[[1, 2], []],
         expected=[1, 2],
-        msg="Should return first array when second is empty",
+        msg="$concatArrays should return first array when second is empty",
     ),
     ConcatArraysTest(
         id="all_empty",
         arrays=[[], [], []],
         expected=[],
-        msg="Should return empty array for all empty inputs",
+        msg="$concatArrays should return empty array for all empty inputs",
     ),
     ConcatArraysTest(
         id="no_arguments",
         arrays=[],
         expected=[],
-        msg="No arguments returns []",
+        msg="$concatArrays should return an empty array for no arguments",
     ),
     ConcatArraysTest(
         id="empty_between_nonempty",
         arrays=[[1], [], [2]],
         expected=[1, 2],
-        msg="Empty between non-empty is skipped",
+        msg="$concatArrays should skip an empty array between non-empty arrays",
     ),
     ConcatArraysTest(
         id="multiple_empty",
         arrays=[[], [], [], []],
         expected=[],
-        msg="Multiple empty arrays returns []",
+        msg="$concatArrays should return an empty array for multiple empty arrays",
     ),
 ]
 
-# ---------------------------------------------------------------------------
-# Success: single array
-# ---------------------------------------------------------------------------
+# Property [Single Array]: $concatArrays returns a single array argument unchanged.
 SINGLE_ARRAY_TESTS: list[ConcatArraysTest] = [
     ConcatArraysTest(
         id="single_array",
         arrays=[[1, 2, 3]],
         expected=[1, 2, 3],
-        msg="Should return the single array unchanged",
+        msg="$concatArrays should return the single array unchanged",
     ),
     ConcatArraysTest(
         id="single_empty_array",
         arrays=[[]],
         expected=[],
-        msg="Should return empty array for single empty input",
+        msg="$concatArrays should return empty array for single empty input",
     ),
 ]
 
-# ---------------------------------------------------------------------------
-# Success: nested arrays — top-level only
-# ---------------------------------------------------------------------------
+# Property [Top Level Only]: $concatArrays joins at the top level without flattening.
 NESTED_ARRAY_TESTS: list[ConcatArraysTest] = [
     ConcatArraysTest(
         id="nested_subarrays",
         arrays=[[[1, 2]], [[3, 4]]],
         expected=[[1, 2], [3, 4]],
-        msg="Should concatenate top-level, not flatten subarrays",
+        msg="$concatArrays should concatenate top-level, not flatten subarrays",
     ),
     ConcatArraysTest(
         id="mixed_nested",
         arrays=[[[1], "two"], [[3, 4]]],
         expected=[[1], "two", [3, 4]],
-        msg="Should concatenate mixed nested elements",
+        msg="$concatArrays should concatenate mixed nested elements",
     ),
     ConcatArraysTest(
         id="deeply_nested",
         arrays=[[[[1]]], [[[2]]]],
         expected=[[[1]], [[2]]],
-        msg="Deep nesting preserved",
+        msg="$concatArrays should preserve deeply nested array elements",
     ),
     ConcatArraysTest(
         id="empty_nested",
         arrays=[[[]], [[]]],
         expected=[[], []],
-        msg="Empty nested arrays preserved",
+        msg="$concatArrays should preserve empty nested arrays as elements",
     ),
 ]
 
-# ---------------------------------------------------------------------------
-# Success: duplicates
-# ---------------------------------------------------------------------------
+# Property [Duplicates]: $concatArrays keeps duplicate elements from the inputs.
 DUPLICATE_TESTS: list[ConcatArraysTest] = [
     ConcatArraysTest(
         id="duplicate_elements",
         arrays=[[1, 2, 3], [2, 3, 4]],
         expected=[1, 2, 3, 2, 3, 4],
-        msg="Should preserve duplicate elements across arrays",
+        msg="$concatArrays should preserve duplicate elements across arrays",
     ),
     ConcatArraysTest(
         id="identical_arrays",
         arrays=[[1, 2], [1, 2]],
         expected=[1, 2, 1, 2],
-        msg="Should concatenate identical arrays",
+        msg="$concatArrays should concatenate identical arrays",
     ),
 ]
 
-# ---------------------------------------------------------------------------
-# Success: null propagation
-# ---------------------------------------------------------------------------
+# Property [Null Propagation]: $concatArrays returns null when any argument is null or missing.
 NULL_TESTS: list[ConcatArraysTest] = [
     ConcatArraysTest(
         id="null_first_arg",
         arrays=[None, [1, 2]],
         expected=None,
-        msg="Should return null when first argument is null",
+        msg="$concatArrays should return null when first argument is null",
     ),
     ConcatArraysTest(
         id="null_second_arg",
         arrays=[[1, 2], None],
         expected=None,
-        msg="Should return null when second argument is null",
+        msg="$concatArrays should return null when second argument is null",
     ),
     ConcatArraysTest(
         id="all_null",
         arrays=[None, None],
         expected=None,
-        msg="Should return null when all arguments are null",
+        msg="$concatArrays should return null when all arguments are null",
     ),
     ConcatArraysTest(
         id="null_among_three",
         arrays=[[1], None, [2]],
         expected=None,
-        msg="Should return null when any argument is null",
+        msg="$concatArrays should return null when any argument is null",
     ),
     ConcatArraysTest(
         id="null_elements_in_arrays",
         arrays=[[1, None], [None, 2]],
         expected=[1, None, None, 2],
-        msg="Should preserve null elements within arrays",
+        msg="$concatArrays should preserve null elements within arrays",
     ),
 ]
 
-# ---------------------------------------------------------------------------
-# Success: arrays of objects
-# ---------------------------------------------------------------------------
+# Property [Object Elements]: $concatArrays concatenates arrays of documents intact.
 OBJECT_TESTS: list[ConcatArraysTest] = [
     ConcatArraysTest(
         id="arrays_of_objects",
         arrays=[[{"a": 1}], [{"b": 2}]],
         expected=[{"a": 1}, {"b": 2}],
-        msg="Should concatenate arrays of objects",
+        msg="$concatArrays should concatenate arrays of objects",
     ),
     ConcatArraysTest(
         id="objects_with_arrays",
         arrays=[[{"items": [1, 2]}], [{"items": [3, 4]}]],
         expected=[{"items": [1, 2]}, {"items": [3, 4]}],
-        msg="Should preserve inner arrays in objects",
+        msg="$concatArrays should preserve inner arrays in objects",
     ),
 ]
 
-# ---------------------------------------------------------------------------
-# Success: large arrays
-# ---------------------------------------------------------------------------
+# Property [Large Arrays]: $concatArrays concatenates large arrays.
 _LARGE_A = list(range(500))
 _LARGE_B = list(range(500, 1000))
 
@@ -227,55 +211,50 @@ LARGE_ARRAY_TESTS: list[ConcatArraysTest] = [
         id="large_arrays",
         arrays=[_LARGE_A, _LARGE_B],
         expected=list(range(1000)),
-        msg="Should concatenate large arrays",
+        msg="$concatArrays should concatenate large arrays",
     ),
     ConcatArraysTest(
         id="two_5000_arrays",
         arrays=[list(range(5000)), list(range(5000, 10000))],
         expected=list(range(10000)),
-        msg="10000 elements from two large arrays",
+        msg="$concatArrays should concatenate two large arrays into 10,000 elements",
     ),
     ConcatArraysTest(
         id="one_large_one_small",
         arrays=[list(range(10000)), [10000]],
         expected=list(range(10001)),
-        msg="10001 elements from large + small",
+        msg="$concatArrays should concatenate a large array and a small array",
     ),
     ConcatArraysTest(
         id="100_single_element_arrays",
         arrays=[[i] for i in range(100)],
         expected=list(range(100)),
-        msg="100 single-element arrays concatenated",
+        msg="$concatArrays should concatenate 100 single-element arrays",
     ),
 ]
 
-# ---------------------------------------------------------------------------
-# Success: many arrays
-# ---------------------------------------------------------------------------
+# Property [Many Arrays]: $concatArrays concatenates many array arguments.
 MANY_ARRAYS_TESTS: list[ConcatArraysTest] = [
     ConcatArraysTest(
         id="five_arrays",
         arrays=[[1], [2], [3], [4], [5]],
         expected=[1, 2, 3, 4, 5],
-        msg="Should concatenate five arrays",
+        msg="$concatArrays should concatenate five arrays",
     ),
     ConcatArraysTest(
         id="ten_empty_arrays",
         arrays=[[] for _ in range(10)],
         expected=[],
-        msg="Should concatenate ten empty arrays",
+        msg="$concatArrays should concatenate ten empty arrays",
     ),
     ConcatArraysTest(
         id="fifty_arrays",
         arrays=[[i] for i in range(50)],
         expected=list(range(50)),
-        msg="50 arrays concatenated",
+        msg="$concatArrays should concatenate 50 arrays",
     ),
 ]
 
-# ---------------------------------------------------------------------------
-# Aggregate and test
-# ---------------------------------------------------------------------------
 ALL_TESTS = (
     BASIC_TESTS
     + EMPTY_TESTS
@@ -301,11 +280,11 @@ def test_concatArrays_insert(collection, test):
 
 
 TEST_SUBSET_FOR_LITERAL = [
-    BASIC_TESTS[0],  # two_int_arrays
-    BASIC_TESTS[2],  # three_arrays
-    EMPTY_TESTS[0],  # both_empty
-    SINGLE_ARRAY_TESTS[0],  # single_array
-    NESTED_ARRAY_TESTS[0],  # nested_subarrays
+    BASIC_TESTS[0],
+    BASIC_TESTS[2],
+    EMPTY_TESTS[0],
+    SINGLE_ARRAY_TESTS[0],
+    NESTED_ARRAY_TESTS[0],
 ]
 
 

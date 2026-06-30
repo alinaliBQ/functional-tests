@@ -17,56 +17,60 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
 from documentdb_tests.framework.parametrize import pytest_params
 from documentdb_tests.framework.test_constants import MISSING
 
-# ---------------------------------------------------------------------------
-# Success: null array/index → null (runs both literal and insert)
-# ---------------------------------------------------------------------------
+# Property [Null Propagation]: $arrayElemAt returns null when the array or index argument is null.
 NULL_TESTS: list[ArrayElemAtTest] = [
     ArrayElemAtTest(
-        id="null_array", array=None, idx=0, expected=None, msg="Should return null for null array"
+        id="null_array",
+        array=None,
+        idx=0,
+        expected=None,
+        msg="$arrayElemAt should return null for null array",
     ),
     ArrayElemAtTest(
         id="null_array_neg_idx",
         array=None,
         idx=-1,
         expected=None,
-        msg="Should return null for null array with negative index",
+        msg="$arrayElemAt should return null for null array with negative index",
     ),
     ArrayElemAtTest(
         id="null_index",
         array=[1, 2],
         idx=None,
         expected=None,
-        msg="Should return null for null index",
+        msg="$arrayElemAt should return null for null index",
     ),
     ArrayElemAtTest(
-        id="both_null", array=None, idx=None, expected=None, msg="Should return null when both null"
+        id="both_null",
+        array=None,
+        idx=None,
+        expected=None,
+        msg="$arrayElemAt should return null when both null",
     ),
 ]
 
-# ---------------------------------------------------------------------------
-# Success: missing field → null (literal only, MISSING is a field ref)
-# ---------------------------------------------------------------------------
+# Property [Missing Propagation]: $arrayElemAt returns null when the array or index is missing.
 LITERAL_ONLY_TESTS: list[ArrayElemAtTest] = [
     ArrayElemAtTest(
         id="missing_array",
         array=MISSING,
         idx=0,
         expected=None,
-        msg="Should return null for missing array",
+        msg="$arrayElemAt should return null for missing array",
     ),
     ArrayElemAtTest(
         id="missing_index",
         array=[1, 2, 3],
         idx=MISSING,
         expected=None,
-        msg="Should return null for missing index",
+        msg="$arrayElemAt should return null for missing index",
     ),
 ]
 
 TEST_SUBSET_FOR_LITERAL = [
-    NULL_TESTS[0],  # null_array
-    NULL_TESTS[2],  # null_index
-    NULL_TESTS[3],  # both_null
+    NULL_TESTS[0],
+    NULL_TESTS[2],
+    NULL_TESTS[3],
 ] + LITERAL_ONLY_TESTS
 
 
