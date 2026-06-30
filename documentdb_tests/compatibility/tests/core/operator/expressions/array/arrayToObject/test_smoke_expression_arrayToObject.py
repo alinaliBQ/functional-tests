@@ -31,4 +31,4 @@ def test_smoke_expression_arrayToObject(collection):
     )
 
     expected = [{"_id": 1, "obj": {"a": 1, "b": 2}}, {"_id": 2, "obj": {"x": 10, "y": 20}}]
-    assertSuccess(result, expected, msg="Should support $arrayToObject expression")
+    assertSuccess(result, expected, "Should support $arrayToObject expression")
