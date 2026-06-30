@@ -10,8 +10,8 @@ from datetime import datetime
 import pytest
 from bson import Binary, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
-from documentdb_tests.compatibility.tests.core.operator.expressions.array.arrayToObject.utils.arrayToObject_common import (  # noqa: E501
-    ArrayToObjectTest,
+from documentdb_tests.compatibility.tests.core.operator.expressions.array.utils.array_test_case import (  # noqa: E501
+    ArrayTestClass,
 )
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
     assert_expression_result,
@@ -35,332 +35,332 @@ from documentdb_tests.framework.error_codes import (
 from documentdb_tests.framework.parametrize import pytest_params
 
 # Property [Array Type Strictness]: $arrayToObject rejects a non-array input.
-NOT_ARRAY_ERROR_TESTS: list[ArrayToObjectTest] = [
-    ArrayToObjectTest(
+NOT_ARRAY_ERROR_TESTS: list[ArrayTestClass] = [
+    ArrayTestClass(
         id="string_input",
-        array="hello",
+        arrays="hello",
         error_code=ARRAY_TO_OBJECT_NOT_ARRAY_ERROR,
         msg="$arrayToObject should reject string input",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="int_input",
-        array=42,
+        arrays=42,
         error_code=ARRAY_TO_OBJECT_NOT_ARRAY_ERROR,
         msg="$arrayToObject should reject int input",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="bool_input",
-        array=True,
+        arrays=True,
         error_code=ARRAY_TO_OBJECT_NOT_ARRAY_ERROR,
         msg="$arrayToObject should reject bool input",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="object_input",
-        array={"a": 1},
+        arrays={"a": 1},
         error_code=ARRAY_TO_OBJECT_NOT_ARRAY_ERROR,
         msg="$arrayToObject should reject object input",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="double_input",
-        array=3.14,
+        arrays=3.14,
         error_code=ARRAY_TO_OBJECT_NOT_ARRAY_ERROR,
         msg="$arrayToObject should reject double input",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="decimal128_input",
-        array=Decimal128("1"),
+        arrays=Decimal128("1"),
         error_code=ARRAY_TO_OBJECT_NOT_ARRAY_ERROR,
         msg="$arrayToObject should reject decimal128 input",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="int64_input",
-        array=Int64(1),
+        arrays=Int64(1),
         error_code=ARRAY_TO_OBJECT_NOT_ARRAY_ERROR,
         msg="$arrayToObject should reject int64 input",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="objectid_input",
-        array=ObjectId(),
+        arrays=ObjectId(),
         error_code=ARRAY_TO_OBJECT_NOT_ARRAY_ERROR,
         msg="$arrayToObject should reject objectid input",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="datetime_input",
-        array=datetime(2024, 1, 1),
+        arrays=datetime(2024, 1, 1),
         error_code=ARRAY_TO_OBJECT_NOT_ARRAY_ERROR,
         msg="$arrayToObject should reject datetime input",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="binary_input",
-        array=Binary(b"x", 0),
+        arrays=Binary(b"x", 0),
         error_code=ARRAY_TO_OBJECT_NOT_ARRAY_ERROR,
         msg="$arrayToObject should reject binary input",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="regex_input",
-        array=Regex("x"),
+        arrays=Regex("x"),
         error_code=ARRAY_TO_OBJECT_NOT_ARRAY_ERROR,
         msg="$arrayToObject should reject regex input",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="maxkey_input",
-        array=MaxKey(),
+        arrays=MaxKey(),
         error_code=ARRAY_TO_OBJECT_NOT_ARRAY_ERROR,
         msg="$arrayToObject should reject maxkey input",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="minkey_input",
-        array=MinKey(),
+        arrays=MinKey(),
         error_code=ARRAY_TO_OBJECT_NOT_ARRAY_ERROR,
         msg="$arrayToObject should reject minkey input",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="timestamp_input",
-        array=Timestamp(0, 0),
+        arrays=Timestamp(0, 0),
         error_code=ARRAY_TO_OBJECT_NOT_ARRAY_ERROR,
         msg="$arrayToObject should reject timestamp input",
     ),
 ]
 
 # Property [Element Format]: $arrayToObject rejects an element that is not a k/v doc or pair.
-INVALID_ELEMENT_TESTS: list[ArrayToObjectTest] = [
-    ArrayToObjectTest(
+INVALID_ELEMENT_TESTS: list[ArrayTestClass] = [
+    ArrayTestClass(
         id="element_is_string",
-        array=["not_a_pair"],
+        arrays=["not_a_pair"],
         error_code=ARRAY_TO_OBJECT_INVALID_ELEMENT_ERROR,
         msg="$arrayToObject should reject string element",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="element_is_int",
-        array=[42],
+        arrays=[42],
         error_code=ARRAY_TO_OBJECT_INVALID_ELEMENT_ERROR,
         msg="$arrayToObject should reject int element",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="element_is_null",
-        array=[None],
+        arrays=[None],
         error_code=ARRAY_TO_OBJECT_INVALID_ELEMENT_ERROR,
         msg="$arrayToObject should reject null element",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="element_is_bool",
-        array=[True],
+        arrays=[True],
         error_code=ARRAY_TO_OBJECT_INVALID_ELEMENT_ERROR,
         msg="$arrayToObject should reject bool element",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="element_is_double",
-        array=[3.14],
+        arrays=[3.14],
         error_code=ARRAY_TO_OBJECT_INVALID_ELEMENT_ERROR,
         msg="$arrayToObject should reject double element",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="element_is_objectid",
-        array=[ObjectId()],
+        arrays=[ObjectId()],
         error_code=ARRAY_TO_OBJECT_INVALID_ELEMENT_ERROR,
         msg="$arrayToObject should reject ObjectId element",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="kv_missing_v",
-        array=[{"k": "a"}],
+        arrays=[{"k": "a"}],
         error_code=ARRAY_TO_OBJECT_INVALID_KV_DOC_ERROR,
         msg="$arrayToObject should reject k/v doc missing v field",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="kv_missing_k",
-        array=[{"v": 1}],
+        arrays=[{"v": 1}],
         error_code=ARRAY_TO_OBJECT_INVALID_KV_DOC_ERROR,
         msg="$arrayToObject should reject k/v doc missing k field",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="kv_extra_field",
-        array=[{"k": "a", "v": 1, "extra": 2}],
+        arrays=[{"k": "a", "v": 1, "extra": 2}],
         error_code=ARRAY_TO_OBJECT_INVALID_KV_DOC_ERROR,
         msg="$arrayToObject should reject k/v doc with extra field",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="kv_empty_doc",
-        array=[{}],
+        arrays=[{}],
         error_code=ARRAY_TO_OBJECT_INVALID_KV_DOC_ERROR,
         msg="$arrayToObject should reject empty document",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="kv_wrong_field_names",
-        array=[{"y": "x", "x": "y"}],
+        arrays=[{"y": "x", "x": "y"}],
         error_code=ARRAY_TO_OBJECT_WRONG_FIELD_NAMES_ERROR,
         msg="$arrayToObject should reject wrong field names",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="kv_uppercase_K",
-        array=[{"K": "k1", "v": 2}],
+        arrays=[{"K": "k1", "v": 2}],
         error_code=ARRAY_TO_OBJECT_WRONG_FIELD_NAMES_ERROR,
         msg="$arrayToObject should reject uppercase K (case-sensitive)",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="kv_uppercase_V",
-        array=[{"k": "k1", "V": 2}],
+        arrays=[{"k": "k1", "V": 2}],
         error_code=ARRAY_TO_OBJECT_WRONG_FIELD_NAMES_ERROR,
         msg="$arrayToObject should reject uppercase V (case-sensitive)",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="kv_key_value_names",
-        array=[{"key": "k1", "value": "v1"}],
+        arrays=[{"key": "k1", "value": "v1"}],
         error_code=ARRAY_TO_OBJECT_WRONG_FIELD_NAMES_ERROR,
         msg="$arrayToObject should reject 'key'/'value' instead of 'k'/'v'",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="mix_valid_pair_and_invalid",
-        array=[["a", 1], 123],
+        arrays=[["a", 1], 123],
         error_code=ARRAY_TO_OBJECT_MIXED_PAIR_THEN_KV_ERROR,
         msg="$arrayToObject should reject mix of valid pair and invalid element",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="pair_one_element",
-        array=[["a"]],
+        arrays=[["a"]],
         error_code=ARRAY_TO_OBJECT_INVALID_PAIR_ERROR,
         msg="$arrayToObject should reject one-element array pair",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="pair_three_elements",
-        array=[["a", 1, 2]],
+        arrays=[["a", 1, 2]],
         error_code=ARRAY_TO_OBJECT_INVALID_PAIR_ERROR,
         msg="$arrayToObject should reject three-element array pair",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="pair_empty_array",
-        array=[[]],
+        arrays=[[]],
         error_code=ARRAY_TO_OBJECT_INVALID_PAIR_ERROR,
         msg="$arrayToObject should reject empty array pair",
     ),
 ]
 
 # Property [Key Type Strictness]: $arrayToObject rejects a non-string key.
-KEY_NOT_STRING_TESTS: list[ArrayToObjectTest] = [
-    ArrayToObjectTest(
+KEY_NOT_STRING_TESTS: list[ArrayTestClass] = [
+    ArrayTestClass(
         id="kv_int_key",
-        array=[{"k": 1, "v": "val"}],
+        arrays=[{"k": 1, "v": "val"}],
         error_code=ARRAY_TO_OBJECT_KV_KEY_NOT_STRING_ERROR,
         msg="$arrayToObject should reject int key in k/v form",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="kv_bool_key",
-        array=[{"k": True, "v": "val"}],
+        arrays=[{"k": True, "v": "val"}],
         error_code=ARRAY_TO_OBJECT_KV_KEY_NOT_STRING_ERROR,
         msg="$arrayToObject should reject bool key in k/v form",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="kv_null_key",
-        array=[{"k": None, "v": "val"}],
+        arrays=[{"k": None, "v": "val"}],
         error_code=ARRAY_TO_OBJECT_KV_KEY_NOT_STRING_ERROR,
         msg="$arrayToObject should reject null key in k/v form",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="kv_array_key",
-        array=[{"k": [1], "v": "val"}],
+        arrays=[{"k": [1], "v": "val"}],
         error_code=ARRAY_TO_OBJECT_KV_KEY_NOT_STRING_ERROR,
         msg="$arrayToObject should reject array key in k/v form",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="kv_object_key",
-        array=[{"k": {"x": 1}, "v": "val"}],
+        arrays=[{"k": {"x": 1}, "v": "val"}],
         error_code=ARRAY_TO_OBJECT_KV_KEY_NOT_STRING_ERROR,
         msg="$arrayToObject should reject object key in k/v form",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="kv_double_key",
-        array=[{"k": 1.5, "v": "val"}],
+        arrays=[{"k": 1.5, "v": "val"}],
         error_code=ARRAY_TO_OBJECT_KV_KEY_NOT_STRING_ERROR,
         msg="$arrayToObject should reject double key in k/v form",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="kv_int64_key",
-        array=[{"k": Int64(1), "v": "val"}],
+        arrays=[{"k": Int64(1), "v": "val"}],
         error_code=ARRAY_TO_OBJECT_KV_KEY_NOT_STRING_ERROR,
         msg="$arrayToObject should reject Int64 key in k/v form",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="kv_decimal128_key",
-        array=[{"k": Decimal128("1"), "v": "val"}],
+        arrays=[{"k": Decimal128("1"), "v": "val"}],
         error_code=ARRAY_TO_OBJECT_KV_KEY_NOT_STRING_ERROR,
         msg="$arrayToObject should reject Decimal128 key in k/v form",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="pair_int_key",
-        array=[[1, "val"]],
+        arrays=[[1, "val"]],
         error_code=ARRAY_TO_OBJECT_PAIR_KEY_NOT_STRING_ERROR,
         msg="$arrayToObject should reject int key in pair form",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="pair_bool_key",
-        array=[[True, "val"]],
+        arrays=[[True, "val"]],
         error_code=ARRAY_TO_OBJECT_PAIR_KEY_NOT_STRING_ERROR,
         msg="$arrayToObject should reject bool key in pair form",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="pair_null_key",
-        array=[[None, "val"]],
+        arrays=[[None, "val"]],
         error_code=ARRAY_TO_OBJECT_PAIR_KEY_NOT_STRING_ERROR,
         msg="$arrayToObject should reject null key in pair form",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="pair_array_key",
-        array=[[[1], "val"]],
+        arrays=[[[1], "val"]],
         error_code=ARRAY_TO_OBJECT_PAIR_KEY_NOT_STRING_ERROR,
         msg="$arrayToObject should reject array key in pair form",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="pair_object_key",
-        array=[[{"x": 1}, "val"]],
+        arrays=[[{"x": 1}, "val"]],
         error_code=ARRAY_TO_OBJECT_PAIR_KEY_NOT_STRING_ERROR,
         msg="$arrayToObject should reject object key in pair form",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="pair_double_key",
-        array=[[1.5, "val"]],
+        arrays=[[1.5, "val"]],
         error_code=ARRAY_TO_OBJECT_PAIR_KEY_NOT_STRING_ERROR,
         msg="$arrayToObject should reject double key in pair form",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="pair_int64_key",
-        array=[[Int64(1), "val"]],
+        arrays=[[Int64(1), "val"]],
         error_code=ARRAY_TO_OBJECT_PAIR_KEY_NOT_STRING_ERROR,
         msg="$arrayToObject should reject Int64 key in pair form",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="pair_decimal128_key",
-        array=[[Decimal128("1"), "val"]],
+        arrays=[[Decimal128("1"), "val"]],
         error_code=ARRAY_TO_OBJECT_PAIR_KEY_NOT_STRING_ERROR,
         msg="$arrayToObject should reject Decimal128 key in pair form",
     ),
 ]
 
 # Property [Mixed Formats]: $arrayToObject rejects arrays mixing k/v doc and pair forms.
-MIXED_FORMAT_TESTS: list[ArrayToObjectTest] = [
-    ArrayToObjectTest(
+MIXED_FORMAT_TESTS: list[ArrayTestClass] = [
+    ArrayTestClass(
         id="mixed_kv_then_pair",
-        array=[{"k": "price", "v": 24}, ["item", "apple"]],
+        arrays=[{"k": "price", "v": 24}, ["item", "apple"]],
         error_code=ARRAY_TO_OBJECT_MIXED_KV_THEN_PAIR_ERROR,
         msg="$arrayToObject should reject a k/v doc followed by a pair",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="mixed_pair_then_kv",
-        array=[["item", "apple"], {"k": "price", "v": 24}],
+        arrays=[["item", "apple"], {"k": "price", "v": 24}],
         error_code=ARRAY_TO_OBJECT_MIXED_PAIR_THEN_KV_ERROR,
         msg="$arrayToObject should reject a pair followed by a k/v doc",
     ),
 ]
 
 # Property [Null Byte Key]: $arrayToObject rejects a key containing a null byte.
-NULL_BYTE_KEY_TESTS: list[ArrayToObjectTest] = [
-    ArrayToObjectTest(
+NULL_BYTE_KEY_TESTS: list[ArrayTestClass] = [
+    ArrayTestClass(
         id="null_byte_in_key_pair",
-        array=[["a\x00b", "value"]],
+        arrays=[["a\x00b", "value"]],
         error_code=ARRAY_TO_OBJECT_NULL_BYTE_PAIR_KEY_ERROR,
         msg="$arrayToObject should reject a null byte in a key (pair form)",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="null_byte_in_key_kv",
-        array=[{"k": "a\x00b", "v": "value"}],
+        arrays=[{"k": "a\x00b", "v": "value"}],
         error_code=ARRAY_TO_OBJECT_NULL_BYTE_KV_KEY_ERROR,
         msg="$arrayToObject should reject a null byte in a key (k/v form)",
     ),
@@ -379,7 +379,7 @@ ALL_TESTS = (
 def test_arrayToObject_insert(collection, test):
     """Test $arrayToObject error cases with values from inserted documents."""
     result = execute_expression_with_insert(
-        collection, {"$arrayToObject": "$arr"}, {"arr": test.array}
+        collection, {"$arrayToObject": "$arr"}, {"arr": test.arrays}
     )
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg
@@ -401,7 +401,7 @@ TEST_SUBSET_FOR_LITERAL = [
 def test_arrayToObject_literal(collection, test):
     """Test $arrayToObject error cases with literal values."""
     # Use $literal for array inputs to prevent MongoDB from interpreting them as arguments
-    expr = {"$literal": test.array} if isinstance(test.array, list) else test.array
+    expr = {"$literal": test.arrays} if isinstance(test.arrays, list) else test.arrays
     result = execute_expression(collection, {"$arrayToObject": expr})
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg

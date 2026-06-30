@@ -11,8 +11,8 @@ from datetime import datetime, timezone
 import pytest
 from bson import Binary, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
-from documentdb_tests.compatibility.tests.core.operator.expressions.array.arrayElemAt.utils.arrayElemAt_common import (  # noqa: E501
-    ArrayElemAtTest,
+from documentdb_tests.compatibility.tests.core.operator.expressions.array.utils.array_test_case import (  # noqa: E501
+    ArrayTestClass,
 )
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
     assert_expression_result,
@@ -32,129 +32,129 @@ from documentdb_tests.framework.test_constants import (
 )
 
 # Property [Element Types]: $arrayElemAt returns the element with its original BSON type.
-ELEMENT_TYPE_TESTS: list[ArrayElemAtTest] = [
-    ArrayElemAtTest(
+ELEMENT_TYPE_TESTS: list[ArrayTestClass] = [
+    ArrayTestClass(
         id="int64_element",
-        array=[Int64(99)],
+        arrays=[Int64(99)],
         idx=0,
         expected=Int64(99),
         msg="$arrayElemAt should return Int64 element",
     ),
-    ArrayElemAtTest(
+    ArrayTestClass(
         id="decimal128_element",
-        array=[Decimal128("1.5")],
+        arrays=[Decimal128("1.5")],
         idx=0,
         expected=Decimal128("1.5"),
         msg="$arrayElemAt should return Decimal128 element",
     ),
-    ArrayElemAtTest(
+    ArrayTestClass(
         id="datetime_element",
-        array=[datetime(2024, 1, 1, tzinfo=timezone.utc)],
+        arrays=[datetime(2024, 1, 1, tzinfo=timezone.utc)],
         idx=0,
         expected=datetime(2024, 1, 1, tzinfo=timezone.utc),
         msg="$arrayElemAt should return datetime element",
     ),
-    ArrayElemAtTest(
+    ArrayTestClass(
         id="binary_element",
-        array=[Binary(b"\x01\x02", 0)],
+        arrays=[Binary(b"\x01\x02", 0)],
         idx=0,
         expected=b"\x01\x02",
         msg="$arrayElemAt should return binary element",
     ),
-    ArrayElemAtTest(
+    ArrayTestClass(
         id="regex_element",
-        array=[Regex("^abc", "i")],
+        arrays=[Regex("^abc", "i")],
         idx=0,
         expected=Regex("^abc", "i"),
         msg="$arrayElemAt should return regex element",
     ),
-    ArrayElemAtTest(
+    ArrayTestClass(
         id="objectid_element",
-        array=[ObjectId("000000000000000000000001")],
+        arrays=[ObjectId("000000000000000000000001")],
         idx=0,
         expected=ObjectId("000000000000000000000001"),
         msg="$arrayElemAt should return ObjectId element",
     ),
-    ArrayElemAtTest(
+    ArrayTestClass(
         id="minkey_element",
-        array=[MinKey(), 1],
+        arrays=[MinKey(), 1],
         idx=0,
         expected=MinKey(),
         msg="$arrayElemAt should return MinKey element",
     ),
-    ArrayElemAtTest(
+    ArrayTestClass(
         id="maxkey_element",
-        array=[1, MaxKey()],
+        arrays=[1, MaxKey()],
         idx=1,
         expected=MaxKey(),
         msg="$arrayElemAt should return MaxKey element",
     ),
-    ArrayElemAtTest(
+    ArrayTestClass(
         id="timestamp_element",
-        array=[Timestamp(0, 0)],
+        arrays=[Timestamp(0, 0)],
         idx=0,
         expected=Timestamp(0, 0),
         msg="$arrayElemAt should return Timestamp element",
     ),
-    ArrayElemAtTest(
+    ArrayTestClass(
         id="float_nan_element",
-        array=[FLOAT_NAN, 1],
+        arrays=[FLOAT_NAN, 1],
         idx=0,
         expected=pytest.approx(math.nan, nan_ok=True),
         msg="$arrayElemAt should return NaN element",
     ),
-    ArrayElemAtTest(
+    ArrayTestClass(
         id="float_infinity_element",
-        array=[FLOAT_INFINITY, 1],
+        arrays=[FLOAT_INFINITY, 1],
         idx=0,
         expected=FLOAT_INFINITY,
         msg="$arrayElemAt should return Infinity element",
     ),
-    ArrayElemAtTest(
+    ArrayTestClass(
         id="float_neg_infinity_element",
-        array=[FLOAT_NEGATIVE_INFINITY, 1],
+        arrays=[FLOAT_NEGATIVE_INFINITY, 1],
         idx=0,
         expected=FLOAT_NEGATIVE_INFINITY,
         msg="$arrayElemAt should return -Infinity element",
     ),
-    ArrayElemAtTest(
+    ArrayTestClass(
         id="decimal128_nan_element",
-        array=[DECIMAL128_NAN, 1],
+        arrays=[DECIMAL128_NAN, 1],
         idx=0,
         expected=DECIMAL128_NAN,
         msg="$arrayElemAt should return Decimal128 NaN element",
     ),
-    ArrayElemAtTest(
+    ArrayTestClass(
         id="decimal128_infinity_element",
-        array=[DECIMAL128_INFINITY, 1],
+        arrays=[DECIMAL128_INFINITY, 1],
         idx=0,
         expected=DECIMAL128_INFINITY,
         msg="$arrayElemAt should return Decimal128 Infinity element",
     ),
-    ArrayElemAtTest(
+    ArrayTestClass(
         id="decimal128_neg_infinity_element",
-        array=[DECIMAL128_NEGATIVE_INFINITY, 1],
+        arrays=[DECIMAL128_NEGATIVE_INFINITY, 1],
         idx=0,
         expected=DECIMAL128_NEGATIVE_INFINITY,
         msg="$arrayElemAt should return Decimal128 -Infinity element",
     ),
-    ArrayElemAtTest(
+    ArrayTestClass(
         id="int32_max_element",
-        array=[INT32_MAX, 0],
+        arrays=[INT32_MAX, 0],
         idx=0,
         expected=INT32_MAX,
         msg="$arrayElemAt should return INT32_MAX element",
     ),
-    ArrayElemAtTest(
+    ArrayTestClass(
         id="int64_max_element",
-        array=[INT64_MAX, 0],
+        arrays=[INT64_MAX, 0],
         idx=0,
         expected=INT64_MAX,
         msg="$arrayElemAt should return INT64_MAX element",
     ),
-    ArrayElemAtTest(
+    ArrayTestClass(
         id="mixed_special_last",
-        array=[INT32_MAX, FLOAT_INFINITY, DECIMAL128_NAN],
+        arrays=[INT32_MAX, FLOAT_INFINITY, DECIMAL128_NAN],
         idx=2,
         expected=DECIMAL128_NAN,
         msg="$arrayElemAt should return element from mixed special values array",
@@ -171,7 +171,7 @@ TEST_SUBSET_FOR_LITERAL = [
 @pytest.mark.parametrize("test", pytest_params(TEST_SUBSET_FOR_LITERAL))
 def test_arrayElemAt_literal(collection, test):
     """Test $arrayElemAt element type preservation with literal values."""
-    result = execute_expression(collection, {"$arrayElemAt": [test.array, test.idx]})
+    result = execute_expression(collection, {"$arrayElemAt": [test.arrays, test.idx]})
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg
     )
@@ -181,7 +181,7 @@ def test_arrayElemAt_literal(collection, test):
 def test_arrayElemAt_insert(collection, test):
     """Test $arrayElemAt element type preservation with values from inserted documents."""
     result = execute_expression_with_insert(
-        collection, {"$arrayElemAt": ["$arr", "$idx"]}, {"arr": test.array, "idx": test.idx}
+        collection, {"$arrayElemAt": ["$arr", "$idx"]}, {"arr": test.arrays, "idx": test.idx}
     )
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg

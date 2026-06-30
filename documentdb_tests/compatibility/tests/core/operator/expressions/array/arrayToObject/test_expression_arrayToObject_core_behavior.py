@@ -8,8 +8,8 @@ value edge cases, key edge cases, and large inputs.
 
 import pytest
 
-from documentdb_tests.compatibility.tests.core.operator.expressions.array.arrayToObject.utils.arrayToObject_common import (  # noqa: E501
-    ArrayToObjectTest,
+from documentdb_tests.compatibility.tests.core.operator.expressions.array.utils.array_test_case import (  # noqa: E501
+    ArrayTestClass,
 )
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
     assert_expression_result,
@@ -19,28 +19,28 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
 from documentdb_tests.framework.parametrize import pytest_params
 
 # Property [K/V Form]: $arrayToObject builds an object from {k, v} document entries.
-KV_FORM_TESTS: list[ArrayToObjectTest] = [
-    ArrayToObjectTest(
+KV_FORM_TESTS: list[ArrayTestClass] = [
+    ArrayTestClass(
         id="kv_single_pair",
-        array=[{"k": "a", "v": 1}],
+        arrays=[{"k": "a", "v": 1}],
         expected={"a": 1},
         msg="$arrayToObject should convert single k/v pair",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="kv_multiple_pairs",
-        array=[{"k": "a", "v": 1}, {"k": "b", "v": 2}, {"k": "c", "v": 3}],
+        arrays=[{"k": "a", "v": 1}, {"k": "b", "v": 2}, {"k": "c", "v": 3}],
         expected={"a": 1, "b": 2, "c": 3},
         msg="$arrayToObject should convert multiple k/v pairs",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="kv_string_values",
-        array=[{"k": "name", "v": "Alice"}, {"k": "city", "v": "Mycity"}],
+        arrays=[{"k": "name", "v": "Alice"}, {"k": "city", "v": "Mycity"}],
         expected={"name": "Alice", "city": "Mycity"},
         msg="$arrayToObject should convert k/v pairs with string values",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="kv_mixed_value_types",
-        array=[
+        arrays=[
             {"k": "int", "v": 1},
             {"k": "str", "v": "hello"},
             {"k": "bool", "v": True},
@@ -49,221 +49,221 @@ KV_FORM_TESTS: list[ArrayToObjectTest] = [
         expected={"int": 1, "str": "hello", "bool": True, "null": None},
         msg="$arrayToObject should convert k/v pairs with mixed value types",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="kv_nested_object_value",
-        array=[{"k": "obj", "v": {"x": 1, "y": 2}}],
+        arrays=[{"k": "obj", "v": {"x": 1, "y": 2}}],
         expected={"obj": {"x": 1, "y": 2}},
         msg="$arrayToObject should convert k/v pair with nested object value",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="kv_array_value",
-        array=[{"k": "arr", "v": [1, 2, 3]}],
+        arrays=[{"k": "arr", "v": [1, 2, 3]}],
         expected={"arr": [1, 2, 3]},
         msg="$arrayToObject should convert k/v pair with array value",
     ),
 ]
 
 # Property [Pair Form]: $arrayToObject builds an object from two-element [key, value] arrays.
-TWO_ELEM_FORM_TESTS: list[ArrayToObjectTest] = [
-    ArrayToObjectTest(
+TWO_ELEM_FORM_TESTS: list[ArrayTestClass] = [
+    ArrayTestClass(
         id="pair_single",
-        array=[["a", 1]],
+        arrays=[["a", 1]],
         expected={"a": 1},
         msg="$arrayToObject should convert single two-element pair",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="pair_multiple",
-        array=[["a", 1], ["b", 2], ["c", 3]],
+        arrays=[["a", 1], ["b", 2], ["c", 3]],
         expected={"a": 1, "b": 2, "c": 3},
         msg="$arrayToObject should convert multiple two-element pairs",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="pair_string_values",
-        array=[["name", "Alice"], ["city", "Mycity"]],
+        arrays=[["name", "Alice"], ["city", "Mycity"]],
         expected={"name": "Alice", "city": "Mycity"},
         msg="$arrayToObject should convert pairs with string values",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="pair_mixed_value_types",
-        array=[["int", 1], ["str", "hello"], ["bool", True], ["null", None]],
+        arrays=[["int", 1], ["str", "hello"], ["bool", True], ["null", None]],
         expected={"int": 1, "str": "hello", "bool": True, "null": None},
         msg="$arrayToObject should convert pairs with mixed value types",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="pair_nested_object_value",
-        array=[["obj", {"x": 1, "y": 2}]],
+        arrays=[["obj", {"x": 1, "y": 2}]],
         expected={"obj": {"x": 1, "y": 2}},
         msg="$arrayToObject should convert pair with nested object value",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="pair_array_value",
-        array=[["arr", [1, 2, 3]]],
+        arrays=[["arr", [1, 2, 3]]],
         expected={"arr": [1, 2, 3]},
         msg="$arrayToObject should convert pair with array value",
     ),
 ]
 
 # Property [Empty And Null]: $arrayToObject returns {} for an empty array and null for null input.
-EMPTY_AND_NULL_ARRAY_TESTS: list[ArrayToObjectTest] = [
-    ArrayToObjectTest(
+EMPTY_AND_NULL_ARRAY_TESTS: list[ArrayTestClass] = [
+    ArrayTestClass(
         id="empty_array",
-        array=[],
+        arrays=[],
         expected={},
         msg="$arrayToObject should return empty object for empty array",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="null_array",
-        array=None,
+        arrays=None,
         expected=None,
         msg="$arrayToObject should return null for null array",
     ),
 ]
 
 # Property [Duplicate Keys]: when keys repeat, $arrayToObject keeps the last value.
-DUPLICATE_KEY_TESTS: list[ArrayToObjectTest] = [
-    ArrayToObjectTest(
+DUPLICATE_KEY_TESTS: list[ArrayTestClass] = [
+    ArrayTestClass(
         id="kv_duplicate_keys",
-        array=[{"k": "a", "v": 1}, {"k": "a", "v": 2}],
+        arrays=[{"k": "a", "v": 1}, {"k": "a", "v": 2}],
         expected={"a": 2},
         msg="$arrayToObject should keep the last value for duplicate keys (k/v form)",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="pair_duplicate_keys",
-        array=[["a", 1], ["a", 2]],
+        arrays=[["a", 1], ["a", 2]],
         expected={"a": 2},
         msg="$arrayToObject should keep the last value for duplicate keys (pair form)",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="kv_triple_duplicate",
-        array=[{"k": "x", "v": 1}, {"k": "x", "v": 2}, {"k": "x", "v": 3}],
+        arrays=[{"k": "x", "v": 1}, {"k": "x", "v": 2}, {"k": "x", "v": 3}],
         expected={"x": 3},
         msg="$arrayToObject should keep the last of three duplicate keys",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="pair_dup_different_types",
-        array=[["a", 1], ["a", "hello"]],
+        arrays=[["a", 1], ["a", "hello"]],
         expected={"a": "hello"},
         msg="$arrayToObject should keep the last value even with different value types",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="pair_dup_interspersed",
-        array=[["a", 1], ["b", 2], ["a", 3]],
+        arrays=[["a", 1], ["b", 2], ["a", 3]],
         expected={"a": 3, "b": 2},
         msg="$arrayToObject should keep the last value with interspersed duplicate keys",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="kv_dup_interspersed",
-        array=[{"k": "a", "v": 1}, {"k": "b", "v": 2}, {"k": "a", "v": 3}],
+        arrays=[{"k": "a", "v": 1}, {"k": "b", "v": 2}, {"k": "a", "v": 3}],
         expected={"a": 3, "b": 2},
         msg="$arrayToObject should keep the last value with interspersed duplicates (k/v form)",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="kv_reversed_field_order",
-        array=[{"v": "val", "k": "key"}],
+        arrays=[{"v": "val", "k": "key"}],
         expected={"key": "val"},
         msg="$arrayToObject should work regardless of k/v field order in document",
     ),
 ]
 
 # Property [Key Characters]: $arrayToObject accepts unicode, emoji, and spaced keys.
-KEY_EDGE_TESTS: list[ArrayToObjectTest] = [
-    ArrayToObjectTest(
+KEY_EDGE_TESTS: list[ArrayTestClass] = [
+    ArrayTestClass(
         id="unicode_key",
-        array=[{"k": "日本語", "v": 1}],
+        arrays=[{"k": "日本語", "v": 1}],
         expected={"日本語": 1},
         msg="$arrayToObject should accept a unicode key",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="emoji_key",
-        array=[{"k": "🔑", "v": "value"}],
+        arrays=[{"k": "🔑", "v": "value"}],
         expected={"🔑": "value"},
         msg="$arrayToObject should accept an emoji key",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="key_with_spaces",
-        array=[["key with spaces", 1]],
+        arrays=[["key with spaces", 1]],
         expected={"key with spaces": 1},
         msg="$arrayToObject should accept a key with spaces",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="numeric_string_keys",
-        array=[["0", "a"], ["1", "b"]],
+        arrays=[["0", "a"], ["1", "b"]],
         expected={"0": "a", "1": "b"},
         msg="$arrayToObject should treat numeric string keys as strings",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="underscore_id_key",
-        array=[["_id", 1]],
+        arrays=[["_id", 1]],
         expected={"_id": 1},
         msg="$arrayToObject should accept _id as a key",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="operator_like_key",
-        array=[["$set", 1]],
+        arrays=[["$set", 1]],
         expected={"$set": 1},
         msg="$arrayToObject should accept an operator-like key",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="very_long_key",
-        array=[["k" * 1024, 1]],
+        arrays=[["k" * 1024, 1]],
         expected={"k" * 1024: 1},
         msg="$arrayToObject should not truncate a very long key",
     ),
 ]
 
 # Property [Field Ordering]: $arrayToObject preserves input order and treats keys case-sensitively.
-EDGE_CASE_TESTS: list[ArrayToObjectTest] = [
-    ArrayToObjectTest(
+EDGE_CASE_TESTS: list[ArrayTestClass] = [
+    ArrayTestClass(
         id="output_field_order",
-        array=[["z", 1], ["a", 2], ["m", 3]],
+        arrays=[["z", 1], ["a", 2], ["m", 3]],
         expected={"z": 1, "a": 2, "m": 3},
         msg="$arrayToObject should preserve input field order in the output",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="case_sensitive_keys_kv",
-        array=[{"k": "price", "v": 24}, {"k": "PRICE", "v": 100}],
+        arrays=[{"k": "price", "v": 24}, {"k": "PRICE", "v": 100}],
         expected={"price": 24, "PRICE": 100},
         msg="$arrayToObject should treat case-differing keys as distinct",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="case_sensitive_keys_pair",
-        array=[["price", 24], ["PRICE", 100]],
+        arrays=[["price", 24], ["PRICE", 100]],
         expected={"price": 24, "PRICE": 100},
         msg="$arrayToObject should treat case-differing keys as distinct (pair form)",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="deeply_nested_object_value",
-        array=[["key", {"a": {"b": {"c": {"d": 1}}}}]],
+        arrays=[["key", {"a": {"b": {"c": {"d": 1}}}}]],
         expected={"key": {"a": {"b": {"c": {"d": 1}}}}},
         msg="$arrayToObject should handle deeply nested object",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="deeply_nested_array_value",
-        array=[["key", [[[[1]]]]]],
+        arrays=[["key", [[[[1]]]]]],
         expected={"key": [[[[1]]]]},
         msg="$arrayToObject should handle deeply nested array",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="empty_object_value",
-        array=[["key", {}]],
+        arrays=[["key", {}]],
         expected={"key": {}},
         msg="$arrayToObject should handle empty object value",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="empty_array_value",
-        array=[["key", []]],
+        arrays=[["key", []]],
         expected={"key": []},
         msg="$arrayToObject should handle empty array value",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="empty_string_value",
-        array=[["key", ""]],
+        arrays=[["key", ""]],
         expected={"key": ""},
         msg="$arrayToObject should handle empty string value",
     ),
-    ArrayToObjectTest(
+    ArrayTestClass(
         id="large_string_value",
-        array=[["key", "x" * 10240]],
+        arrays=[["key", "x" * 10240]],
         expected={"key": "x" * 10240},
         msg="$arrayToObject should handle large string value",
     ),
@@ -291,7 +291,7 @@ TEST_SUBSET_FOR_LITERAL = [
 @pytest.mark.parametrize("test", pytest_params(TEST_SUBSET_FOR_LITERAL))
 def test_arrayToObject_literal(collection, test):
     """Test $arrayToObject with literal values."""
-    result = execute_expression(collection, {"$arrayToObject": {"$literal": test.array}})
+    result = execute_expression(collection, {"$arrayToObject": {"$literal": test.arrays}})
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg
     )
@@ -301,7 +301,7 @@ def test_arrayToObject_literal(collection, test):
 def test_arrayToObject_insert(collection, test):
     """Test $arrayToObject with values from inserted documents."""
     result = execute_expression_with_insert(
-        collection, {"$arrayToObject": "$arr"}, {"arr": test.array}
+        collection, {"$arrayToObject": "$arr"}, {"arr": test.arrays}
     )
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg

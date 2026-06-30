@@ -11,8 +11,8 @@ from datetime import datetime, timezone
 import pytest
 from bson import Binary, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
-from documentdb_tests.compatibility.tests.core.operator.expressions.array.concatArrays.utils.concatArrays_common import (  # noqa: E501
-    ConcatArraysTest,
+from documentdb_tests.compatibility.tests.core.operator.expressions.array.utils.array_test_case import (  # noqa: E501
+    ArrayTestClass,
 )
 from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils import (
     assert_expression_result,
@@ -39,110 +39,110 @@ from documentdb_tests.framework.test_constants import (
 )
 
 # Property [Array Type Strictness]: $concatArrays rejects a non-array argument.
-NOT_ARRAY_ERROR_TESTS: list[ConcatArraysTest] = [
-    ConcatArraysTest(
+NOT_ARRAY_ERROR_TESTS: list[ArrayTestClass] = [
+    ArrayTestClass(
         id="string_input",
         arrays=["hello", [1]],
         error_code=CONCAT_ARRAYS_NOT_ARRAY_ERROR,
         msg="$concatArrays should reject string input",
     ),
-    ConcatArraysTest(
+    ArrayTestClass(
         id="int_input",
         arrays=[42, [1]],
         error_code=CONCAT_ARRAYS_NOT_ARRAY_ERROR,
         msg="$concatArrays should reject int input",
     ),
-    ConcatArraysTest(
+    ArrayTestClass(
         id="negative_int_input",
         arrays=[-42, [1]],
         error_code=CONCAT_ARRAYS_NOT_ARRAY_ERROR,
         msg="$concatArrays should reject negative int input",
     ),
-    ConcatArraysTest(
+    ArrayTestClass(
         id="bool_input",
         arrays=[True, [1]],
         error_code=CONCAT_ARRAYS_NOT_ARRAY_ERROR,
         msg="$concatArrays should reject bool input",
     ),
-    ConcatArraysTest(
+    ArrayTestClass(
         id="object_input",
         arrays=[{"a": 1}, [1]],
         error_code=CONCAT_ARRAYS_NOT_ARRAY_ERROR,
         msg="$concatArrays should reject object input",
     ),
-    ConcatArraysTest(
+    ArrayTestClass(
         id="double_input",
         arrays=[3.14, [1]],
         error_code=CONCAT_ARRAYS_NOT_ARRAY_ERROR,
         msg="$concatArrays should reject double input",
     ),
-    ConcatArraysTest(
+    ArrayTestClass(
         id="negative_double_input",
         arrays=[-3.14, [1]],
         error_code=CONCAT_ARRAYS_NOT_ARRAY_ERROR,
         msg="$concatArrays should reject negative double input",
     ),
-    ConcatArraysTest(
+    ArrayTestClass(
         id="decimal128_input",
         arrays=[Decimal128("1"), [1]],
         error_code=CONCAT_ARRAYS_NOT_ARRAY_ERROR,
         msg="$concatArrays should reject decimal128 input",
     ),
-    ConcatArraysTest(
+    ArrayTestClass(
         id="int64_input",
         arrays=[Int64(1), [1]],
         error_code=CONCAT_ARRAYS_NOT_ARRAY_ERROR,
         msg="$concatArrays should reject int64 input",
     ),
-    ConcatArraysTest(
+    ArrayTestClass(
         id="objectid_input",
         arrays=[ObjectId(), [1]],
         error_code=CONCAT_ARRAYS_NOT_ARRAY_ERROR,
         msg="$concatArrays should reject objectid input",
     ),
-    ConcatArraysTest(
+    ArrayTestClass(
         id="datetime_input",
         arrays=[datetime(2024, 1, 1, tzinfo=timezone.utc), [1]],
         error_code=CONCAT_ARRAYS_NOT_ARRAY_ERROR,
         msg="$concatArrays should reject datetime input",
     ),
-    ConcatArraysTest(
+    ArrayTestClass(
         id="binary_input",
         arrays=[Binary(b"x", 0), [1]],
         error_code=CONCAT_ARRAYS_NOT_ARRAY_ERROR,
         msg="$concatArrays should reject binary input",
     ),
-    ConcatArraysTest(
+    ArrayTestClass(
         id="regex_input",
         arrays=[Regex("x"), [1]],
         error_code=CONCAT_ARRAYS_NOT_ARRAY_ERROR,
         msg="$concatArrays should reject regex input",
     ),
-    ConcatArraysTest(
+    ArrayTestClass(
         id="maxkey_input",
         arrays=[MaxKey(), [1]],
         error_code=CONCAT_ARRAYS_NOT_ARRAY_ERROR,
         msg="$concatArrays should reject maxkey input",
     ),
-    ConcatArraysTest(
+    ArrayTestClass(
         id="minkey_input",
         arrays=[MinKey(), [1]],
         error_code=CONCAT_ARRAYS_NOT_ARRAY_ERROR,
         msg="$concatArrays should reject minkey input",
     ),
-    ConcatArraysTest(
+    ArrayTestClass(
         id="timestamp_input",
         arrays=[Timestamp(0, 0), [1]],
         error_code=CONCAT_ARRAYS_NOT_ARRAY_ERROR,
         msg="$concatArrays should reject timestamp input",
     ),
-    ConcatArraysTest(
+    ArrayTestClass(
         id="non_array_second_arg",
         arrays=[[1], 42],
         error_code=CONCAT_ARRAYS_NOT_ARRAY_ERROR,
         msg="$concatArrays should reject non-array in second position",
     ),
-    ConcatArraysTest(
+    ArrayTestClass(
         id="non_array_middle_arg",
         arrays=[[1], "bad", [2]],
         error_code=CONCAT_ARRAYS_NOT_ARRAY_ERROR,
@@ -151,56 +151,56 @@ NOT_ARRAY_ERROR_TESTS: list[ConcatArraysTest] = [
 ]
 
 # Property [Non-Array Numerics]: $concatArrays rejects special float/Decimal128 arguments.
-SPECIAL_NUMERIC_ERROR_TESTS: list[ConcatArraysTest] = [
-    ConcatArraysTest(
+SPECIAL_NUMERIC_ERROR_TESTS: list[ArrayTestClass] = [
+    ArrayTestClass(
         id="nan_input",
         arrays=[FLOAT_NAN, [1]],
         error_code=CONCAT_ARRAYS_NOT_ARRAY_ERROR,
         msg="$concatArrays should reject NaN input",
     ),
-    ConcatArraysTest(
+    ArrayTestClass(
         id="inf_input",
         arrays=[FLOAT_INFINITY, [1]],
         error_code=CONCAT_ARRAYS_NOT_ARRAY_ERROR,
         msg="$concatArrays should reject Infinity input",
     ),
-    ConcatArraysTest(
+    ArrayTestClass(
         id="neg_inf_input",
         arrays=[FLOAT_NEGATIVE_INFINITY, [1]],
         error_code=CONCAT_ARRAYS_NOT_ARRAY_ERROR,
         msg="$concatArrays should reject -Infinity input",
     ),
-    ConcatArraysTest(
+    ArrayTestClass(
         id="neg_zero_input",
         arrays=[DOUBLE_NEGATIVE_ZERO, [1]],
         error_code=CONCAT_ARRAYS_NOT_ARRAY_ERROR,
         msg="$concatArrays should reject negative zero input",
     ),
-    ConcatArraysTest(
+    ArrayTestClass(
         id="decimal128_nan_input",
         arrays=[DECIMAL128_NAN, [1]],
         error_code=CONCAT_ARRAYS_NOT_ARRAY_ERROR,
         msg="$concatArrays should reject Decimal128 NaN input",
     ),
-    ConcatArraysTest(
+    ArrayTestClass(
         id="decimal128_neg_nan_input",
         arrays=[Decimal128("-NaN"), [1]],
         error_code=CONCAT_ARRAYS_NOT_ARRAY_ERROR,
         msg="$concatArrays should reject Decimal128 -NaN input",
     ),
-    ConcatArraysTest(
+    ArrayTestClass(
         id="decimal128_inf_input",
         arrays=[DECIMAL128_INFINITY, [1]],
         error_code=CONCAT_ARRAYS_NOT_ARRAY_ERROR,
         msg="$concatArrays should reject Decimal128 Infinity input",
     ),
-    ConcatArraysTest(
+    ArrayTestClass(
         id="decimal128_neg_inf_input",
         arrays=[DECIMAL128_NEGATIVE_INFINITY, [1]],
         error_code=CONCAT_ARRAYS_NOT_ARRAY_ERROR,
         msg="$concatArrays should reject Decimal128 -Infinity input",
     ),
-    ConcatArraysTest(
+    ArrayTestClass(
         id="decimal128_neg_zero_input",
         arrays=[DECIMAL128_NEGATIVE_ZERO, [1]],
         error_code=CONCAT_ARRAYS_NOT_ARRAY_ERROR,
@@ -209,38 +209,38 @@ SPECIAL_NUMERIC_ERROR_TESTS: list[ConcatArraysTest] = [
 ]
 
 # Property [Non-Array Boundaries]: $concatArrays rejects numeric boundary values as arguments.
-BOUNDARY_ERROR_TESTS: list[ConcatArraysTest] = [
-    ConcatArraysTest(
+BOUNDARY_ERROR_TESTS: list[ArrayTestClass] = [
+    ArrayTestClass(
         id="int32_max_input",
         arrays=[INT32_MAX, [1]],
         error_code=CONCAT_ARRAYS_NOT_ARRAY_ERROR,
         msg="$concatArrays should reject INT32_MAX input",
     ),
-    ConcatArraysTest(
+    ArrayTestClass(
         id="int32_min_input",
         arrays=[INT32_MIN, [1]],
         error_code=CONCAT_ARRAYS_NOT_ARRAY_ERROR,
         msg="$concatArrays should reject INT32_MIN input",
     ),
-    ConcatArraysTest(
+    ArrayTestClass(
         id="int64_max_input",
         arrays=[INT64_MAX, [1]],
         error_code=CONCAT_ARRAYS_NOT_ARRAY_ERROR,
         msg="$concatArrays should reject INT64_MAX input",
     ),
-    ConcatArraysTest(
+    ArrayTestClass(
         id="int64_min_input",
         arrays=[INT64_MIN, [1]],
         error_code=CONCAT_ARRAYS_NOT_ARRAY_ERROR,
         msg="$concatArrays should reject INT64_MIN input",
     ),
-    ConcatArraysTest(
+    ArrayTestClass(
         id="decimal128_max_input",
         arrays=[DECIMAL128_MAX, [1]],
         error_code=CONCAT_ARRAYS_NOT_ARRAY_ERROR,
         msg="$concatArrays should reject DECIMAL128_MAX input",
     ),
-    ConcatArraysTest(
+    ArrayTestClass(
         id="decimal128_min_input",
         arrays=[DECIMAL128_MIN, [1]],
         error_code=CONCAT_ARRAYS_NOT_ARRAY_ERROR,
@@ -249,20 +249,20 @@ BOUNDARY_ERROR_TESTS: list[ConcatArraysTest] = [
 ]
 
 # Property [Non-Array Strings]: $concatArrays rejects string arguments regardless of content.
-STRING_EDGE_ERROR_TESTS: list[ConcatArraysTest] = [
-    ConcatArraysTest(
+STRING_EDGE_ERROR_TESTS: list[ArrayTestClass] = [
+    ArrayTestClass(
         id="comma_separated_string_input",
         arrays=["1, 2, 3", [1]],
         error_code=CONCAT_ARRAYS_NOT_ARRAY_ERROR,
         msg="$concatArrays should reject comma-separated string",
     ),
-    ConcatArraysTest(
+    ArrayTestClass(
         id="json_like_string_input",
         arrays=["[1, 2, 3]", [1]],
         error_code=CONCAT_ARRAYS_NOT_ARRAY_ERROR,
         msg="$concatArrays should reject JSON-like string",
     ),
-    ConcatArraysTest(
+    ArrayTestClass(
         id="empty_object_input",
         arrays=[{}, [1]],
         error_code=CONCAT_ARRAYS_NOT_ARRAY_ERROR,
