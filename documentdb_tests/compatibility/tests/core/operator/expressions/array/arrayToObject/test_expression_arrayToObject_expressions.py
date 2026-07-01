@@ -120,12 +120,54 @@ NULL_MISSING_EXPR_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
+# Property [Expression Inputs]: $arrayToObject evaluates expressions and array-expression
+# literals that produce the input array, not just field paths and $literal arrays.
+EXPRESSION_INPUT_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
+        id="expression_operator_input",
+        expression={"$arrayToObject": {"$concatArrays": ["$a", "$b"]}},
+        doc={"a": [["k1", 1]], "b": [["k2", 2]]},
+        expected={"k1": 1, "k2": 2},
+        msg="$arrayToObject should evaluate a $concatArrays expression that builds the input array",
+    ),
+    ExpressionTestCase(
+        id="array_expression_input",
+        expression={"$arrayToObject": [[["$k", "$v"]]]},
+        doc={"k": "x", "v": 5},
+        expected={"x": 5},
+        msg="$arrayToObject should evaluate an array expression containing field references",
+    ),
+    ExpressionTestCase(
+        id="map_expression_input",
+        expression={
+            "$arrayToObject": {"$map": {"input": "$pairs", "as": "p", "in": ["$$p.k", "$$p.v"]}}
+        },
+        doc={"pairs": [{"k": "a", "v": 1}, {"k": "b", "v": 2}]},
+        expected={"a": 1, "b": 2},
+        msg="$arrayToObject should evaluate a $map expression that builds the input array",
+    ),
+]
+
+# Property [Array Index Path]: numeric path components like ".0" address object keys, not
+# array positions, in aggregation expression context.
+ARRAY_INDEX_PATH_TESTS: list[ExpressionTestCase] = [
+    ExpressionTestCase(
+        id="object_numeric_key_path",
+        expression={"$arrayToObject": "$a.0"},
+        doc={"a": {"0": [["k", 1]]}},
+        expected={"k": 1},
+        msg="$arrayToObject should resolve a numeric key path through an object, not an index",
+    ),
+]
+
 ALL_EXPR_TESTS = (
     FIELD_LOOKUP_TESTS
     + COMPOSITE_PATH_TESTS
     + KEY_EDGE_TESTS
     + SYSTEM_VAR_TESTS
     + NULL_MISSING_EXPR_TESTS
+    + EXPRESSION_INPUT_TESTS
+    + ARRAY_INDEX_PATH_TESTS
 )
 
 

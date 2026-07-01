@@ -14,7 +14,6 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     execute_expression_with_insert,
 )
 from documentdb_tests.framework.assertions import assertSuccess
-from documentdb_tests.framework.error_codes import ARRAY_ELEM_AT_INDEX_TYPE_ERROR
 
 
 # Nested expressions
@@ -119,14 +118,6 @@ def test_arrayElemAt_composite_array_as_array(collection):
     assert_expression_result(result, expected=20)
 
 
-def test_arrayElemAt_composite_array_as_index(collection):
-    """Test $arrayElemAt rejects composite array from $x.y as the index argument."""
-    result = execute_expression_with_insert(
-        collection, {"$arrayElemAt": [[10, 20, 30], "$x.y"]}, {"x": [{"y": 0}, {"y": 1}]}
-    )
-    assert_expression_result(result, error_code=ARRAY_ELEM_AT_INDEX_TYPE_ERROR)
-
-
 # Composite path with Decimal128 indices and OOB
 @pytest.mark.parametrize(
     "idx,expected",
@@ -153,5 +144,38 @@ def test_arrayElemAt_composite_path_decimal128_oob(collection, idx):
     """Test $arrayElemAt with composite path $a.b and Decimal128 OOB index."""
     result = execute_expression_with_insert(
         collection, {"$arrayElemAt": ["$a.b", idx]}, {"a": [{"b": 1}, {"b": 2}, {"b": 3}]}
+    )
+    assertSuccess(result, [{}])
+
+
+# Property [Array Expression Input]: $arrayElemAt evaluates an array-expression first
+# argument whose elements are field references.
+@pytest.mark.parametrize(
+    "idx,expected",
+    [(0, 10), (1, 20), (-1, 20)],
+    ids=["array_expr_first", "array_expr_second", "array_expr_negative"],
+)
+def test_arrayElemAt_array_expression_input(collection, idx, expected):
+    """Test $arrayElemAt with an array expression of field references as the array argument."""
+    result = execute_expression_with_insert(
+        collection, {"$arrayElemAt": [["$x", "$y"], idx]}, {"x": 10, "y": 20}
+    )
+    assert_expression_result(result, expected=expected)
+
+
+# Property [Array Index Path]: numeric path components like ".0" address object keys, not
+# array positions, in aggregation expression context.
+def test_arrayElemAt_object_numeric_key_path(collection):
+    """Test $arrayElemAt resolves "$a.0.b" through an object key "0", not an array index."""
+    result = execute_expression_with_insert(
+        collection, {"$arrayElemAt": ["$a.0.b", 1]}, {"a": {"0": {"b": [10, 20, 30]}}}
+    )
+    assert_expression_result(result, expected=20)
+
+
+def test_arrayElemAt_array_index_path_returns_missing(collection):
+    """Test $arrayElemAt where "$a.0" does not positionally index an array in expression context."""
+    result = execute_expression_with_insert(
+        collection, {"$arrayElemAt": ["$a.0", 0]}, {"a": [[1, 2], [3, 4]]}
     )
     assertSuccess(result, [{}])

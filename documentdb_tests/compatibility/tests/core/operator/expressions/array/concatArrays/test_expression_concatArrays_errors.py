@@ -305,3 +305,18 @@ def test_concatArrays_not_array_literal(collection, test):
     assert_expression_result(
         result, expected=test.expected, error_code=test.error_code, msg=test.msg
     )
+
+
+# Property [Array Type Strictness]: $concatArrays rejects a field path that resolves to a
+# non-array value.
+def test_concatArrays_field_resolves_to_non_array(collection):
+    """Test $concatArrays errors when a field path resolves to a non-array value."""
+    result = execute_expression_with_insert(collection, {"$concatArrays": ["$a", [1]]}, {"a": 1})
+    assert_expression_result(result, error_code=CONCAT_ARRAYS_NOT_ARRAY_ERROR)
+
+
+# Property [Array Type Strictness]: $concatArrays rejects an object expression argument.
+def test_concatArrays_object_expression_input(collection):
+    """Test $concatArrays rejects an object expression that is not an array."""
+    result = execute_expression_with_insert(collection, {"$concatArrays": [{"a": "$x"}]}, {"x": 1})
+    assert_expression_result(result, error_code=CONCAT_ARRAYS_NOT_ARRAY_ERROR)

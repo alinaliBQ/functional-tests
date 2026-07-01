@@ -397,3 +397,13 @@ def test_arrayElemAt_syntax_error(collection, expr):
     """Test $arrayElemAt errors with wrong number of arguments."""
     result = execute_expression(collection, expr)
     assert_expression_result(result, error_code=EXPRESSION_TYPE_MISMATCH_ERROR)
+
+
+# Property [Index Type Strictness]: $arrayElemAt rejects a field path that resolves to an
+# array as the index argument.
+def test_arrayElemAt_composite_array_as_index(collection):
+    """Test $arrayElemAt rejects a composite array from $x.y as the index argument."""
+    result = execute_expression_with_insert(
+        collection, {"$arrayElemAt": [[10, 20, 30], "$x.y"]}, {"x": [{"y": 0}, {"y": 1}]}
+    )
+    assert_expression_result(result, error_code=ARRAY_ELEM_AT_INDEX_TYPE_ERROR)

@@ -14,7 +14,6 @@ from documentdb_tests.compatibility.tests.core.operator.expressions.utils.utils 
     assert_expression_result,
     execute_expression_with_insert,
 )
-from documentdb_tests.framework.error_codes import CONCAT_ARRAYS_NOT_ARRAY_ERROR
 from documentdb_tests.framework.parametrize import pytest_params
 
 # Property [Field Path]: $concatArrays resolves field-path array arguments.
@@ -147,13 +146,6 @@ NULL_MISSING_EXPR_TESTS: list[ExpressionTestCase] = [
         msg="$concatArrays should return null when an argument is $$REMOVE",
     ),
     ExpressionTestCase(
-        id="field_ref_wrapped_non_array",
-        expression={"$concatArrays": ["$a", [1]]},
-        doc={"a": 1},
-        error_code=CONCAT_ARRAYS_NOT_ARRAY_ERROR,
-        msg="$concatArrays should error when a field resolves to a non-array",
-    ),
-    ExpressionTestCase(
         id="missing_first_field",
         expression={"$concatArrays": ["$a", "$b"]},
         doc={"b": [1]},
@@ -200,7 +192,7 @@ NULL_MISSING_EXPR_TESTS: list[ExpressionTestCase] = [
         expression={"$concatArrays": ["$arr", "$null_val", "$int_val"]},
         doc={"arr": [1, 2], "null_val": None, "int_val": 42},
         expected=None,
-        msg="$concatArrays should error when a null precedes a non-array argument",
+        msg="$concatArrays should return null when a null precedes a non-array argument",
     ),
     ExpressionTestCase(
         id="null_result_type_is_null",
@@ -276,7 +268,8 @@ SAME_FIELD_TESTS: list[ExpressionTestCase] = [
     ),
 ]
 
-# Property [Expression Inputs]: $concatArrays evaluates array expressions, rejecting non-arrays.
+# Property [Expression Inputs]: $concatArrays evaluates array expressions that produce
+# array arguments.
 EXPRESSION_INPUT_TESTS: list[ExpressionTestCase] = [
     ExpressionTestCase(
         id="array_expression_input",
@@ -284,13 +277,6 @@ EXPRESSION_INPUT_TESTS: list[ExpressionTestCase] = [
         doc={"x": 1, "y": 2},
         expected=[1, 2, 3],
         msg="$concatArrays should resolve an array expression containing field references",
-    ),
-    ExpressionTestCase(
-        id="object_expression_input",
-        expression={"$concatArrays": [{"a": "$x"}]},
-        doc={"x": 1},
-        error_code=CONCAT_ARRAYS_NOT_ARRAY_ERROR,
-        msg="$concatArrays should reject an object expression that is not an array",
     ),
     ExpressionTestCase(
         id="literal_then_field",
