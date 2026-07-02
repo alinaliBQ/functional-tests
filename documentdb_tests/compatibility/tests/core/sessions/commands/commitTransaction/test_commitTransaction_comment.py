@@ -11,167 +11,123 @@ from datetime import datetime, timezone
 import pytest
 from bson import Binary, Code, Decimal128, Int64, MaxKey, MinKey, ObjectId, Regex, Timestamp
 
-from documentdb_tests.compatibility.tests.core.sessions.commands.utils.session_test_case import (
-    SessionOp,
-    SessionOperation,
-    SessionTestCase,
-    execute_session_command,
+from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
+    CommandTestCase,
 )
 from documentdb_tests.framework.assertions import assertSuccessPartial
+from documentdb_tests.framework.executor import execute_admin_command
 from documentdb_tests.framework.parametrize import pytest_params
 
 pytestmark = [pytest.mark.admin, pytest.mark.requires(transactions=True)]
 
 # Property [comment Type Acceptance]: comment accepts any BSON type.
-COMMENT_TYPE_TESTS: list[SessionTestCase] = [
-    SessionTestCase(
+COMMENT_TYPE_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
         "comment_string",
-        ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 1})],
-        commit_command={"commitTransaction": 1, "comment": "test comment"},
-        expected_response={"ok": 1.0},
+        command={"commitTransaction": 1, "comment": "test comment"},
         msg="commitTransaction should accept comment:string",
     ),
-    SessionTestCase(
+    CommandTestCase(
         "comment_string_empty",
-        ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 1})],
-        commit_command={"commitTransaction": 1, "comment": ""},
-        expected_response={"ok": 1.0},
+        command={"commitTransaction": 1, "comment": ""},
         msg="commitTransaction should accept comment:empty string",
     ),
-    SessionTestCase(
+    CommandTestCase(
         "comment_int32",
-        ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 1})],
-        commit_command={"commitTransaction": 1, "comment": 42},
-        expected_response={"ok": 1.0},
+        command={"commitTransaction": 1, "comment": 42},
         msg="commitTransaction should accept comment:int32",
     ),
-    SessionTestCase(
+    CommandTestCase(
         "comment_int64",
-        ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 1})],
-        commit_command={"commitTransaction": 1, "comment": Int64(42)},
-        expected_response={"ok": 1.0},
+        command={"commitTransaction": 1, "comment": Int64(42)},
         msg="commitTransaction should accept comment:Int64",
     ),
-    SessionTestCase(
+    CommandTestCase(
         "comment_double",
-        ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 1})],
-        commit_command={"commitTransaction": 1, "comment": 3.14},
-        expected_response={"ok": 1.0},
+        command={"commitTransaction": 1, "comment": 3.14},
         msg="commitTransaction should accept comment:double",
     ),
-    SessionTestCase(
+    CommandTestCase(
         "comment_decimal128",
-        ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 1})],
-        commit_command={"commitTransaction": 1, "comment": Decimal128("1.5")},
-        expected_response={"ok": 1.0},
+        command={"commitTransaction": 1, "comment": Decimal128("1.5")},
         msg="commitTransaction should accept comment:Decimal128",
     ),
-    SessionTestCase(
+    CommandTestCase(
         "comment_bool_true",
-        ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 1})],
-        commit_command={"commitTransaction": 1, "comment": True},
-        expected_response={"ok": 1.0},
+        command={"commitTransaction": 1, "comment": True},
         msg="commitTransaction should accept comment:true",
     ),
-    SessionTestCase(
+    CommandTestCase(
         "comment_bool_false",
-        ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 1})],
-        commit_command={"commitTransaction": 1, "comment": False},
-        expected_response={"ok": 1.0},
+        command={"commitTransaction": 1, "comment": False},
         msg="commitTransaction should accept comment:false",
     ),
-    SessionTestCase(
+    CommandTestCase(
         "comment_null",
-        ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 1})],
-        commit_command={"commitTransaction": 1, "comment": None},
-        expected_response={"ok": 1.0},
+        command={"commitTransaction": 1, "comment": None},
         msg="commitTransaction should accept comment:null",
     ),
-    SessionTestCase(
+    CommandTestCase(
         "comment_object",
-        ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 1})],
-        commit_command={"commitTransaction": 1, "comment": {"key": "value"}},
-        expected_response={"ok": 1.0},
+        command={"commitTransaction": 1, "comment": {"key": "value"}},
         msg="commitTransaction should accept comment:object",
     ),
-    SessionTestCase(
+    CommandTestCase(
         "comment_object_empty",
-        ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 1})],
-        commit_command={"commitTransaction": 1, "comment": {}},
-        expected_response={"ok": 1.0},
+        command={"commitTransaction": 1, "comment": {}},
         msg="commitTransaction should accept comment:empty object",
     ),
-    SessionTestCase(
+    CommandTestCase(
         "comment_array",
-        ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 1})],
-        commit_command={"commitTransaction": 1, "comment": [1, 2, 3]},
-        expected_response={"ok": 1.0},
+        command={"commitTransaction": 1, "comment": [1, 2, 3]},
         msg="commitTransaction should accept comment:array",
     ),
-    SessionTestCase(
+    CommandTestCase(
         "comment_array_empty",
-        ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 1})],
-        commit_command={"commitTransaction": 1, "comment": []},
-        expected_response={"ok": 1.0},
+        command={"commitTransaction": 1, "comment": []},
         msg="commitTransaction should accept comment:empty array",
     ),
-    SessionTestCase(
+    CommandTestCase(
         "comment_objectid",
-        ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 1})],
-        commit_command={"commitTransaction": 1, "comment": ObjectId()},
-        expected_response={"ok": 1.0},
+        command={"commitTransaction": 1, "comment": ObjectId()},
         msg="commitTransaction should accept comment:ObjectId",
     ),
-    SessionTestCase(
+    CommandTestCase(
         "comment_datetime",
-        ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 1})],
-        commit_command={
+        command={
             "commitTransaction": 1,
             "comment": datetime(2024, 1, 1, tzinfo=timezone.utc),
         },
-        expected_response={"ok": 1.0},
         msg="commitTransaction should accept comment:datetime",
     ),
-    SessionTestCase(
+    CommandTestCase(
         "comment_binary",
-        ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 1})],
-        commit_command={"commitTransaction": 1, "comment": Binary(b"\x00")},
-        expected_response={"ok": 1.0},
+        command={"commitTransaction": 1, "comment": Binary(b"\x00")},
         msg="commitTransaction should accept comment:Binary",
     ),
-    SessionTestCase(
+    CommandTestCase(
         "comment_regex",
-        ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 1})],
-        commit_command={"commitTransaction": 1, "comment": Regex(".*")},
-        expected_response={"ok": 1.0},
+        command={"commitTransaction": 1, "comment": Regex(".*")},
         msg="commitTransaction should accept comment:Regex",
     ),
-    SessionTestCase(
+    CommandTestCase(
         "comment_timestamp",
-        ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 1})],
-        commit_command={"commitTransaction": 1, "comment": Timestamp(0, 0)},
-        expected_response={"ok": 1.0},
+        command={"commitTransaction": 1, "comment": Timestamp(0, 0)},
         msg="commitTransaction should accept comment:Timestamp",
     ),
-    SessionTestCase(
+    CommandTestCase(
         "comment_minkey",
-        ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 1})],
-        commit_command={"commitTransaction": 1, "comment": MinKey()},
-        expected_response={"ok": 1.0},
+        command={"commitTransaction": 1, "comment": MinKey()},
         msg="commitTransaction should accept comment:MinKey",
     ),
-    SessionTestCase(
+    CommandTestCase(
         "comment_maxkey",
-        ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 1})],
-        commit_command={"commitTransaction": 1, "comment": MaxKey()},
-        expected_response={"ok": 1.0},
+        command={"commitTransaction": 1, "comment": MaxKey()},
         msg="commitTransaction should accept comment:MaxKey",
     ),
-    SessionTestCase(
+    CommandTestCase(
         "comment_code",
-        ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 1})],
-        commit_command={"commitTransaction": 1, "comment": Code("function(){}")},
-        expected_response={"ok": 1.0},
+        command={"commitTransaction": 1, "comment": Code("function(){}")},
         msg="commitTransaction should accept comment:Code",
     ),
 ]
@@ -180,5 +136,9 @@ COMMENT_TYPE_TESTS: list[SessionTestCase] = [
 @pytest.mark.parametrize("test", pytest_params(COMMENT_TYPE_TESTS))
 def test_commitTransaction_comment(collection, test):
     """Test commitTransaction comment parameter type acceptance in a transaction."""
-    result = execute_session_command(collection, test)
-    assertSuccessPartial(result, test.expected_response, msg=test.msg)
+    client = collection.database.client
+    with client.start_session() as session:
+        session.start_transaction()
+        collection.insert_one({"_id": 1}, session=session)
+        result = execute_admin_command(collection, test.command, session=session)
+    assertSuccessPartial(result, {"ok": 1.0}, msg=test.msg)
