@@ -32,7 +32,7 @@ CORE_NO_TRANSACTION_TESTS: list[CommandTestCase] = [
         "no_transaction_basic",
         command={"commitTransaction": 1},
         error_code=COMMAND_FAILED_ERROR,
-        msg="commitTransaction should fail with NoSuchTransaction outside a transaction",
+        msg="commitTransaction outside a transaction should fail",
     ),
 ]
 

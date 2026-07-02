@@ -3,7 +3,7 @@
 Validates type and value acceptance for the autocommit parameter. Per the
 MongoDB documentation, autocommit must be literal boolean false. Boolean true
 produces InvalidOptions, non-boolean types produce TypeMismatch, and null is
-treated as omitted (falls through to NoSuchTransaction).
+treated as omitted (falls through to the no-transaction error).
 """
 
 from __future__ import annotations

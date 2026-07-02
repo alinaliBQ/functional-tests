@@ -5,7 +5,7 @@ documentation, txnNumber is typed as long (Int64). On a replica set,
 Int64 values produce NotARetryableWriteCommand (50768) when there is no
 matching transaction, while negative values produce InvalidOptions (72).
 Non-Int64 numeric types and non-numeric types produce TypeMismatch. Null
-is treated as omitted (falls through to NoSuchTransaction).
+is treated as omitted (falls through to the no-transaction error).
 """
 
 from __future__ import annotations
