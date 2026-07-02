@@ -27,6 +27,8 @@ from documentdb_tests.framework.error_codes import CURSOR_NOT_FOUND_ERROR
 from documentdb_tests.framework.executor import execute_admin_command, execute_command
 from documentdb_tests.framework.parametrize import pytest_params
 
+pytestmark = pytest.mark.no_parallel
+
 # Property [Random UUID]: killSessions with a non-matching UUID succeeds
 # silently without error.
 KILLSESSIONS_RANDOM_UUID_TESTS: list[CommandTestCase] = [
@@ -169,7 +171,6 @@ def test_killSessions_admin_db(collection, test):
     )
 
 
-@pytest.mark.no_parallel
 def test_killSessions_real_session(collection):
     """Test killSessions kills a real active session.
 
