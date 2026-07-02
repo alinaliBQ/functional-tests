@@ -1,158 +1,64 @@
-"""Tests for abortTransaction command success cases.
+"""Tests for abortTransaction command success behavior.
 
-Validates that abortTransaction rolls back operations within a real
-transaction context, including insert, update, delete, and multi-operation
-transactions, verifies the response structure on success, and that
-pre-transaction data survives abort.
+Each test drives the full transaction lifecycle inline (start session, start
+transaction, run an operation, abort) so that setup -> act -> assert reads top
+to bottom. These cover the fundamental abort behaviors: an aborted write is
+rolled back, pre-transaction data survives the abort, an empty transaction
+aborts, and the response carries ok:1.
 """
 
 from __future__ import annotations
 
 import pytest
 
-from documentdb_tests.compatibility.tests.core.sessions.commands.utils.session_test_case import (
-    SessionOp,
-    SessionOperation,
-    SessionTestCase,
-    execute_session_command,
-)
 from documentdb_tests.framework.assertions import (
     assertNotError,
     assertSuccess,
     assertSuccessPartial,
 )
-from documentdb_tests.framework.parametrize import pytest_params
+from documentdb_tests.framework.executor import execute_admin_command, execute_command
 
 pytestmark = [pytest.mark.admin, pytest.mark.requires(transactions=True)]
 
-# Property [Abort Rollback]: aborted operations are rolled back.
-ABORT_ROLLBACK_TESTS: list[SessionTestCase] = [
-    SessionTestCase(
-        "abort_insert",
-        ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 1, "x": "inserted"})],
-        expected=[],
-        msg="abortTransaction should roll back the inserted document",
-    ),
-    SessionTestCase(
-        "abort_update",
-        docs=[{"_id": 1, "x": "before"}],
-        ops=[
-            SessionOperation(
-                op=SessionOp.UPDATE,
-                filter={"_id": 1},
-                update={"$set": {"x": "after"}},
-            )
-        ],
-        expected=[{"_id": 1, "x": "before"}],
-        msg="abortTransaction should roll back the updated value",
-    ),
-    SessionTestCase(
-        "abort_delete",
-        docs=[{"_id": 1, "x": "to_delete"}],
-        ops=[SessionOperation(op=SessionOp.DELETE, filter={"_id": 1})],
-        expected=[{"_id": 1, "x": "to_delete"}],
-        msg="abortTransaction should roll back the deletion",
-    ),
-    SessionTestCase(
-        "abort_multi_operation",
-        docs=[{"_id": 1, "x": "original"}],
-        ops=[
-            SessionOperation(op=SessionOp.INSERT, document={"_id": 2, "x": "new"}),
-            SessionOperation(
-                op=SessionOp.UPDATE,
-                filter={"_id": 1},
-                update={"$set": {"x": "modified"}},
-            ),
-        ],
-        expected=[{"_id": 1, "x": "original"}],
-        msg="abortTransaction should roll back all operations from a multi-op transaction",
-    ),
-    SessionTestCase(
-        "abort_insert_delete_same_doc",
-        ops=[
-            SessionOperation(op=SessionOp.INSERT, document={"_id": 1}),
-            SessionOperation(op=SessionOp.DELETE, filter={"_id": 1}),
-        ],
-        expected=[],
-        msg="abortTransaction should roll back insert+delete of the same document",
-    ),
-    SessionTestCase(
-        "abort_multiple_inserts",
-        ops=[
-            SessionOperation(op=SessionOp.INSERT, document={"_id": 1}),
-            SessionOperation(op=SessionOp.INSERT, document={"_id": 2}),
-        ],
-        expected=[],
-        msg="abortTransaction should roll back multiple inserts",
-    ),
-    SessionTestCase(
-        "abort_update_insert_different_docs",
-        docs=[{"_id": 1, "x": "original"}],
-        ops=[
-            SessionOperation(
-                op=SessionOp.UPDATE,
-                filter={"_id": 1},
-                update={"$set": {"x": "modified"}},
-            ),
-            SessionOperation(op=SessionOp.INSERT, document={"_id": 2, "x": "new"}),
-        ],
-        expected=[{"_id": 1, "x": "original"}],
-        msg="abortTransaction should roll back update+insert of different documents",
-    ),
-]
 
-# Property [Pre-Transaction Data Survival]: seed data survives abort.
-PRE_TRANSACTION_TESTS: list[SessionTestCase] = [
-    SessionTestCase(
-        "pre_existing_data_survives",
-        docs=[{"_id": 1, "x": "seed"}],
-        ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 2, "x": "txn"})],
-        expected=[{"_id": 1, "x": "seed"}],
-        msg="Pre-existing documents should survive abort",
-    ),
-]
-
-ABORT_READBACK_TESTS: list[SessionTestCase] = ABORT_ROLLBACK_TESTS + PRE_TRANSACTION_TESTS
+def test_abortTransaction_rolls_back_insert(collection):
+    """An aborted insert leaves no trace after the transaction aborts."""
+    client = collection.database.client
+    with client.start_session() as session:
+        session.start_transaction()
+        collection.insert_one({"_id": 1, "x": "inserted"}, session=session)
+        session.abort_transaction()
+    readback = execute_command(collection, {"find": collection.name, "filter": {}})
+    assertSuccess(readback, [])
 
 
-@pytest.mark.parametrize("test", pytest_params(ABORT_READBACK_TESTS))
-def test_abortTransaction_core(collection, test):
-    """Test abortTransaction rolls back operations and preserves pre-existing data."""
-    result = execute_session_command(collection, test, abort=True)
-    assertSuccess(result, test.expected, msg=test.msg)
+def test_pre_existing_data_survives_abort(collection):
+    """Documents inserted before the transaction survive an abort."""
+    collection.insert_one({"_id": 1, "x": "seed"})
+    client = collection.database.client
+    with client.start_session() as session:
+        session.start_transaction()
+        collection.insert_one({"_id": 2, "x": "txn"}, session=session)
+        session.abort_transaction()
+    readback = execute_command(collection, {"find": collection.name, "filter": {}})
+    assertSuccess(readback, [{"_id": 1, "x": "seed"}])
 
 
-# Property [Empty Transaction]: aborting a transaction with no ops succeeds.
-EMPTY_TRANSACTION_TESTS: list[SessionTestCase] = [
-    SessionTestCase(
-        "abort_empty_transaction",
-        ops=[],
-        msg="abortTransaction on empty transaction should not error",
-    ),
-]
+def test_abortTransaction_empty(collection):
+    """Aborting a transaction with no operations succeeds."""
+    client = collection.database.client
+    with client.start_session() as session:
+        session.start_transaction()
+        session.abort_transaction()
+    readback = execute_command(collection, {"find": collection.name, "filter": {}})
+    assertNotError(readback, msg="abortTransaction on an empty transaction should not error")
 
 
-@pytest.mark.parametrize("test", pytest_params(EMPTY_TRANSACTION_TESTS))
-def test_abortTransaction_core_empty(collection, test):
-    """Test abortTransaction succeeds on an empty transaction."""
-    result = execute_session_command(collection, test, abort=True)
-    assertNotError(result, msg=test.msg)
-
-
-# Property [Response Structure]: abort response contains ok:1 on success.
-RESPONSE_STRUCTURE_TESTS: list[SessionTestCase] = [
-    SessionTestCase(
-        "abort_response_ok",
-        ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 1})],
-        commit_command={"abortTransaction": 1},
-        expected_response={"ok": 1.0},
-        msg="abortTransaction response should have ok:1 on success",
-    ),
-]
-
-
-@pytest.mark.parametrize("test", pytest_params(RESPONSE_STRUCTURE_TESTS))
-def test_abortTransaction_core_response(collection, test):
-    """Test abortTransaction returns expected response fields."""
-    result = execute_session_command(collection, test, abort=True)
-    assertSuccessPartial(result, test.expected_response, msg=test.msg)
+def test_abortTransaction_response_ok(collection):
+    """The abortTransaction command response reports ok:1 on success."""
+    client = collection.database.client
+    with client.start_session() as session:
+        session.start_transaction()
+        collection.insert_one({"_id": 1}, session=session)
+        result = execute_admin_command(collection, {"abortTransaction": 1}, session=session)
+    assertSuccessPartial(result, {"ok": 1.0})

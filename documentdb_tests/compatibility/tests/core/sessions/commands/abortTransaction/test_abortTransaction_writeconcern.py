@@ -11,226 +11,170 @@ from __future__ import annotations
 import pytest
 from bson import Decimal128, Int64
 
-from documentdb_tests.compatibility.tests.core.sessions.commands.utils.session_test_case import (
-    SessionOp,
-    SessionOperation,
-    SessionTestCase,
-    execute_session_command,
+from documentdb_tests.compatibility.tests.core.utils.command_test_case import (
+    CommandTestCase,
 )
 from documentdb_tests.framework.assertions import assertSuccessPartial
+from documentdb_tests.framework.executor import execute_admin_command
 from documentdb_tests.framework.parametrize import pytest_params
 
 pytestmark = [pytest.mark.admin, pytest.mark.requires(transactions=True)]
 
 # Property [writeConcern Document Acceptance]: writeConcern accepts document values.
-WRITECONCERN_ACCEPTANCE_TESTS: list[SessionTestCase] = [
-    SessionTestCase(
+WRITECONCERN_ACCEPTANCE_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
         "writeconcern_empty_doc",
-        ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 1})],
-        commit_command={"abortTransaction": 1, "writeConcern": {}},
-        expected_response={"ok": 1.0},
+        command={"abortTransaction": 1, "writeConcern": {}},
         msg="abortTransaction should accept empty writeConcern document",
     ),
-    SessionTestCase(
+    CommandTestCase(
         "writeconcern_null",
-        ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 1})],
-        commit_command={"abortTransaction": 1, "writeConcern": None},
-        expected_response={"ok": 1.0},
+        command={"abortTransaction": 1, "writeConcern": None},
         msg="abortTransaction should accept writeConcern:null",
     ),
-    SessionTestCase(
+    CommandTestCase(
         "wc_combined_w_j_wtimeout",
-        ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 1})],
-        commit_command={
+        command={
             "abortTransaction": 1,
             "writeConcern": {"w": "majority", "j": True, "wtimeout": 10_000},
         },
-        expected_response={"ok": 1.0},
         msg="abortTransaction should accept combined w + j + wtimeout",
     ),
-    SessionTestCase(
+    CommandTestCase(
         "wc_w0_j_true",
-        ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 1})],
-        commit_command={"abortTransaction": 1, "writeConcern": {"w": 0, "j": True}},
-        expected_response={"ok": 1.0},
+        command={"abortTransaction": 1, "writeConcern": {"w": 0, "j": True}},
         msg="abortTransaction should accept conflicting w:0 with j:true",
     ),
-    SessionTestCase(
+    CommandTestCase(
         "wc_fsync_true",
-        ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 1})],
-        commit_command={"abortTransaction": 1, "writeConcern": {"fsync": True}},
-        expected_response={"ok": 1.0},
+        command={"abortTransaction": 1, "writeConcern": {"fsync": True}},
         msg="abortTransaction should accept legacy writeConcern.fsync:true",
     ),
 ]
 
 # Property [w Accepted Values]: w accepts int and string "majority" values.
-W_ACCEPTANCE_TESTS: list[SessionTestCase] = [
-    SessionTestCase(
+W_ACCEPTANCE_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
         "w_int32_one",
-        ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 1})],
-        commit_command={"abortTransaction": 1, "writeConcern": {"w": 1}},
-        expected_response={"ok": 1.0},
+        command={"abortTransaction": 1, "writeConcern": {"w": 1}},
         msg="abortTransaction should accept writeConcern.w:1",
     ),
-    SessionTestCase(
+    CommandTestCase(
         "w_int32_zero",
-        ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 1})],
-        commit_command={"abortTransaction": 1, "writeConcern": {"w": 0}},
-        expected_response={"ok": 1.0},
+        command={"abortTransaction": 1, "writeConcern": {"w": 0}},
         msg="abortTransaction should accept writeConcern.w:0 (unacknowledged)",
     ),
-    SessionTestCase(
+    CommandTestCase(
         "w_majority",
-        ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 1})],
-        commit_command={"abortTransaction": 1, "writeConcern": {"w": "majority"}},
-        expected_response={"ok": 1.0},
+        command={"abortTransaction": 1, "writeConcern": {"w": "majority"}},
         msg="abortTransaction should accept writeConcern.w:'majority'",
     ),
-    SessionTestCase(
+    CommandTestCase(
         "w_int64",
-        ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 1})],
-        commit_command={"abortTransaction": 1, "writeConcern": {"w": Int64(1)}},
-        expected_response={"ok": 1.0},
+        command={"abortTransaction": 1, "writeConcern": {"w": Int64(1)}},
         msg="abortTransaction should accept writeConcern.w:Int64(1)",
     ),
-    SessionTestCase(
+    CommandTestCase(
         "w_double_whole",
-        ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 1})],
-        commit_command={"abortTransaction": 1, "writeConcern": {"w": 1.0}},
-        expected_response={"ok": 1.0},
+        command={"abortTransaction": 1, "writeConcern": {"w": 1.0}},
         msg="abortTransaction should accept writeConcern.w:1.0",
     ),
-    SessionTestCase(
+    CommandTestCase(
         "w_double_fractional",
-        ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 1})],
-        commit_command={"abortTransaction": 1, "writeConcern": {"w": 1.5}},
-        expected_response={"ok": 1.0},
+        command={"abortTransaction": 1, "writeConcern": {"w": 1.5}},
         msg="abortTransaction should accept writeConcern.w:1.5",
     ),
-    SessionTestCase(
+    CommandTestCase(
         "w_decimal128",
-        ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 1})],
-        commit_command={"abortTransaction": 1, "writeConcern": {"w": Decimal128("1")}},
-        expected_response={"ok": 1.0},
+        command={"abortTransaction": 1, "writeConcern": {"w": Decimal128("1")}},
         msg="abortTransaction should accept writeConcern.w:Decimal128('1')",
     ),
 ]
 
 # Property [j Accepted Values]: j accepts boolean and numeric types.
-J_ACCEPTANCE_TESTS: list[SessionTestCase] = [
-    SessionTestCase(
+J_ACCEPTANCE_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
         "j_bool_true",
-        ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 1})],
-        commit_command={"abortTransaction": 1, "writeConcern": {"j": True}},
-        expected_response={"ok": 1.0},
+        command={"abortTransaction": 1, "writeConcern": {"j": True}},
         msg="abortTransaction should accept writeConcern.j:true",
     ),
-    SessionTestCase(
+    CommandTestCase(
         "j_bool_false",
-        ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 1})],
-        commit_command={"abortTransaction": 1, "writeConcern": {"j": False}},
-        expected_response={"ok": 1.0},
+        command={"abortTransaction": 1, "writeConcern": {"j": False}},
         msg="abortTransaction should accept writeConcern.j:false",
     ),
-    SessionTestCase(
+    CommandTestCase(
         "j_int32_one",
-        ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 1})],
-        commit_command={"abortTransaction": 1, "writeConcern": {"j": 1}},
-        expected_response={"ok": 1.0},
+        command={"abortTransaction": 1, "writeConcern": {"j": 1}},
         msg="abortTransaction should accept writeConcern.j:1 (coerced to true)",
     ),
-    SessionTestCase(
+    CommandTestCase(
         "j_int32_zero",
-        ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 1})],
-        commit_command={"abortTransaction": 1, "writeConcern": {"j": 0}},
-        expected_response={"ok": 1.0},
+        command={"abortTransaction": 1, "writeConcern": {"j": 0}},
         msg="abortTransaction should accept writeConcern.j:0 (coerced to false)",
     ),
-    SessionTestCase(
+    CommandTestCase(
         "j_null",
-        ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 1})],
-        commit_command={"abortTransaction": 1, "writeConcern": {"j": None}},
-        expected_response={"ok": 1.0},
+        command={"abortTransaction": 1, "writeConcern": {"j": None}},
         msg="abortTransaction should accept writeConcern.j:null",
     ),
 ]
 
 # Property [wtimeout Accepted Values]: wtimeout accepts numeric types broadly.
-WTIMEOUT_ACCEPTANCE_TESTS: list[SessionTestCase] = [
-    SessionTestCase(
+WTIMEOUT_ACCEPTANCE_TESTS: list[CommandTestCase] = [
+    CommandTestCase(
         "wtimeout_int32_positive",
-        ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 1})],
-        commit_command={"abortTransaction": 1, "writeConcern": {"wtimeout": 1000}},
-        expected_response={"ok": 1.0},
+        command={"abortTransaction": 1, "writeConcern": {"wtimeout": 1000}},
         msg="abortTransaction should accept writeConcern.wtimeout:1000",
     ),
-    SessionTestCase(
+    CommandTestCase(
         "wtimeout_int32_zero",
-        ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 1})],
-        commit_command={"abortTransaction": 1, "writeConcern": {"wtimeout": 0}},
-        expected_response={"ok": 1.0},
+        command={"abortTransaction": 1, "writeConcern": {"wtimeout": 0}},
         msg="abortTransaction should accept writeConcern.wtimeout:0 (no timeout)",
     ),
-    SessionTestCase(
+    CommandTestCase(
         "wtimeout_int64",
-        ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 1})],
-        commit_command={"abortTransaction": 1, "writeConcern": {"wtimeout": Int64(1000)}},
-        expected_response={"ok": 1.0},
+        command={"abortTransaction": 1, "writeConcern": {"wtimeout": Int64(1000)}},
         msg="abortTransaction should accept writeConcern.wtimeout:Int64(1000)",
     ),
-    SessionTestCase(
+    CommandTestCase(
         "wtimeout_double_whole",
-        ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 1})],
-        commit_command={"abortTransaction": 1, "writeConcern": {"wtimeout": 1000.0}},
-        expected_response={"ok": 1.0},
+        command={"abortTransaction": 1, "writeConcern": {"wtimeout": 1000.0}},
         msg="abortTransaction should accept writeConcern.wtimeout:1000.0",
     ),
-    SessionTestCase(
+    CommandTestCase(
         "wtimeout_negative",
-        ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 1})],
-        commit_command={"abortTransaction": 1, "writeConcern": {"wtimeout": -1}},
-        expected_response={"ok": 1.0},
+        command={"abortTransaction": 1, "writeConcern": {"wtimeout": -1}},
         msg="abortTransaction should accept writeConcern.wtimeout:-1",
     ),
-    SessionTestCase(
+    CommandTestCase(
         "wtimeout_string",
-        ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 1})],
-        commit_command={"abortTransaction": 1, "writeConcern": {"wtimeout": "1000"}},
-        expected_response={"ok": 1.0},
+        command={"abortTransaction": 1, "writeConcern": {"wtimeout": "1000"}},
         msg="abortTransaction should accept writeConcern.wtimeout:'1000'",
     ),
-    SessionTestCase(
+    CommandTestCase(
         "wtimeout_bool",
-        ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 1})],
-        commit_command={"abortTransaction": 1, "writeConcern": {"wtimeout": True}},
-        expected_response={"ok": 1.0},
+        command={"abortTransaction": 1, "writeConcern": {"wtimeout": True}},
         msg="abortTransaction should accept writeConcern.wtimeout:true",
     ),
-    SessionTestCase(
+    CommandTestCase(
         "wtimeout_null",
-        ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 1})],
-        commit_command={"abortTransaction": 1, "writeConcern": {"wtimeout": None}},
-        expected_response={"ok": 1.0},
+        command={"abortTransaction": 1, "writeConcern": {"wtimeout": None}},
         msg="abortTransaction should accept writeConcern.wtimeout:null",
     ),
-    SessionTestCase(
+    CommandTestCase(
         "wtimeout_object",
-        ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 1})],
-        commit_command={"abortTransaction": 1, "writeConcern": {"wtimeout": {}}},
-        expected_response={"ok": 1.0},
+        command={"abortTransaction": 1, "writeConcern": {"wtimeout": {}}},
         msg="abortTransaction should accept writeConcern.wtimeout:{}",
     ),
-    SessionTestCase(
+    CommandTestCase(
         "wtimeout_array",
-        ops=[SessionOperation(op=SessionOp.INSERT, document={"_id": 1})],
-        commit_command={"abortTransaction": 1, "writeConcern": {"wtimeout": []}},
-        expected_response={"ok": 1.0},
+        command={"abortTransaction": 1, "writeConcern": {"wtimeout": []}},
         msg="abortTransaction should accept writeConcern.wtimeout:[]",
     ),
 ]
 
-WRITECONCERN_ACCEPTANCE_ALL_TESTS: list[SessionTestCase] = (
+WRITECONCERN_ACCEPTANCE_ALL_TESTS: list[CommandTestCase] = (
     WRITECONCERN_ACCEPTANCE_TESTS
     + W_ACCEPTANCE_TESTS
     + J_ACCEPTANCE_TESTS
@@ -242,5 +186,9 @@ WRITECONCERN_ACCEPTANCE_ALL_TESTS: list[SessionTestCase] = (
 @pytest.mark.parametrize("test", pytest_params(WRITECONCERN_ACCEPTANCE_ALL_TESTS))
 def test_abortTransaction_writeconcern(collection, test):
     """Test abortTransaction writeConcern parameter acceptance in a transaction."""
-    result = execute_session_command(collection, test, abort=True)
-    assertSuccessPartial(result, test.expected_response, msg=test.msg)
+    client = collection.database.client
+    with client.start_session() as session:
+        session.start_transaction()
+        collection.insert_one({"_id": 1}, session=session)
+        result = execute_admin_command(collection, test.command, session=session)
+    assertSuccessPartial(result, {"ok": 1.0}, msg=test.msg)
