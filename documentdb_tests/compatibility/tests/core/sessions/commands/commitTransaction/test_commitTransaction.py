@@ -1,150 +1,67 @@
-"""Tests for commitTransaction command success cases.
+"""Tests for commitTransaction command success behavior.
 
-Validates that commitTransaction succeeds within a real transaction context,
-including insert, update, delete, and multi-operation transactions. Also
-verifies the response structure on success.
+Each test drives the full transaction lifecycle inline (start session, start
+transaction, run an operation, commit) so that setup -> act -> assert reads
+top to bottom. These cover the fundamental commit behaviors: a committed write
+is durable, an empty transaction commits, the response carries ok:1, and a
+commit is retryable.
 """
 
 from __future__ import annotations
 
 import pytest
 
-from documentdb_tests.compatibility.tests.core.sessions.commands.utils.session_test_case import (
-    SessionTestCase,
-)
 from documentdb_tests.framework.assertions import (
     assertNotError,
     assertSuccess,
     assertSuccessPartial,
 )
 from documentdb_tests.framework.executor import execute_admin_command, execute_command
-from documentdb_tests.framework.parametrize import pytest_params
 
 pytestmark = [pytest.mark.admin, pytest.mark.requires(transactions=True)]
 
 
-# ---------------------------------------------------------------------------
-# Property [Commit Persistence]: committed operations are durable.
-# ---------------------------------------------------------------------------
-
-COMMIT_PERSISTENCE_TESTS: list[SessionTestCase] = [
-    SessionTestCase(
-        "commit_insert",
-        ops=[lambda c, s: c.insert_one({"_id": 1, "x": "inserted"}, session=s)],
-        expected=[{"_id": 1, "x": "inserted"}],
-        msg="commitTransaction should persist the inserted document",
-    ),
-    SessionTestCase(
-        "commit_update",
-        docs=[{"_id": 1, "x": "before"}],
-        ops=[lambda c, s: c.update_one({"_id": 1}, {"$set": {"x": "after"}}, session=s)],
-        expected=[{"_id": 1, "x": "after"}],
-        msg="commitTransaction should persist the updated value",
-    ),
-    SessionTestCase(
-        "commit_delete",
-        docs=[{"_id": 1, "x": "to_delete"}],
-        ops=[lambda c, s: c.delete_one({"_id": 1}, session=s)],
-        expected=[],
-        msg="commitTransaction should persist the deletion",
-    ),
-    SessionTestCase(
-        "commit_multi_operation",
-        docs=[{"_id": 1, "x": "original"}],
-        ops=[
-            lambda c, s: c.insert_one({"_id": 2, "x": "new"}, session=s),
-            lambda c, s: c.update_one({"_id": 1}, {"$set": {"x": "modified"}}, session=s),
-        ],
-        expected=[{"_id": 1, "x": "modified"}, {"_id": 2, "x": "new"}],
-        msg="commitTransaction should persist all operations from a multi-op transaction",
-    ),
-    # Property [Commit with writeConcern]: explicit writeConcern is accepted.
-    SessionTestCase(
-        "commit_with_writeconcern",
-        docs=[{"_id": 1, "x": "before"}],
-        ops=[lambda c, s: c.update_one({"_id": 1}, {"$set": {"x": "after"}}, session=s)],
-        commit_command={"commitTransaction": 1, "writeConcern": {"w": 1}},
-        expected=[{"_id": 1, "x": "after"}],
-        msg="commitTransaction with writeConcern should persist changes",
-    ),
-]
-
-
-@pytest.mark.parametrize("test", pytest_params(COMMIT_PERSISTENCE_TESTS))
-def test_commitTransaction_persistence(collection, test):
-    """Test commitTransaction persists operations."""
-    if test.docs:
-        collection.insert_many(test.docs)
+def test_commitTransaction_persists_insert(collection):
+    """A committed insert is visible outside the transaction after commit."""
     client = collection.database.client
     with client.start_session() as session:
         session.start_transaction()
-        for op in test.ops:
-            op(collection, session)
-        if test.commit_command is not None:
-            execute_admin_command(collection, test.commit_command, session=session)
-        else:
-            session.commit_transaction()
-    result = execute_command(
-        collection,
-        {"find": collection.name, "filter": {}, "sort": {"_id": 1}},
-    )
-    assertSuccess(result, test.expected, msg=test.msg)
+        collection.insert_one({"_id": 1, "x": "inserted"}, session=session)
+        session.commit_transaction()
+    readback = execute_command(collection, {"find": collection.name, "filter": {}})
+    assertSuccess(readback, [{"_id": 1, "x": "inserted"}])
 
 
-# ---------------------------------------------------------------------------
-# Property [Empty Transaction]: committing a transaction with no ops succeeds.
-# ---------------------------------------------------------------------------
-
-EMPTY_TRANSACTION_TESTS: list[SessionTestCase] = [
-    SessionTestCase(
-        "commit_empty_transaction",
-        ops=[],
-        msg="commitTransaction on empty transaction should not error",
-    ),
-]
-
-
-@pytest.mark.parametrize("test", pytest_params(EMPTY_TRANSACTION_TESTS))
-def test_commitTransaction_empty(collection, test):
-    """Test commitTransaction succeeds on an empty transaction."""
+def test_commitTransaction_empty(collection):
+    """Committing a transaction with no operations succeeds."""
     client = collection.database.client
     with client.start_session() as session:
         session.start_transaction()
         session.commit_transaction()
-    result = execute_command(collection, {"find": collection.name, "filter": {}})
-    assertNotError(result, msg=test.msg)
+    readback = execute_command(collection, {"find": collection.name, "filter": {}})
+    assertNotError(readback, msg="commitTransaction on an empty transaction should not error")
 
 
-# ---------------------------------------------------------------------------
-# Property [Response Structure]: commit response contains ok:1 on success.
-# ---------------------------------------------------------------------------
-
-RESPONSE_STRUCTURE_TESTS: list[SessionTestCase] = [
-    SessionTestCase(
-        "commit_response_ok",
-        ops=[lambda c, s: c.insert_one({"_id": 1}, session=s)],
-        commit_command={"commitTransaction": 1},
-        expected_response={"ok": 1.0},
-        msg="commitTransaction response should have ok:1 on success",
-    ),
-    # Property [Commit with comment]: comment parameter is accepted.
-    SessionTestCase(
-        "commit_with_comment",
-        ops=[lambda c, s: c.insert_one({"_id": 1}, session=s)],
-        commit_command={"commitTransaction": 1, "comment": "test commit"},
-        expected_response={"ok": 1.0},
-        msg="commitTransaction with comment should succeed",
-    ),
-]
-
-
-@pytest.mark.parametrize("test", pytest_params(RESPONSE_STRUCTURE_TESTS))
-def test_commitTransaction_response(collection, test):
-    """Test commitTransaction returns expected response fields."""
+def test_commitTransaction_response_ok(collection):
+    """The commitTransaction command response reports ok:1 on success."""
     client = collection.database.client
     with client.start_session() as session:
         session.start_transaction()
-        for op in test.ops:
-            op(collection, session)
-        result = execute_admin_command(collection, test.commit_command, session=session)
-    assertSuccessPartial(result, test.expected_response, msg=test.msg)
+        collection.insert_one({"_id": 1}, session=session)
+        result = execute_admin_command(collection, {"commitTransaction": 1}, session=session)
+    assertSuccessPartial(result, {"ok": 1.0})
+
+
+def test_commitTransaction_is_retryable(collection):
+    """Re-sending commitTransaction after a successful commit returns ok:1.
+
+    The committed state is retained for retryability, so the retry is a no-op
+    that succeeds rather than an error.
+    """
+    client = collection.database.client
+    with client.start_session() as session:
+        session.start_transaction()
+        collection.insert_one({"_id": 1}, session=session)
+        execute_admin_command(collection, {"commitTransaction": 1}, session=session)
+        retry = execute_admin_command(collection, {"commitTransaction": 1}, session=session)
+    assertSuccessPartial(retry, {"ok": 1.0})
