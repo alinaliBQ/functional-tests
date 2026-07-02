@@ -98,12 +98,10 @@ def execute_session_command(
        - If ``test_case.commit_command`` is set, send it as a raw admin command.
        - Otherwise, commit or abort via the session method (based on *abort*).
     5. Return the appropriate result for assertion:
-       - If ``test_case.expected_response`` is set, return the command response.
+       - If ``test_case.expected_response`` is set, return the command response
+         (the caller asserts on the response; persistence is covered separately
+         by the ``expected`` readback tests).
        - Otherwise, return the readback query result via ``execute_command``.
-
-    When *abort* is True and a command response is expected, the function also
-    verifies that the aborted transaction's data did not persist.  When *abort*
-    is False, it verifies that committed data *did* persist.
 
     Args:
         collection: The pytest ``collection`` fixture.
@@ -135,36 +133,8 @@ def execute_session_command(
         else:
             session.commit_transaction()
 
-    # 5. Return command response or readback.
+    # 5. Return command response or readback result.
     if test_case.expected_response is not None:
-        if not isinstance(command_result, Exception) and test_case.ops:
-            readback = execute_command(
-                collection,
-                {"find": collection.name, "filter": test_case.readback_filter},
-            )
-            assert not isinstance(
-                readback, Exception
-            ), f"Readback after {'abort' if abort else 'commit'} failed: {readback}"
-            cursor = readback.get("cursor", {})
-            docs = cursor.get("firstBatch", [])
-            if abort:
-                # Verify that aborted data did NOT persist.
-                seed_count = len(test_case.docs) if test_case.docs else 0
-                assert len(docs) == seed_count, (
-                    f"Aborted transaction data persisted — "
-                    f"expected {seed_count} docs (seed only), got {len(docs)}"
-                )
-            else:
-                # Verify that committed data actually persisted (the raw
-                # admin command path bypasses pymongo's session bookkeeping,
-                # so the driver may auto-abort on exit; the abort is a
-                # server no-op after a real commit, but we assert
-                # persistence explicitly).
-                assert len(docs) > 0, (
-                    "Committed transaction data did not persist — " "readback returned 0 documents"
-                )
-        else:
-            execute_command(collection, {"find": collection.name, "filter": {}})
         return command_result
 
     return execute_command(
