@@ -179,29 +179,31 @@ def test_killSessions_real_session(collection):
     """
     client = collection.database.client
     db = collection.database
-    session = client.start_session()
-    lsid = session.session_id["id"]
+    # Use a context manager so the session is always ended, even if an
+    # assertion or command fails partway through.
+    with client.start_session() as session:
+        lsid = session.session_id["id"]
 
-    # Insert enough docs to require a getMore.
-    collection.insert_many([{"_id": i} for i in range(10)], session=session)
+        # Insert enough docs to require a getMore.
+        collection.insert_many([{"_id": i} for i in range(10)], session=session)
 
-    # Open a cursor with a small batch so the first batch doesn't exhaust it.
-    find_result = db.command(
-        {"find": collection.name, "batchSize": 2},
-        session=session,
-    )
-    cursor_id = find_result["cursor"]["id"]
+        # Open a cursor with a small batch so the first batch doesn't exhaust it.
+        find_result = db.command(
+            {"find": collection.name, "batchSize": 2},
+            session=session,
+        )
+        cursor_id = find_result["cursor"]["id"]
 
-    # Kill the session.
-    execute_command(collection, {"killSessions": [{"id": lsid}]})
+        # Kill the session.
+        execute_command(collection, {"killSessions": [{"id": lsid}]})
 
-    # getMore on the killed session's cursor should fail with CursorNotFound,
-    # proving the kill closed the cursor.
-    get_more_result = execute_command(
-        collection,
-        {"getMore": cursor_id, "collection": collection.name},
-        session=session,
-    )
+        # getMore on the killed session's cursor should fail with CursorNotFound,
+        # proving the kill closed the cursor.
+        get_more_result = execute_command(
+            collection,
+            {"getMore": cursor_id, "collection": collection.name},
+            session=session,
+        )
     assertResult(
         get_more_result,
         error_code=CURSOR_NOT_FOUND_ERROR,
